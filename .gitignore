@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.metrics/
+*.log
+.DS_Store
+
+# Personal data must never reach this public repo:
+# backups and exports saved from the tracker.
+trekr-*.json
+*-kopiya-*.json
