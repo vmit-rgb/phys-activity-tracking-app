@@ -5,7 +5,8 @@ import './styles/typography.css';
 import './styles/components.css';
 import { ACCENTS, parseAccent } from './domain/accents';
 import { wireAccordions } from './ui/accordion';
-import { DEFAULT_APPEARANCE, applyAppearance, type Appearance, type Theme } from './ui/appearance';
+import { DEFAULT_APPEARANCE, startAppearance, type Appearance, type Theme } from './ui/appearance';
+import { trackInputModality } from './ui/modality';
 import { ICON_NAMES, iconSvg } from './ui/icons';
 import { mountToast } from './ui/toast';
 
@@ -129,5 +130,7 @@ const read = (): Appearance => ({
   largerTargets: sheet.querySelector<HTMLInputElement>('#targets')!.checked,
 });
 sheet.querySelector<HTMLSelectElement>('#accent')!.value = DEFAULT_APPEARANCE.accent;
-applyAppearance(document.documentElement, DEFAULT_APPEARANCE);
-sheet.addEventListener('change', () => applyAppearance(document.documentElement, read()));
+const root = document.documentElement;
+const apply = startAppearance(root, matchMedia('(prefers-color-scheme: light)'), DEFAULT_APPEARANCE);
+trackInputModality(root);
+sheet.addEventListener('change', () => apply(read()));
