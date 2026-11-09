@@ -3,8 +3,10 @@ import type { Diary } from './diary';
 
 /*
  * «почати без ШІ» (brief, Decisions 2026-11-08): every section filled with
- * examples under neutral names, settings only, no invented log. Texts are
- * Нитка's draft. Format: PROFILE-FORMAT.md, version 1.
+ * examples under neutral names, settings only, no invented log. A light
+ * example (Olesia, 2026-11-09): two morning levels, one daytime zone, one
+ * workout, one kind of movement, one evening question, 2–3 exercises in
+ * each. Texts are Нитка's draft. Format: PROFILE-FORMAT.md, version 1.
  */
 
 const exercise = (n: number) => ({
@@ -27,14 +29,16 @@ const EXAMPLE_PROFILE = {
     weeklyTarget: 5,
     levels: [
       { id: 'level-1', name: 'рівень 1', duration: '5 хв', items: [{ exercise: 'exercise-1', reps: 10 }, { exercise: 'exercise-2', seconds: 30 }] },
-      { id: 'level-2', name: 'рівень 2', duration: '10 хв', items: [{ exercise: 'exercise-3', reps: 12 }] },
+      { id: 'level-2', name: 'рівень 2', duration: '10 хв', items: [
+        { exercise: 'exercise-1', reps: 15 }, { exercise: 'exercise-2', seconds: 45 }, { exercise: 'exercise-3', reps: 10 },
+      ] },
     ],
   },
   daytimeWarmup: {
     enabled: true,
     weeklyTarget: 3,
     hint: 'коли довго сидиш',
-    groups: [{ id: 'back', name: 'для спини', items: [{ exercise: 'exercise-4', reps: 8 }] }],
+    groups: [{ id: 'back', name: 'для спини', items: [{ exercise: 'exercise-4', reps: 8 }, { exercise: 'exercise-5', seconds: 20 }] }],
   },
   workout: {
     enabled: true,
@@ -42,14 +46,9 @@ const EXAMPLE_PROFILE = {
     hint: 'через день',
     sessions: [
       { id: 'a', name: 'а', how: 'розімнися перед початком.', items: [
-        { exercise: 'exercise-5', reps: 10, weight: 5, fields: ['weight', 'reps'] },
-        { set: [
-          { exercise: 'exercise-6', reps: 12, fields: ['reps'] },
-          { exercise: 'exercise-2', seconds: 30, fields: ['seconds'] },
-        ] },
-      ] },
-      { id: 'b', name: 'б', how: 'розімнися перед початком.', items: [
-        { exercise: 'exercise-3', reps: 10, weight: 5, fields: ['weight', 'reps'] },
+        { exercise: 'exercise-6', reps: '10', weight: 5, sets: 3, fields: ['weight', 'reps'] },
+        { exercise: 'exercise-7', reps: '12', sets: 2, fields: ['reps'] },
+        { exercise: 'exercise-8', seconds: 30, fields: ['seconds'] },
       ] },
     ],
   },
@@ -57,15 +56,14 @@ const EXAMPLE_PROFILE = {
     enabled: true,
     weeklyTarget: 3,
     hint: '',
-    kinds: [{ id: 'walk', name: 'ходьба', fields: ['km', 'minutes', 'steps'], source: { type: 'user' } }],
+    kinds: [{ id: 'movement-1', name: 'рух 1', fields: ['km', 'minutes'], source: { type: 'user' } }],
   },
-  exercises: [1, 2, 3, 4, 5, 6].map(exercise),
+  exercises: [1, 2, 3, 4, 5, 6, 7, 8].map(exercise),
   trackers: [
     { id: 'energy', name: 'енергія', hint: '0 — немає сил, 10 — повно сил', kind: 'scale', min: 0, max: 10, ask: ['morning', 'afterWorkout'] },
-    { id: 'hard', name: 'було важко?', kind: 'yesno', ask: ['afterWorkout'] },
     { id: 'pulse', name: 'пульс', kind: 'number', units: ['уд/хв'], ask: ['morning'] },
-    { id: 'pressure', name: 'тиск', kind: 'numbers', units: ['мм рт. ст.', 'мм рт. ст.'], ask: ['morning'] },
-    { id: 'note', name: 'нотатка', kind: 'note', ask: ['evening'] },
+    { id: 'hard', name: 'було важко?', kind: 'yesno', ask: ['afterWorkout'] },
+    { id: 'tired', name: 'втома', hint: '0 — бадьоро, 10 — дуже втомлено', kind: 'scale', min: 0, max: 10, ask: ['evening'] },
   ],
 };
 

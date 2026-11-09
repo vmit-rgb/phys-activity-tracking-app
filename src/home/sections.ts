@@ -220,11 +220,15 @@ function checkInSub(ctx: SectionContext, moment: Moment): string {
 
 /* ---- remove × → ✓, stopwatch ---- */
 
-function removeButton(ctx: SectionContext, target: string, label: string): string {
+function removeButton(ctx: SectionContext, target: string, label: string, idle = false): string {
   const armed = ctx.session.armed === dayKey(ctx, target);
   return `<button type="button" class="ctl icon-btn icon-btn--secondary rm${armed ? ' rm--armed' : ''}" data-act="rm" data-rm="${esc(target)}"
-    aria-label="${armed ? `точно ${label}` : label}">${iconSvg(armed ? 'check' : 'close')}</button>`;
+    aria-label="${armed ? `точно ${label}` : label}"${idle ? ' disabled' : ''}>${iconSvg(armed ? 'check' : 'close')}</button>`;
 }
+
+/** The only timer that never ran has nothing to reset (0.81). */
+const idleTimer = (ctx: SectionContext, target: string, n: number, saved: number | null) =>
+  n === 1 && saved === null && !ctx.session.running.has(dayKey(ctx, target));
 
 const SW_LABELS = {
   default: 'запустити секундомір',
@@ -260,7 +264,7 @@ function timerRounds(ctx: SectionContext, item: WarmupItem): string {
   const rows = Array.from({ length: n }, (_, i) => {
     const target = `round|${item.exercise}|${i}`;
     const label = n > 1 ? `видалити таймер ${i + 1}` : 'скинути таймер до нуля';
-    return `<div class="set-row"><span class="set-row__n t-2nd-regular">${i + 1}</span>${stopwatch(ctx, target, times[i] ?? null, i + 1)}${removeButton(ctx, target, label)}</div>`;
+    return `<div class="set-row"><span class="set-row__n t-2nd-regular">${i + 1}</span>${stopwatch(ctx, target, times[i] ?? null, i + 1)}${removeButton(ctx, target, label, idleTimer(ctx, target, n, times[i] ?? null))}</div>`;
   });
   return `<div class="sets">${rows.join('')}</div>
     <button type="button" class="ctl btn btn--tertiary" data-act="more-rounds" data-ex="${esc(item.exercise)}">ще раз</button>`;
@@ -351,15 +355,16 @@ function setRow(ctx: SectionContext, item: WorkoutItem, i: number, n: number): s
   const target = `set|${item.exercise}|${i}`;
   const timed = item.fields.includes('seconds');
   const seconds = ctx.day.wo?.ex[item.exercise]?.[i]?.s ?? null;
-  const remove = setRemove(ctx, target, timed, i, n);
+  const remove = setRemove(ctx, target, timed, i, n, seconds);
   return `<div class="set-row${timed ? ' set-row--timed' : ''}"><span class="set-row__n t-2nd-regular">${n > 1 ? i + 1 : ''}</span>
     <div class="set-row__main">${timed ? stopwatch(ctx, target, seconds, i + 1) : ''}${setFields(ctx, item, i)}</div>${remove}</div>`;
 }
 
 /** × from the second set; a timer has × always, and the only timer's × resets it. */
-function setRemove(ctx: SectionContext, target: string, timed: boolean, i: number, n: number): string {
+function setRemove(ctx: SectionContext, target: string, timed: boolean, i: number, n: number, seconds: number | null): string {
   if (!timed && i === 0) return '<span class="rm-space" aria-hidden="true"></span>';
-  return removeButton(ctx, target, timed && n === 1 ? 'скинути таймер до нуля' : `видалити підхід ${i + 1}`);
+  if (!timed || n > 1) return removeButton(ctx, target, `видалити підхід ${i + 1}`);
+  return removeButton(ctx, target, 'скинути таймер до нуля', idleTimer(ctx, target, n, seconds));
 }
 
 function workoutExercise(ctx: SectionContext, item: WorkoutItem): string {

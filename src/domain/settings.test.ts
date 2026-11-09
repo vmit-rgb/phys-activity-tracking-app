@@ -14,30 +14,56 @@ describe('readSettings: the example settings («почати без ШІ»)', ()
       { exercise: 'exercise-2', reps: '', seconds: 30 },
     ]);
     expect(settings.daytimeWarmup.groups.map((group) => group.name)).toEqual(['для спини']);
-    expect(settings.workout.sessions.map((session) => session.id)).toEqual(['a', 'b']);
-    expect(settings.workout.sessions[0]!.items[1]).toEqual({
-      set: [
-        { exercise: 'exercise-6', reps: '12', seconds: null, weight: null, sets: null, side: '', fields: ['reps'] },
-        { exercise: 'exercise-2', reps: '', seconds: 30, weight: null, sets: null, side: '', fields: ['seconds'] },
-      ],
-    });
-    expect(settings.movement.kinds[0]).toEqual({ id: 'walk', name: 'ходьба', fields: ['km', 'minutes', 'steps'], source: { type: 'user' } });
+    expect(settings.workout.sessions.map((session) => session.id)).toEqual(['a']);
+    expect(settings.workout.sessions[0]!.items[0]).toEqual(
+      { exercise: 'exercise-6', reps: '10', seconds: null, weight: 5, sets: 3, side: '', fields: ['weight', 'reps'] },
+    );
+    expect(settings.movement.kinds[0]).toEqual({ id: 'movement-1', name: 'рух 1', fields: ['km', 'minutes'], source: { type: 'user' } });
   });
 
-  it('reads every kind of tracker', () => {
-    expect(settings.trackers).toEqual([
-      { id: 'energy', name: 'енергія', hint: '0 — немає сил, 10 — повно сил', ask: ['morning', 'afterWorkout'], kind: 'scale', min: 0, max: 10 },
-      { id: 'hard', name: 'було важко?', hint: '', ask: ['afterWorkout'], kind: 'yesno' },
-      { id: 'pulse', name: 'пульс', hint: '', ask: ['morning'], kind: 'number', unit: 'уд/хв' },
-      { id: 'pressure', name: 'тиск', hint: '', ask: ['morning'], kind: 'numbers', units: ['мм рт. ст.', 'мм рт. ст.'] },
-      { id: 'note', name: 'нотатка', hint: '', ask: ['evening'], kind: 'note' },
-    ]);
+  it('reads its questions', () => {
+    expect(settings.trackers.map((tracker) => `${tracker.id}:${tracker.kind}`)).toEqual(['energy:scale', 'pulse:number', 'hard:yesno', 'tired:scale']);
   });
 
   it('reads the goal and the phrases', () => {
     expect(settings.goal).toEqual({ enabled: true, days: 5, done: ['morningWarmup'] });
     expect(settings.encouragement).toEqual(['ти можеш налаштувати все в налаштуваннях :)']);
     expect(settings.accent).toBe('pink');
+  });
+});
+
+describe('readSettings: groups of exercises and every kind of question', () => {
+  const settings = readSettings({
+    workout: { enabled: true, sessions: [{ id: 's', items: [
+      { exercise: 'a', reps: 10 },
+      { set: [{ exercise: 'b', reps: '12', fields: ['reps'] }, { exercise: 'c', seconds: 30, fields: ['seconds'] }] },
+    ] }] },
+    trackers: [
+      { id: 'energy', name: 'енергія', hint: '0 — немає сил', kind: 'scale', min: 0, max: 10, ask: ['morning', 'afterWorkout'] },
+      { id: 'hard', name: 'було важко?', kind: 'yesno', ask: ['afterWorkout'] },
+      { id: 'pulse', name: 'пульс', kind: 'number', units: ['уд/хв'], ask: ['morning'] },
+      { id: 'pressure', name: 'тиск', kind: 'numbers', units: ['мм рт. ст.', 'мм рт. ст.'], ask: ['morning'] },
+      { id: 'note', name: 'нотатка', kind: 'note', ask: ['evening'] },
+    ],
+  });
+
+  it('reads a group of exercises in a workout', () => {
+    expect(settings.workout.sessions[0]!.items[1]).toEqual({
+      set: [
+        { exercise: 'b', reps: '12', seconds: null, weight: null, sets: null, side: '', fields: ['reps'] },
+        { exercise: 'c', reps: '', seconds: 30, weight: null, sets: null, side: '', fields: ['seconds'] },
+      ],
+    });
+  });
+
+  it('reads every kind of tracker', () => {
+    expect(settings.trackers).toEqual([
+      { id: 'energy', name: 'енергія', hint: '0 — немає сил', ask: ['morning', 'afterWorkout'], kind: 'scale', min: 0, max: 10 },
+      { id: 'hard', name: 'було важко?', hint: '', ask: ['afterWorkout'], kind: 'yesno' },
+      { id: 'pulse', name: 'пульс', hint: '', ask: ['morning'], kind: 'number', unit: 'уд/хв' },
+      { id: 'pressure', name: 'тиск', hint: '', ask: ['morning'], kind: 'numbers', units: ['мм рт. ст.', 'мм рт. ст.'] },
+      { id: 'note', name: 'нотатка', hint: '', ask: ['evening'], kind: 'note' },
+    ]);
   });
 });
 

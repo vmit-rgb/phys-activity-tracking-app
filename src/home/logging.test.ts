@@ -148,6 +148,12 @@ describe('morning warm-up', () => {
     expect(toastText()).toBe('таймер видалено');
   });
 
+  it('× on the only timer has nothing to reset before it runs', () => {
+    expect(byLabel('скинути таймер до нуля').disabled).toBe(true);
+    byLabel('запустити секундомір, 1').click();
+    expect(byLabel('скинути таймер до нуля').disabled).toBe(false);
+  });
+
   it('× on the only timer resets it after a second tap, with «скасувати»', () => {
     start({ [TODAY]: readDay({ mw: { times: { t: [20] } } }, TODAY) });
     byLabel('скинути таймер до нуля').click();
