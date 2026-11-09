@@ -35,9 +35,9 @@ const toastText = () => document.querySelector<HTMLElement>('.toast:not([hidden]
 const click = (selector: string) => host.querySelector<HTMLElement>(selector)!.click();
 const stored = () => diaryStore(localStorage, () => new Date()).load();
 
-async function restoreFile(text: string): Promise<void> {
+async function restoreFile(text: string, file: File = new File([text], 'trekr-kopiya.json')): Promise<void> {
   const input = host.querySelector<HTMLInputElement>('[data-restore-file]')!;
-  Object.defineProperty(input, 'files', { configurable: true, value: [new File([text], 'trekr-kopiya.json')] });
+  Object.defineProperty(input, 'files', { configurable: true, value: [file] });
   input.dispatchEvent(new Event('change'));
   await vi.waitFor(() => expect(toastText()).toBeTruthy());
 }
@@ -110,6 +110,14 @@ describe('first launch in the installed app', () => {
     expect(toastText()).toBe('цей файл не схожий на копію з трекера >_<');
     expect(stored()).toBeNull();
     expect(heading()).toBe('привіт! почнімо з налаштувань :)');
+  });
+
+  it('says the file is not a copy when the phone cannot read it', async () => {
+    const unreadable = new File([''], 'trekr-kopiya.json');
+    unreadable.text = () => Promise.reject(new Error('NotReadableError'));
+    await restoreFile('', unreadable);
+    expect(toastText()).toBe('цей файл не схожий на копію з трекера >_<');
+    expect(stored()).toBeNull();
   });
 
   it('does nothing when no file was picked', () => {

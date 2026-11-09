@@ -34,3 +34,12 @@ export function staleCaches(names: readonly string[], version: string): string[]
 export function servesFromCache(request: { method: string; url: string }, scope: string): boolean {
   return request.method === 'GET' && request.url.startsWith(scope);
 }
+
+/** Writes the offline list and the version into the built worker; a placeholder left over fails the build. */
+export function fillWorker(code: string, list: readonly string[], version: string): string {
+  const filled = code
+    .replaceAll('__PRECACHE__', JSON.stringify(list))
+    .replaceAll('__VERSION__', JSON.stringify(version));
+  if (/__[A-Z]+__/.test(filled)) throw new Error('sw.js still has a placeholder');
+  return filled;
+}

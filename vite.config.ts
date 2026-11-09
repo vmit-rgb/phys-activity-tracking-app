@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
-import type { Plugin } from 'vite';
+import type { Plugin, Rollup } from 'vite';
 import { defineConfig } from 'vitest/config';
-import { precacheList } from './src/pwa/cache';
+import { fillWorker, precacheList } from './src/pwa/cache';
 
 const PUBLIC_DIR = 'public';
 
@@ -13,10 +13,20 @@ function filesIn(dir: string): string[] {
     .map((entry) => relative(PUBLIC_DIR, join(entry.parentPath, entry.name)).split(sep).join('/'));
 }
 
+function isChunk(file: Rollup.OutputAsset | Rollup.OutputChunk | undefined): file is Rollup.OutputChunk {
+  return file?.type === 'chunk';
+}
+
+/** A hash of every file the worker caches, so any change makes a new worker. */
+function versionOf(list: readonly string[], staticFiles: readonly string[]): string {
+  const hash = createHash('sha256').update(list.join('\n'));
+  staticFiles.forEach((file) => hash.update(readFileSync(join(PUBLIC_DIR, file))));
+  return hash.digest('hex').slice(0, 12);
+}
+
 /**
- * Writes the offline file list and a version into sw.js. The version is a
- * hash of every file it caches, so any change makes a new worker, and the
- * app then offers «є нова версія :)».
+ * Writes the offline file list and the version into sw.js, so a new build
+ * makes the app offer «є нова версія :)».
  */
 function serviceWorkerManifest(): Plugin {
   return {
@@ -24,15 +34,10 @@ function serviceWorkerManifest(): Plugin {
     apply: 'build',
     generateBundle(_options, bundle) {
       const worker = bundle['sw.js'];
-      if (worker?.type !== 'chunk') throw new Error('sw.js is missing from the build');
+      if (!isChunk(worker)) throw new Error('sw.js is missing from the build');
       const staticFiles = filesIn(PUBLIC_DIR);
       const list = precacheList(Object.keys(bundle), staticFiles);
-      const hash = createHash('sha256').update(list.join('\n'));
-      for (const file of staticFiles) hash.update(readFileSync(join(PUBLIC_DIR, file)));
-      worker.code = worker.code
-        .replaceAll('__PRECACHE__', JSON.stringify(list))
-        .replaceAll('__VERSION__', JSON.stringify(hash.digest('hex').slice(0, 12)));
-      if (/__[A-Z]+__/.test(worker.code)) throw new Error('sw.js still has a placeholder');
+      worker.code = fillWorker(worker.code, list, versionOf(list, staticFiles));
     },
   };
 }
