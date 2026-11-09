@@ -9,6 +9,7 @@ export interface KeyValue {
 export const DIARY_KEY = 'phys-activity-tracking-app/diary';
 const UNREADABLE_KEY = `${DIARY_KEY}/unreadable`;
 const BROWSER_KEY = 'phys-activity-tracking-app/browser-chosen';
+const SECTION_KEY = 'phys-activity-tracking-app/section-closed/';
 
 export interface DiaryStore {
   load(): Diary | null;
@@ -37,5 +38,19 @@ export function browserChoice(storage: KeyValue): { chosen(): boolean; choose():
   return {
     chosen: () => storage.getItem(BROWSER_KEY) === 'yes',
     choose: () => storage.setItem(BROWSER_KEY, 'yes'),
+  };
+}
+
+/** Which home sections the person closed; a section is open until then. Kept on this phone only, not in the copy. */
+export function sectionMemory(storage: KeyValue): { open(id: string): boolean; remember(id: string, open: boolean): void } {
+  return {
+    open: (id) => storage.getItem(SECTION_KEY + id) !== 'yes',
+    remember(id, open) {
+      try {
+        storage.setItem(SECTION_KEY + id, open ? 'no' : 'yes');
+      } catch {
+        // a full phone only forgets which sections were closed
+      }
+    },
   };
 }

@@ -54,6 +54,10 @@ describe('readDay', () => {
     });
   });
 
+  it('drops an exercise whose sets are not a list', () => {
+    expect(readDay({ wo: { session: 'a', ex: { x: 'три', y: [{ r: 5 }] } } }, DATE).wo!.ex).toEqual({ y: [{ w: null, r: 5, s: null }] });
+  });
+
   it('keeps a picked workout even before any set is logged', () => {
     expect(readDay({ wo: { session: 'b' } }, DATE).wo).toEqual({ session: 'b', ex: {}, rows: {} });
   });

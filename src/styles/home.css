@@ -1,0 +1,125 @@
+/*
+ * Home (Figma screen/home-default 73:2601): the hero, the sections 8 px
+ * apart, the footer; the fixed bottom bar (navigation 189:6897) and
+ * «вгору» (button/to-top 288:10620).
+ */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding-bottom: calc(var(--pad-bottom-bar) + 24px + env(safe-area-inset-bottom));
+}
+
+/* the place of the ASCII scene (stage 7); the phrase sits at its bottom */
+.hero {
+  display: flex;
+  align-items: flex-end;
+  min-height: 299px;
+  padding: max(var(--pad-screen-top), env(safe-area-inset-top)) var(--pad-screen-x) 16px;
+}
+.hero__text {
+  width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 15%), 0 1px 2px rgb(0 0 0 / 30%);
+}
+.hero__text--past {
+  letter-spacing: 0;
+  white-space: pre-line;
+}
+
+.home__sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.home-section {
+  border-top: var(--stroke-4) solid var(--accent);
+  border-bottom: var(--stroke-4) solid var(--accent);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 25%);
+}
+.home-section__heading {
+  margin: 0;
+  font: inherit;
+}
+.home-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+  padding: var(--gap-section) var(--pad-screen-x);
+  background: var(--panel);
+}
+.home-section__body[hidden] {
+  display: none;
+}
+
+/* ---- bottom bar ---- */
+.bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 8px max(var(--pad-screen-x), (100% - var(--content-max)) / 2 + var(--pad-screen-x)) max(8px, env(safe-area-inset-bottom));
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 2px 6px 2px rgb(0 0 0 / 15%);
+}
+.bar--hidden {
+  transform: translateY(100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bar {
+    transition: transform 240ms ease-out;
+  }
+}
+.bar__menu {
+  min-width: 75px;
+  min-height: 75px;
+}
+.bar__menu .icon {
+  width: 39px;
+  height: 39px;
+}
+.bar__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: var(--gap-nano);
+  align-self: stretch;
+}
+.bar__goal {
+  width: 100%;
+  padding-left: 40px;
+}
+.bar__goal[hidden] {
+  display: none;
+}
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-items);
+}
+.date-nav__date {
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* «вгору»: floats bottom right, just above the bar */
+.to-top {
+  position: fixed;
+  right: max(var(--pad-screen-x), (100% - var(--content-max)) / 2 + var(--pad-screen-x));
+  bottom: calc(99px + env(safe-area-inset-bottom));
+  z-index: 50;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+}
+.to-top[hidden] {
+  display: none;
+}

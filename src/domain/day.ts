@@ -101,9 +101,8 @@ export function readDay(value: unknown, date: DayKey): Day {
 
 /** Sets without anything in them at the end of the list are left out, as 0.81 does. */
 function trimSets(sets: readonly SetLog[]): SetLog[] {
-  const kept = [...sets];
-  while (kept.length && !hasSet(kept[kept.length - 1]!)) kept.pop();
-  return kept;
+  const last = sets.reduce((found, set, index) => (hasSet(set) ? index : found), -1);
+  return sets.slice(0, last + 1);
 }
 
 const someTime = (times: Day['mw']['times']) => Object.values(times).some((list) => list.some((x) => x !== null));

@@ -3,7 +3,7 @@ import type { DayKey } from '../domain/dates';
 import { readDay } from '../domain/day';
 import { serializeDiary, type Diary } from '../domain/diary';
 import { EXAMPLE_DIARY } from '../domain/examples';
-import { browserChoice, diaryStore, type KeyValue } from '../storage/store';
+import { browserChoice, diaryStore, sectionMemory, type KeyValue } from '../storage/store';
 import { mountToast } from '../ui/toast';
 import { startApp, type AppEnv } from './app';
 
@@ -28,6 +28,8 @@ function start(over: Partial<AppEnv> = {}, storage: KeyValue = localStorage): vo
     installed: true,
     toast: mountToast(document.body),
     onDiary,
+    today: () => '2026-11-09' as DayKey,
+    sections: sectionMemory(localStorage),
     ...over,
   });
 }
@@ -96,14 +98,15 @@ describe('first launch in the installed app', () => {
     click('[data-start-without-ai]');
     expect(stored()).toEqual(EXAMPLE_DIARY);
     expect(onDiary).toHaveBeenCalledWith(EXAMPLE_DIARY);
-    expect(heading()).toBe('налаштування збережено');
+    expect(heading()).toBe('головна');
+    expect(host.querySelector('.hero__text')!.textContent).toBe('ти можеш налаштувати все в налаштуваннях :)');
   });
 
   it('restores a copy from «бета 0.81» with its days', async () => {
     await restoreFile(COPY_081);
     expect(toastText()).toBe('відновлено з файлу :)');
     expect(Object.keys(stored()!.days)).toEqual(['2026-11-07']);
-    expect(heading()).toBe('налаштування збережено');
+    expect(heading()).toBe('головна');
     expect(onDiary).toHaveBeenCalledTimes(1);
   });
 
@@ -165,8 +168,27 @@ describe('coming back', () => {
   it('opens straight on the saved diary and applies it', () => {
     diaryStore(localStorage, () => new Date()).save(EXAMPLE_DIARY);
     start({ installed: false });
-    expect(heading()).toBe('налаштування збережено');
+    expect(heading()).toBe('головна');
     expect(onDiary).toHaveBeenCalledWith(EXAMPLE_DIARY);
+  });
+});
+
+describe('home', () => {
+  beforeEach(() => {
+    diaryStore(localStorage, () => new Date()).save(EXAMPLE_DIARY);
+    start();
+  });
+
+  it('opens on today and goes to the previous day', () => {
+    expect(host.querySelector('.date-nav__date [aria-hidden]')!.textContent).toBe('пн, 09.11.2026');
+    click('[aria-label="попередній день"]');
+    expect(host.querySelector('.date-nav__date [aria-hidden]')!.textContent).toBe('нд, 08.11.2026');
+    expect(host.querySelector('.hero__text')!.textContent).toContain('це запис за нд, 08.11.2026.');
+  });
+
+  it('says the menu is coming soon', () => {
+    click('.bar__menu');
+    expect(toastText()).toBe('меню ще робимо, скоро буде :)');
   });
 });
 

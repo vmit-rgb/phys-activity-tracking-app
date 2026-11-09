@@ -100,6 +100,18 @@ describe('readSettings: missing or broken parts', () => {
     ]);
   });
 
+  it('drops warm-up items without an exercise and reads missing units as empty', () => {
+    const settings = readSettings({
+      daytimeWarmup: { enabled: true, groups: [{ id: 'g', items: [{ reps: 3 }, { exercise: 'e', reps: 3 }] }] },
+      trackers: [{ id: 'p', kind: 'number' }, { id: 'q', kind: 'numbers' }],
+    });
+    expect(settings.daytimeWarmup.groups[0]!.items).toEqual([{ exercise: 'e', reps: '3', seconds: null }]);
+    expect(settings.trackers).toEqual([
+      { id: 'p', name: '', hint: '', ask: [], kind: 'number', unit: '' },
+      { id: 'q', name: '', hint: '', ask: [], kind: 'numbers', units: ['', ''] },
+    ]);
+  });
+
   it('gives a movement kind minutes when it has no fields', () => {
     const settings = readSettings({ movement: { enabled: true, kinds: [{ id: 'swim', name: 'плавання', fields: [] }], hint: 'хоч трохи' } });
     expect(settings.movement).toEqual({ enabled: true, weeklyTarget: 0, hint: 'хоч трохи', kinds: [{ id: 'swim', name: 'плавання', fields: ['minutes'], source: { type: 'user' } }] });

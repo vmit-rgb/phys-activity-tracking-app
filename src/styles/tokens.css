@@ -24,6 +24,8 @@
   --disabled: #5d5d5d;
   --disabled-on: #282c2a;
   --scrim-shadow: rgb(0 0 0 / 25%);
+  /* color/background/design-section: the body of a home section */
+  --panel: rgb(18 20 19 / 55%);
 
   --accent: rgb(var(--accent-rgb));
   --surface: rgb(var(--accent-rgb) / 5%);
@@ -72,6 +74,7 @@
   --err: #b3261e;
   --disabled: #959595;
   --disabled-on: #ffffff;
+  --panel: rgb(255 255 255 / 50%);
 }
 
 :root[data-larger-text] {

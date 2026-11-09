@@ -34,6 +34,16 @@ describe('accordion', () => {
     expect(panel().hidden).toBe(true);
   });
 
+  it('tells who listens about every change', () => {
+    const heard: [string, boolean][] = [];
+    const other = document.createElement('div');
+    other.innerHTML = root.innerHTML;
+    wireAccordions(other, (button, expanded) => heard.push([button.id, expanded]));
+    other.querySelector<HTMLButtonElement>('#t')!.click();
+    other.querySelector<HTMLButtonElement>('#t')!.click();
+    expect(heard).toEqual([['t', true], ['t', false]]);
+  });
+
   it('ignores taps outside the triggers', () => {
     panel().click();
     expect(panel().hidden).toBe(true);
