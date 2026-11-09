@@ -6,15 +6,24 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: false,
+    rollupOptions: {
+      // components.html: the living component sheet, to check the build on a phone
+      input: {
+        app: 'index.html',
+        components: 'components.html',
+      },
+    },
   },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],
+    // tokens.css is read as text by a test; other CSS stays out of the tests
+    css: { include: [/\/tokens\.css/] },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/main.ts'],
+      exclude: ['src/**/*.test.ts', 'src/main.ts', 'src/components-page.ts'],
     },
   },
 });

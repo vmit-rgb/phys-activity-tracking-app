@@ -1,15 +1,4 @@
-:root {
-  color-scheme: dark;
-  --bg: #161616;
-  --ink: #e9e9e9;
-  --muted: #c6b1b6;
-  font-family: 'Noto Sans Mono', ui-monospace, monospace;
-}
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-}
+/* Placeholder shell until the first screen arrives (stage 4). */
 .shell {
   min-height: 70vh;
   display: grid;
