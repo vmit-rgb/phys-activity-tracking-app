@@ -1,4 +1,5 @@
-export type Platform = 'android' | 'iphone' | 'unknown';
+export type Phone = 'android' | 'iphone';
+export type Platform = Phone | 'unknown';
 
 export interface DeviceHints {
   userAgent: string;
