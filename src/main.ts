@@ -10,7 +10,7 @@ import { startApp } from './app/app';
 import { detectPlatform, isInstalled } from './app/start';
 import { diaryAccent } from './domain/diary';
 import { dayKeyOf } from './domain/dates';
-import { browserChoice, diaryStore, sectionMemory } from './storage/store';
+import { browserChoice, diaryStore, sectionMemory, storageFor } from './storage/store';
 import { DEFAULT_APPEARANCE, startAppearance } from './ui/appearance';
 import { trackInputModality } from './ui/modality';
 import { watchForUpdates } from './pwa/updates';
@@ -22,19 +22,21 @@ const applyAppearance = startAppearance(root, matchMedia('(prefers-color-scheme:
 trackInputModality(root);
 
 const toast = mountToast(document.body);
+const installed = isInstalled((query) => matchMedia(query), navigator as { standalone?: boolean });
+const storage = storageFor(installed, { local: localStorage, session: sessionStorage });
 startApp({
   host: document.querySelector<HTMLElement>('#app')!,
-  store: diaryStore(localStorage, () => new Date()),
-  browser: browserChoice(localStorage),
+  store: diaryStore(storage, () => new Date()),
+  browser: browserChoice(storage),
   platform: detectPlatform(navigator),
-  installed: isInstalled((query) => matchMedia(query), navigator as { standalone?: boolean }),
+  installed,
   toast,
   today: () => dayKeyOf(new Date()),
-  sections: sectionMemory(localStorage),
+  sections: sectionMemory(storage),
   onDiary: (diary) => {
     applyAppearance({ ...DEFAULT_APPEARANCE, accent: diaryAccent(diary) });
-    // ask the browser not to clear the diary when space runs low
-    void navigator.storage?.persist?.();
+    // ask the browser not to clear the diary when space runs low (a tab keeps nothing anyway)
+    if (installed) void navigator.storage?.persist?.();
   },
   whenHidden: (save) => {
     addEventListener('pagehide', save);

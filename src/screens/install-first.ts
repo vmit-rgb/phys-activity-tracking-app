@@ -35,7 +35,7 @@ const MARKUP = `
     <section class="screen__section screen__section--tight" aria-label="без встановлення">
       <div class="option">
         <button type="button" class="ctl btn btn--tertiary" data-use-browser>подивитися тут, без встановлення</button>
-        <p class="t-3rd-regular muted">записи тоді зберігатимуться в цьому браузері, а не в застосунку.</p>
+        <p class="t-3rd-regular muted">без встановлення записи не зберігаються: закриєш вкладку — і все зникне.</p>
       </div>
     </section>
   </div>`;
