@@ -61,7 +61,7 @@ const EXAMPLE_PROFILE = {
   exercises: [1, 2, 3, 4, 5, 6, 7, 8].map(exercise),
   trackers: [
     { id: 'energy', name: 'енергія', hint: '0 — немає сил, 10 — повно сил', kind: 'scale', min: 0, max: 10, ask: ['morning', 'afterWorkout'] },
-    { id: 'pulse', name: 'пульс', kind: 'number', units: ['уд/хв'], ask: ['morning'] },
+    { id: 'pulse', name: 'пульс', kind: 'number', units: ['уд/хв'], ask: ['morning'], timer: { enabled: true, seconds: 30 } },
     { id: 'hard', name: 'було важко?', kind: 'yesno', ask: ['afterWorkout'] },
     { id: 'tired', name: 'втома', hint: '0 — бадьоро, 10 — дуже втомлено', kind: 'scale', min: 0, max: 10, ask: ['evening'] },
   ],

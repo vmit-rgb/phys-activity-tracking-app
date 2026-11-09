@@ -25,6 +25,10 @@ describe('readSettings: the example settings («почати без ШІ»)', ()
     expect(settings.trackers.map((tracker) => `${tracker.id}:${tracker.kind}`)).toEqual(['energy:scale', 'pulse:number', 'hard:yesno', 'tired:scale']);
   });
 
+  it('has the pulse timer on, 30 s, so it can be tried (Olesia, 2026-11-09)', () => {
+    expect(settings.trackers[1]).toMatchObject({ id: 'pulse', timer: 30 });
+  });
+
   it('reads the goal and the phrases', () => {
     expect(settings.goal).toEqual({ enabled: true, days: 5, done: ['morningWarmup'] });
     expect(settings.encouragement).toEqual(['ти можеш налаштувати все в налаштуваннях :)']);
@@ -60,10 +64,23 @@ describe('readSettings: groups of exercises and every kind of question', () => {
     expect(settings.trackers).toEqual([
       { id: 'energy', name: 'енергія', hint: '0 — немає сил', ask: ['morning', 'afterWorkout'], kind: 'scale', min: 0, max: 10 },
       { id: 'hard', name: 'було важко?', hint: '', ask: ['afterWorkout'], kind: 'yesno' },
-      { id: 'pulse', name: 'пульс', hint: '', ask: ['morning'], kind: 'number', unit: 'уд/хв' },
+      { id: 'pulse', name: 'пульс', hint: '', ask: ['morning'], kind: 'number', unit: 'уд/хв', timer: null },
       { id: 'pressure', name: 'тиск', hint: '', ask: ['morning'], kind: 'numbers', units: ['мм рт. ст.', 'мм рт. ст.'] },
       { id: 'note', name: 'нотатка', hint: '', ask: ['evening'], kind: 'note' },
     ]);
+  });
+
+  it('reads the pulse timer of a one-number tracker: 15, 30 or 60 s (PROFILE-FORMAT, 2026-11-08)', () => {
+    const timer = (value: unknown) => {
+      const [tracker] = readSettings({ trackers: [{ id: 'p', kind: 'number', timer: value }] }).trackers;
+      return tracker?.kind === 'number' ? tracker.timer : 'not a number tracker';
+    };
+    expect(timer({ enabled: true, seconds: 15 })).toBe(15);
+    expect(timer({ enabled: true, seconds: 60 })).toBe(60);
+    expect(timer({ enabled: true, seconds: 45 })).toBe(30);
+    expect(timer({ enabled: true })).toBe(30);
+    expect(timer({ enabled: false, seconds: 15 })).toBeNull();
+    expect(timer(undefined)).toBeNull();
   });
 });
 
@@ -133,7 +150,7 @@ describe('readSettings: missing or broken parts', () => {
     });
     expect(settings.daytimeWarmup.groups[0]!.items).toEqual([{ exercise: 'e', reps: '3', seconds: null }]);
     expect(settings.trackers).toEqual([
-      { id: 'p', name: '', hint: '', ask: [], kind: 'number', unit: '' },
+      { id: 'p', name: '', hint: '', ask: [], kind: 'number', unit: '', timer: null },
       { id: 'q', name: '', hint: '', ask: [], kind: 'numbers', units: ['', ''] },
     ]);
   });

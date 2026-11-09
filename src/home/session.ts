@@ -1,4 +1,5 @@
 import type { Moment } from '../domain/settings';
+import type { MonthKey } from '../domain/stats';
 
 /**
  * What the home screen keeps while the app is open but never stores:
@@ -21,12 +22,40 @@ export interface HomeSession {
   flush: () => void;
   /** The 20 s autosave of the drafts (ACCESSIBILITY.md, slider). */
   timer: ReturnType<typeof setTimeout> | undefined;
+  /** The month the calendar shows; null follows the day shown. */
+  month: MonthKey | null;
+  /** The pulse timer in use, if any (one at a time: both hands are busy). */
+  pulse: PulseRun | null;
+  /** What the end of the countdown does; set by the screen shown. */
+  pulseEnd: () => void;
 }
 
 export interface Draft { readonly moment: Moment; readonly tracker: string; readonly value: number }
 
+/**
+ * The pulse timer (ACCESSIBILITY.md, Figma `tracker/pulse-timer`):
+ * counting → beats (how many?) → done (the result, until the day changes).
+ */
+export interface PulseRun {
+  readonly key: string;
+  readonly seconds: number;
+  readonly phase: 'counting' | 'beats' | 'done';
+  /** When the countdown ends, as Date.now(). */
+  readonly ends: number;
+  readonly beats: number | null;
+}
+
 export function homeSession(): HomeSession {
-  return { open: new Map(), armed: null, running: new Map(), retry: new Set(), drafts: new Map(), flush: () => {}, timer: undefined };
+  return {
+    open: new Map(), armed: null, running: new Map(), retry: new Set(), drafts: new Map(), flush: () => {}, timer: undefined,
+    month: null, pulse: null, pulseEnd: () => {},
+  };
+}
+
+/** «0:18» */
+export function formatCountdown(ms: number): string {
+  const seconds = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
 /** «01.24.37»: minutes, seconds, hundredths (Figma `stopwatch`). */

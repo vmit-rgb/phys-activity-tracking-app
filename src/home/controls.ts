@@ -6,7 +6,9 @@ import {
 import { parseNumber } from '../domain/numbers';
 import { MOMENTS, type Moment, type Settings, type WorkoutItem } from '../domain/settings';
 import { undo, type ToastMessage } from '../ui/toast';
+import { bpm } from '../domain/stats';
 import type { HomeSession } from './session';
+import { prepareSound } from './signal';
 
 /*
  * What a tap or a keystroke inside the sections does. The markup
@@ -153,6 +155,31 @@ function saveDraft(c: SectionControls, element: HTMLElement): void {
   if (draft) c.edit(answer(draft.moment, draft.tracker, draft.value), true);
 }
 
+/* ---- pulse timer: count down, ask for the beats, save beats per minute ---- */
+
+function startPulse(c: SectionControls, element: HTMLElement): void {
+  const tracker = c.settings.trackers.find((t) => t.id === data(element, 'tracker'));
+  if (tracker?.kind !== 'number' || tracker.timer === null) return;
+  const seconds = tracker.timer;
+  prepareSound();
+  c.session.pulse = { key: dayKey(c, `pulse|${moment(element)}|${tracker.id}`), seconds, phase: 'counting', ends: Date.now() + seconds * 1000, beats: null };
+  setTimeout(() => c.session.pulseEnd(), seconds * 1000);
+  c.render();
+}
+
+function finishPulse(c: SectionControls, element: HTMLElement): void {
+  const run = c.session.pulse;
+  const field = element.closest('[data-pulse]')?.querySelector<HTMLInputElement>('[data-input="beats"]');
+  const beats = parseNumber(field?.value ?? '');
+  if (!run || beats === null || beats <= 0) {
+    field?.focus();
+    return;
+  }
+  const counted = Math.round(beats);
+  c.session.pulse = { ...run, phase: 'done', beats: counted };
+  c.edit(answer(moment(element), data(element, 'tracker'), bpm(counted, run.seconds)), true);
+}
+
 /* ---- taps ---- */
 
 type Tap = (c: SectionControls, element: HTMLElement) => void;
@@ -174,6 +201,8 @@ const TAPS: Record<string, Tap> = {
   'slide-save': saveDraft,
   'slide-reset': (c, el) => c.edit(answer(moment(el), data(el, 'tracker'), null), true),
   'ai-tip': (c) => c.toast(AI_LINK),
+  'pulse-start': startPulse,
+  'pulse-done': finishPulse,
 };
 
 /* ---- typing ---- */

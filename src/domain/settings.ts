@@ -62,11 +62,15 @@ export interface Session { readonly id: string; readonly name: string; readonly 
 export type MovementField = 'km' | 'minutes' | 'steps';
 export interface MovementKind { readonly id: string; readonly name: string; readonly fields: readonly MovementField[]; readonly source: Source }
 
+/** The pulse timer's countdown (ACCESSIBILITY.md: 15 / 30 / 60 s). */
+export const PULSE_SECONDS = [15, 30, 60] as const;
+export type PulseSeconds = (typeof PULSE_SECONDS)[number];
+
 interface TrackerBase { readonly id: string; readonly name: string; readonly hint: string; readonly ask: readonly Moment[] }
 export type Tracker = TrackerBase & (
   | { readonly kind: 'scale'; readonly min: number; readonly max: number }
   | { readonly kind: 'yesno' }
-  | { readonly kind: 'number'; readonly unit: string }
+  | { readonly kind: 'number'; readonly unit: string; readonly timer: PulseSeconds | null }
   | { readonly kind: 'numbers'; readonly units: readonly [string, string] }
   | { readonly kind: 'note' }
 );
@@ -155,6 +159,13 @@ function readWorkoutEntries(value: unknown): WorkoutEntry[] {
 
 const MOVEMENT_FIELDS: readonly MovementField[] = ['km', 'minutes', 'steps'];
 
+/** `timer: { enabled, seconds }` on a one-number tracker (PROFILE-FORMAT, 2026-11-08); an odd length counts 30 s. */
+function readTimer(value: unknown): PulseSeconds | null {
+  const timer = raw(value);
+  if (timer.enabled !== true) return null;
+  return PULSE_SECONDS.find((seconds) => seconds === timer.seconds) ?? 30;
+}
+
 function readTracker(entry: Raw, trackerId: string): Tracker {
   const base = { id: trackerId, name: text(entry.name), hint: text(entry.hint), ask: pick(MOMENTS, entry.ask) };
   const units = list(entry.units).map(text);
@@ -163,7 +174,7 @@ function readTracker(entry: Raw, trackerId: string): Tracker {
     case 'note':
       return { ...base, kind: entry.kind };
     case 'number':
-      return { ...base, kind: 'number', unit: units[0] ?? '' };
+      return { ...base, kind: 'number', unit: units[0] ?? '', timer: readTimer(entry.timer) };
     case 'numbers':
       return { ...base, kind: 'numbers', units: [units[0] ?? '', units[1] ?? ''] };
     default:
