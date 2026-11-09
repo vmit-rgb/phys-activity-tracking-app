@@ -1,5 +1,5 @@
 import { addDays, mondayOf, type DayKey } from './dates';
-import type { Day } from './day';
+import { hasLap, hasSet, type Day } from './day';
 import type { ActivityKind, Level, Settings } from './settings';
 
 /*
@@ -13,15 +13,14 @@ export function levelDone(day: Day, level: Level): boolean {
   return level.items.length > 0 && level.items.every((item) => day.mw.ticks.includes(item.exercise));
 }
 
-const hasSets = (day: Day) => day.wo !== null
-  && Object.values(day.wo.ex).some((sets) => sets.some((set) => set.w !== null || set.r !== null || set.s !== null));
+const hasSets = (day: Day) => day.wo !== null && Object.values(day.wo.ex).some((sets) => sets.some(hasSet));
 
 export function kindDone(day: Day, kind: ActivityKind, settings: Settings): boolean {
   switch (kind) {
     case 'morningWarmup': return settings.morningWarmup.levels.some((level) => levelDone(day, level));
     case 'daytimeWarmup': return day.dw.length > 0;
     case 'workout': return hasSets(day);
-    case 'movement': return Object.keys(day.mv).length > 0;
+    case 'movement': return Object.values(day.mv).some((laps) => laps.some(hasLap));
   }
 }
 

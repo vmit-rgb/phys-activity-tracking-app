@@ -19,7 +19,7 @@ const stored = {
 
 describe('readDay', () => {
   it('reads a day saved by «бета 0.81» as it is', () => {
-    expect(readDay(stored, DATE)).toEqual({ ...stored, v: undefined });
+    expect(readDay(stored, DATE)).toEqual({ ...stored, v: undefined, mv: { walk: [{ km: 3.2, min: 40, steps: null }] } });
   });
 
   it('gives an empty day for nothing or for something else', () => {
@@ -78,7 +78,7 @@ describe('hasData', () => {
     ['a ticked exercise', { mw: { ticks: ['a'], times: {}, rows: {} } }],
     ['a daytime chip', { dw: ['back'] }],
     ['a picked workout', { wo: { session: 'a', ex: {}, rows: {} } }],
-    ['movement', { mv: { walk: { km: null, min: 5, steps: null } } }],
+    ['movement', { mv: { walk: [{ km: null, min: 5, steps: null }] } }],
   ])('is true with %s', (_case, part) => {
     expect(hasData(withPart(part))).toBe(true);
   });
@@ -106,5 +106,31 @@ describe('writeDay', () => {
       t: { evening: { note: 'ок' } },
       wo: { session: 'a', ex: { x: [{ w: 5, r: null, s: null }, { w: null, r: null, s: null }, { w: null, r: 3, s: null }] }, rows: { x: 4 } },
     });
+  });
+});
+
+describe('movement laps («додати коло», Olesia 2026-11-09)', () => {
+  const lap = (km: number | null, min: number | null = null) => ({ km, min, steps: null });
+
+  it('reads the first lap where 0.81 keeps it and the next ones from `more`', () => {
+    const day = readDay({ mv: { walk: { ...lap(1, 10), more: [lap(2), 'x', lap(null)] } } }, DATE);
+    expect(day.mv).toEqual({ walk: [lap(1, 10), lap(2), lap(null)] });
+  });
+
+  it('keeps a kind whose first lap is empty but a later one is not', () => {
+    expect(readDay({ mv: { walk: { more: [lap(2)] } } }, DATE).mv).toEqual({ walk: [lap(null), lap(2)] });
+  });
+
+  it('writes one lap in the 0.81 shape and more laps under `more`', () => {
+    const one: Day = { ...emptyDay(DATE), mv: { walk: [lap(1)] } };
+    const three: Day = { ...emptyDay(DATE), mv: { walk: [lap(1), lap(null), lap(3)], run: [lap(null)] } };
+    expect(writeDay(one)!.mv).toEqual({ walk: lap(1) });
+    expect(writeDay(three)!.mv).toEqual({ walk: { ...lap(1), more: [lap(null), lap(3)] } });
+  });
+
+  it('leaves out empty laps at the end and kinds with nothing in them', () => {
+    const day: Day = { ...emptyDay(DATE), note: '.', mv: { walk: [lap(1), lap(null)], run: [lap(null), lap(null)] } };
+    expect(writeDay(day)!.mv).toEqual({ walk: lap(1) });
+    expect(hasData({ ...emptyDay(DATE), mv: { run: [lap(null)] } })).toBe(false);
   });
 });

@@ -50,7 +50,8 @@ describe('kindDone', () => {
   });
   it('movement: any logged kind', () => {
     expect(kindDone(day(), 'movement', settings)).toBe(false);
-    expect(kindDone(day({ mv: { walk: { km: null, min: 10, steps: null } } }), 'movement', settings)).toBe(true);
+    expect(kindDone(day({ mv: { walk: [{ km: null, min: 10, steps: null }] } }), 'movement', settings)).toBe(true);
+    expect(kindDone(day({ mv: { walk: [{ km: null, min: null, steps: null }] } }), 'movement', settings)).toBe(false);
   });
 });
 
@@ -61,7 +62,7 @@ describe('dayDone', () => {
   });
   it('is never done when the goal has no kind switched on', () => {
     const noKinds = readSettings({ goal: { done: ['movement'] }, movement: { enabled: false } });
-    expect(dayDone(day({ mv: { walk: { km: 1, min: null, steps: null } } }), noKinds)).toBe(false);
+    expect(dayDone(day({ mv: { walk: [{ km: 1, min: null, steps: null }] } }), noKinds)).toBe(false);
   });
 });
 
