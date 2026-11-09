@@ -4,7 +4,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   base: '/phys-activity-tracking-app/',
   build: {
-    target: 'es2022',
+    // older phones too: iOS 15.4+ (iPhone 6s and newer), Chrome 105+
+    target: ['safari15.4', 'chrome105', 'firefox110'],
     sourcemap: false,
     rollupOptions: {
       // components.html: the living component sheet, to check the build on a phone

@@ -20,11 +20,31 @@ export const DEFAULT_APPEARANCE: Appearance = {
   largerTargets: false,
 };
 
-/** Writes the appearance onto the root element; tokens.css does the rest. */
-export function applyAppearance(root: HTMLElement, appearance: Appearance): void {
+/** The phone's light/dark setting: `matchMedia('(prefers-color-scheme: light)')`. */
+export interface SystemTheme {
+  matches: boolean;
+  addEventListener(type: 'change', listener: () => void): void;
+}
+
+function apply(root: HTMLElement, appearance: Appearance, systemLight: boolean): void {
+  const light = appearance.theme === 'system' ? systemLight : appearance.theme === 'light';
+  root.dataset.theme = light ? 'light' : 'dark';
   root.dataset.accent = appearance.accent;
-  if (appearance.theme === 'system') root.removeAttribute('data-theme');
-  else root.dataset.theme = appearance.theme;
   root.toggleAttribute('data-larger-text', appearance.largerText);
   root.toggleAttribute('data-larger-targets', appearance.largerTargets);
+}
+
+/**
+ * Writes the appearance onto the root element (tokens.css does the rest) and
+ * keeps following the phone's theme. Returns a function that applies a new
+ * appearance, e.g. after a change in settings.
+ */
+export function startAppearance(root: HTMLElement, system: SystemTheme, initial: Appearance): (next: Appearance) => void {
+  let current = initial;
+  system.addEventListener('change', () => apply(root, current, system.matches));
+  apply(root, current, system.matches);
+  return (next) => {
+    current = next;
+    apply(root, current, system.matches);
+  };
 }

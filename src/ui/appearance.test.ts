@@ -1,45 +1,91 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import tokens from '../styles/tokens.css?raw';
 import { ACCENTS } from '../domain/accents';
-import { DEFAULT_APPEARANCE, applyAppearance } from './appearance';
+import { DEFAULT_APPEARANCE, startAppearance, type SystemTheme } from './appearance';
 
-describe('applyAppearance', () => {
+/** A phone whose theme can be switched in the test. */
+function fakePhone(light: boolean) {
+  const listeners: Array<() => void> = [];
+  const media: SystemTheme = {
+    matches: light,
+    addEventListener: (_type, listener) => listeners.push(listener),
+  };
+  return {
+    media,
+    switchTo(nextLight: boolean) {
+      media.matches = nextLight;
+      for (const listener of listeners) listener();
+    },
+  };
+}
+
+describe('appearance', () => {
   let root: HTMLElement;
   beforeEach(() => {
     root = document.createElement('html');
   });
 
   it('starts with pink, the phone theme, normal text and normal tap targets', () => {
-    applyAppearance(root, DEFAULT_APPEARANCE);
+    startAppearance(root, fakePhone(false).media, DEFAULT_APPEARANCE);
     expect(root.dataset.accent).toBe('pink');
-    expect(root.hasAttribute('data-theme')).toBe(false);
+    expect(root.dataset.theme).toBe('dark');
     expect(root.hasAttribute('data-larger-text')).toBe(false);
     expect(root.hasAttribute('data-larger-targets')).toBe(false);
   });
 
-  it('applies a chosen accent, a fixed theme and both accessibility options', () => {
-    applyAppearance(root, { accent: 'cyan', theme: 'light', largerText: true, largerTargets: true });
-    expect(root.dataset.accent).toBe('cyan');
+  it('follows the phone when it switches between dark and light', () => {
+    const phone = fakePhone(true);
+    startAppearance(root, phone.media, DEFAULT_APPEARANCE);
     expect(root.dataset.theme).toBe('light');
-    expect(root.hasAttribute('data-larger-text')).toBe(true);
-    expect(root.hasAttribute('data-larger-targets')).toBe(true);
+    phone.switchTo(false);
+    expect(root.dataset.theme).toBe('dark');
   });
 
-  it('goes back to the phone theme and normal sizes when the options are switched off', () => {
-    applyAppearance(root, { accent: 'mint', theme: 'dark', largerText: true, largerTargets: true });
-    applyAppearance(root, DEFAULT_APPEARANCE);
-    expect(root.hasAttribute('data-theme')).toBe(false);
+  it('keeps a fixed theme whatever the phone does', () => {
+    const phone = fakePhone(false);
+    startAppearance(root, phone.media, { ...DEFAULT_APPEARANCE, theme: 'light' });
+    phone.switchTo(false);
+    expect(root.dataset.theme).toBe('light');
+  });
+
+  it('applies a new choice and both accessibility options', () => {
+    const phone = fakePhone(false);
+    const apply = startAppearance(root, phone.media, DEFAULT_APPEARANCE);
+    apply({ accent: 'cyan', theme: 'system', largerText: true, largerTargets: true });
+    expect(root.dataset.accent).toBe('cyan');
+    expect(root.hasAttribute('data-larger-text')).toBe(true);
+    expect(root.hasAttribute('data-larger-targets')).toBe(true);
+    phone.switchTo(true);
+    expect(root.dataset.theme).toBe('light');
+    expect(root.dataset.accent).toBe('cyan');
+  });
+
+  it('turns the accessibility options off again', () => {
+    const apply = startAppearance(root, fakePhone(false).media, { ...DEFAULT_APPEARANCE, largerText: true, largerTargets: true });
+    apply(DEFAULT_APPEARANCE);
     expect(root.hasAttribute('data-larger-text')).toBe(false);
     expect(root.hasAttribute('data-larger-targets')).toBe(false);
   });
 });
 
 describe('accent tokens', () => {
+  const shades = (selector: string) => {
+    const block = new RegExp(`${selector.replace(/[[\]]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(tokens);
+    return block?.[1] ?? '';
+  };
+
   it.each(ACCENTS)('defines every shade of %s for both themes', (accent) => {
-    const block = new RegExp(`\\[data-accent='${accent}'\\][^{]*\\{([^}]*)\\}`).exec(tokens);
-    expect(block, accent).not.toBeNull();
-    for (const name of ['--accent', '--accent-mid', '--accent-quiet', '--muted']) {
-      expect(block![1]).toMatch(new RegExp(`${name}: light-dark\\(#[0-9a-f]{6}, #[0-9a-f]{6}\\);`));
+    for (const theme of ['dark', 'light']) {
+      const body = shades(`:root[data-theme='${theme}'][data-accent='${accent}']`);
+      expect(body, `${accent} ${theme}`).toMatch(/--accent-rgb: \d{1,3} \d{1,3} \d{1,3};/);
+      for (const name of ['--accent-mid', '--accent-quiet', '--muted']) {
+        expect(body, `${accent} ${theme}`).toMatch(new RegExp(`${name}: #[0-9a-f]{6};`));
+      }
     }
+  });
+
+  it('needs nothing newer than iOS 15.4 for colours', () => {
+    const code = tokens.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(code).not.toMatch(/light-dark\(|color-mix\(/);
   });
 });

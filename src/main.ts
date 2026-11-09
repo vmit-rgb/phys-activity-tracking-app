@@ -2,11 +2,14 @@ import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/shell.css';
-import { DEFAULT_APPEARANCE, applyAppearance } from './ui/appearance';
+import { DEFAULT_APPEARANCE, startAppearance } from './ui/appearance';
+import { trackInputModality } from './ui/modality';
 import { VERSION_LABEL } from './version';
 
 // Placeholder shell for the tooling stage; screens arrive in later pull requests.
-applyAppearance(document.documentElement, DEFAULT_APPEARANCE);
+const root = document.documentElement;
+startAppearance(root, matchMedia('(prefers-color-scheme: light)'), DEFAULT_APPEARANCE);
+trackInputModality(root);
 
 const app = document.querySelector<HTMLElement>('#app');
 if (app) {
