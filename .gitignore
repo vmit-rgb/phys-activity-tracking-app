@@ -9,3 +9,4 @@ coverage/
 # backups and exports saved from the tracker.
 trekr-*.json
 *-kopiya-*.json
+target/

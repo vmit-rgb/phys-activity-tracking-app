@@ -5,6 +5,7 @@ import './styles/typography.css';
 import './styles/components.css';
 import './styles/screens.css';
 import './styles/home.css';
+import './styles/sections.css';
 import { startApp } from './app/app';
 import { detectPlatform, isInstalled } from './app/start';
 import { diaryAccent } from './domain/diary';
@@ -34,6 +35,12 @@ startApp({
     applyAppearance({ ...DEFAULT_APPEARANCE, accent: diaryAccent(diary) });
     // ask the browser not to clear the diary when space runs low
     void navigator.storage?.persist?.();
+  },
+  whenHidden: (save) => {
+    addEventListener('pagehide', save);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') save();
+    });
   },
 });
 

@@ -18,6 +18,9 @@ export type Edit = (day: Day) => Day;
 const toggle = (list: readonly string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 const padTo = <T>(list: readonly T[], index: number, empty: T): T[] => [...list, ...Array<T>(Math.max(0, index + 1 - list.length)).fill(empty)];
 const replaceAt = <T>(list: readonly T[], index: number, value: T, empty: T): T[] => padTo(list, index, empty).map((x, i) => (i === index ? value : x));
+/** One field of the entry at `index` (a set, a lap), adding empty entries before it. */
+const fillAt = <T>(list: readonly T[], index: number, change: Partial<T>, empty: T): T[] =>
+  padTo(list, index, empty).map((x, i) => (i === index ? { ...x, ...change } : x));
 const without = <T>(list: readonly T[], index: number): T[] => list.filter((_, i) => i !== index);
 const omit = <T>(table: Readonly<Record<string, T>>, key: string): Record<string, T> => Object.fromEntries(Object.entries(table).filter(([k]) => k !== key));
 
@@ -54,11 +57,9 @@ export function setRows(day: Day, exercise: string, planned: number | null): num
   return Math.max(day.wo?.rows[exercise] ?? planned ?? 1, logged);
 }
 
-export const setSet = (exercise: string, index: number, field: keyof SetLog, value: number | null): Edit => inWorkout((wo) => {
-  const sets = wo.ex[exercise] ?? [];
-  const current = sets[index] ?? EMPTY_SET;
-  return { ...wo, ex: { ...wo.ex, [exercise]: replaceAt(sets, index, { ...current, [field]: value }, EMPTY_SET) } };
-});
+export const setSet = (exercise: string, index: number, field: keyof SetLog, value: number | null): Edit => inWorkout((wo) => ({
+  ...wo, ex: { ...wo.ex, [exercise]: fillAt(wo.ex[exercise] ?? [], index, { [field]: value }, EMPTY_SET) },
+}));
 
 /** «додати підхід» */
 export const showMoreSets = (exercise: string, planned: number | null): Edit => (day) =>
@@ -101,11 +102,9 @@ export function lapRows(day: Day, kind: string): number {
   return Math.max(1, day.mv[kind]?.length ?? 0);
 }
 
-export const setLap = (kind: string, index: number, field: keyof MovementLog, value: number | null): Edit => (day) => {
-  const laps = day.mv[kind] ?? [];
-  const current = laps[index] ?? EMPTY_LAP;
-  return { ...day, mv: { ...day.mv, [kind]: replaceAt(laps, index, { ...current, [field]: value }, EMPTY_LAP) } };
-};
+export const setLap = (kind: string, index: number, field: keyof MovementLog, value: number | null): Edit => (day) => ({
+  ...day, mv: { ...day.mv, [kind]: fillAt(day.mv[kind] ?? [], index, { [field]: value }, EMPTY_LAP) },
+});
 
 /** «додати коло» */
 export const addLap = (kind: string): Edit => (day) => ({ ...day, mv: { ...day.mv, [kind]: padTo(day.mv[kind] ?? [], lapRows(day, kind), EMPTY_LAP) } });

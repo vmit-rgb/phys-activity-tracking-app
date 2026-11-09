@@ -6,7 +6,7 @@ import { formatNumber, plural } from './numbers';
 
 /** Days before `date`, newest first. */
 function earlier(days: Readonly<Record<DayKey, Day>>, date: DayKey): Day[] {
-  return Object.values(days).filter((day) => day.date < date).sort((a, b) => (a.date < b.date ? 1 : -1));
+  return Object.values(days).filter((day) => day.date < date).sort((a, b) => b.date.localeCompare(a.date));
 }
 
 /** The filled sets of the last earlier day that logged this exercise. */

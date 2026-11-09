@@ -96,6 +96,12 @@ describe('workout', () => {
     expect(removeSet('x', 0, 1)(withWorkout({ x: [set(1)] })).wo!.rows.x).toBe(1);
     expect(removeSet('x', 0, 1)(day())).toEqual(day());
   });
+
+  it('removes an empty planned row that has nothing logged', () => {
+    const removed = removeSet('x', 1, 2)(withWorkout());
+    expect(removed.wo!.ex.x).toEqual([]);
+    expect(removed.wo!.rows.x).toBe(1);
+  });
 });
 
 describe('warm-up timer rounds', () => {
@@ -110,6 +116,12 @@ describe('warm-up timer rounds', () => {
     const more = showMoreRounds('a')(day());
     expect(roundRows(more, 'a')).toBe(2);
     expect(roundRows(day({ mw: { ticks: [], times: { a: [1, 2, 3] }, rows: { a: 2 } } }), 'a')).toBe(3);
+  });
+
+  it('removes a round that was never timed', () => {
+    const removed = removeRound('a', 1)(showMoreRounds('a')(day()));
+    expect(removed.mw.times.a).toEqual([]);
+    expect(roundRows(removed, 'a')).toBe(1);
   });
 
   it('removes a round and shows one less', () => {
@@ -131,6 +143,10 @@ describe('movement laps', () => {
     const more = addLap('walk')(day());
     expect(more.mv.walk).toEqual([lap(null), lap(null)]);
     expect(lapRows(addLap('walk')(more), 'walk')).toBe(3);
+  });
+
+  it('removing a lap of a kind never logged changes nothing', () => {
+    expect(removeLap('walk', 1)(day()).mv).toEqual({});
   });
 
   it('removes a lap; the kind goes when no lap is left', () => {

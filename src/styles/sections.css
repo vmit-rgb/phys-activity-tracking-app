@@ -1,0 +1,377 @@
+/*
+ * The inside of the home sections (Figma activity/section 112:4468 and its
+ * parts: accordion/subsection, checklist/exercise, tracker/field, slider,
+ * tracker/yes-no, input/labeled, chip/multi-select-group, workout/exercise,
+ * workout/exercise-set, exercise/input, stopwatch). Targets stay ≥ var(--tap).
+ */
+
+/* ---- subsection: a level or «самопочуття після …» in a surface box ---- */
+.sub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  background: var(--surface);
+}
+.sub > .accordion--group {
+  --ring-w-0: 0px;
+}
+.sub--done > .accordion--group .accordion__title {
+  text-decoration: line-through;
+  text-decoration-skip-ink: none;
+}
+.sub > .btn--tertiary {
+  align-self: flex-start;
+  margin-left: 4px;
+}
+.acc-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.acc-body[hidden] {
+  display: none;
+}
+.acc-body--group {
+  padding: 0 var(--gap-items) var(--gap-items);
+}
+.acc-body--paragraph,
+.acc-body--mini {
+  padding: var(--gap-items) 0 0 var(--gap-section);
+}
+.how-acc .accordion {
+  width: auto;
+  min-width: 0;
+}
+.how {
+  white-space: pre-line;
+}
+
+/* ---- warm-up exercises (checklist/exercise) ---- */
+.ex-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ex-check {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+}
+.ex-check__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  column-gap: var(--gap-group);
+  width: 100%;
+  padding: 12px 0;
+}
+.ex-check__row .checkbox__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ex-check__reps {
+  padding-top: 3px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ex-check > .btn--tertiary {
+  align-self: flex-start;
+  margin-left: 40px;
+}
+
+/* ---- wellbeing questions ---- */
+.tracker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.tracker__head {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-items);
+  min-height: 32px;
+}
+.tracker__name {
+  flex: 1;
+  min-width: 0;
+}
+.tracker__value {
+  color: var(--muted);
+}
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-items);
+}
+
+/* slider (126:2027): 12 px pill track, ring thumb; never set = faint thumb; saved = locked */
+.slider {
+  flex: 1;
+  min-width: 0;
+  height: var(--tap);
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  /* the finger may wander over the page while dragging (ACCESSIBILITY.md, slider) */
+  touch-action: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.slider::-webkit-slider-runnable-track {
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--sunk);
+}
+.slider::-moz-range-track {
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--sunk);
+}
+.slider::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -3px;
+  border: var(--stroke-1) solid var(--accent);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: var(--stroke-1) solid var(--accent);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+}
+.tracker--unset .slider::-webkit-slider-thumb {
+  opacity: 0.2;
+}
+.tracker--unset .slider::-moz-range-thumb {
+  opacity: 0.2;
+}
+.slider:disabled {
+  cursor: default;
+}
+.slider:disabled::-webkit-slider-thumb {
+  width: 9px;
+  height: 9px;
+  margin-top: 1.5px;
+  border: 0;
+  background: var(--muted);
+}
+.slider:disabled::-moz-range-thumb {
+  width: 9px;
+  height: 9px;
+  border: 0;
+  background: var(--muted);
+}
+.slider:focus-visible {
+  outline: none;
+}
+.slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--focus-ring);
+}
+.slider:focus-visible::-moz-range-thumb {
+  box-shadow: var(--focus-ring);
+}
+
+/* input/labeled: name on the left, fields on the right */
+.labeled {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-items);
+}
+.labeled__name {
+  flex: 1;
+  min-width: 0;
+  padding-top: 12px;
+}
+.labeled__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.tracker__note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+
+/* ---- daytime warm-up: chips (chip/multi-select-group) and zones ---- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-items);
+}
+.chip {
+  --ring-0: var(--accent);
+  --ring-w-0: var(--stroke-2);
+  --ring-pressed: var(--muted);
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-size: calc(14px * var(--text-scale));
+  font-stretch: 98%;
+  text-decoration: underline;
+  text-underline-position: from-font;
+}
+.chip[aria-pressed='true'] {
+  --fill-0: var(--accent);
+  --fg-0: var(--on-accent);
+  --fill-hover: var(--accent-mid);
+  --fg-hover: var(--on-accent);
+  --fill-pressed: var(--muted);
+  --fg-pressed: var(--on-accent);
+}
+.zone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  padding: var(--gap-items);
+  background: var(--surface);
+}
+.zone__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+}
+
+/* ---- links from the settings; * marks a link from the AI ---- */
+.ex-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-micro);
+}
+.ai-mark {
+  --ring-w-hover: 0px;
+  min-width: var(--tap);
+  font-weight: 700;
+}
+
+/* ---- workout ---- */
+.pick {
+  width: 100%;
+  justify-content: flex-start;
+}
+.wo-title {
+  margin: 0;
+}
+.wo-ex,
+.mv-kind {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.wo-ex__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-group);
+}
+.wo-ex__sub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+  padding-left: var(--gap-section);
+}
+.wo-ex__sub b {
+  font-weight: 600;
+}
+.wo-ex__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-items);
+}
+.wo-ex__actions .acc-body {
+  position: relative;
+}
+.wo-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  padding: var(--gap-items);
+  background: var(--surface);
+}
+
+/* ---- set rows (exercise/input): number, the fields or a stopwatch, × ---- */
+.sets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.set-row {
+  display: grid;
+  grid-template-columns: 2ch 1fr var(--tap);
+  align-items: center;
+  gap: var(--gap-items);
+}
+.set-row__n {
+  color: var(--ink);
+  text-align: end;
+}
+.set-row__main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap-items);
+  min-width: 0;
+}
+.set-row__fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-items);
+}
+.set-row__fields .number {
+  width: 132px;
+  min-width: 112px;
+}
+.set-row__x {
+  color: var(--muted);
+}
+.lap {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.lap .number {
+  width: 132px;
+  min-width: 112px;
+}
+.lap .number--wide {
+  width: 100%;
+}
+.rm-space {
+  width: var(--tap);
+}
+.rm {
+  --fg-0: var(--err);
+  --fg-hover: var(--err);
+}
+.rm--armed {
+  --fg-0: var(--err);
+}
+
+/* ---- stopwatch (157:2903): ▶ 00.00.00 · ■ running · ✓ saved · ↻ «знову» ---- */
+.sw {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-items);
+}
+.sw__time {
+  font-variant-numeric: tabular-nums;
+}
+.sw[data-state='running'] .sw__time {
+  color: var(--accent);
+}
+.sw[data-state='default'] .sw__time {
+  color: var(--muted);
+}
+
+/* ---- the note ---- */
+.note-field {
+  min-height: calc(var(--tap) * 2);
+}

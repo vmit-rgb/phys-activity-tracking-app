@@ -2,12 +2,16 @@ import type { DayKey } from '../domain/dates';
 import { parseDiary, type Diary } from '../domain/diary';
 import { EXAMPLE_DIARY } from '../domain/examples';
 import { readSettings } from '../domain/settings';
+import { homeSession } from '../home/session';
 import { showFirstLaunch } from '../screens/first-launch';
 import { showHome } from '../screens/home';
 import { showInstallFirst } from '../screens/install-first';
 import type { DiaryStore, sectionMemory } from '../storage/store';
 import type { Toast, ToastMessage } from '../ui/toast';
-import { startScreen, type Platform, type StartScreen } from './start';
+import { logKeeper } from './keeper';
+import { startScreen, type Phone, type Platform, type StartScreen } from './start';
+
+export { SAVE_DELAY_MS } from './keeper';
 
 export interface AppEnv {
   host: HTMLElement;
@@ -21,6 +25,8 @@ export interface AppEnv {
   sections: ReturnType<typeof sectionMemory>;
   /** Called with every diary the app starts showing, e.g. to apply its accent. */
   onDiary(diary: Diary): void;
+  /** Runs `save` when the app is hidden or closed, so nothing typed is lost. */
+  whenHidden(save: () => void): void;
 }
 
 /* Texts: COPY.md; «скоро» toasts as on the landing page (Olesia, 2026-11-09). */
@@ -32,20 +38,37 @@ const NOT_SAVED: ToastMessage = { message: 'не вдалося зберегти
 /* Нитка's draft: the menu comes in stage 6. */
 const MENU_SOON: ToastMessage = { message: 'меню ще робимо, скоро буде', emoticon: ':)' };
 
+/** install-first shows Android's steps unless the phone is an iPhone. */
+const phoneOf = (platform: Platform): Phone => (platform === 'iphone' ? 'iphone' : 'android');
+
 export function startApp(env: AppEnv): void {
   const { host, store, browser, toast } = env;
   let diary = store.load();
   let date = env.today();
   let leave = () => {};
+  const session = homeSession();
+  const log = logKeeper(store, toast);
 
   function showDay(current: Diary, next: DayKey): void {
     date = next;
     leave();
-    leave = showHome(host, { settings: readSettings(current.profile), days: current.days, date, today: env.today() }, {
-      goTo: (day) => showDay(current, day),
+    let shown = current;
+    leave = showHome(host, { settings: readSettings(current.profile), days: current.days, date, today: env.today(), session }, {
+      goTo: (day) => {
+        session.flush();
+        showDay(shown, day);
+      },
       openMenu: () => toast.show(MENU_SOON),
       sectionOpen: env.sections.open,
       rememberSection: env.sections.remember,
+      edit(change, render) {
+        shown = log.edit(shown, date, change);
+        diary = shown;
+        if (render) showDay(shown, date);
+        return shown.days;
+      },
+      refresh: () => showDay(shown, date),
+      toast: (message) => toast.show(message),
     });
   }
 
@@ -54,7 +77,7 @@ export function startApp(env: AppEnv): void {
     leave = () => {};
     // home is only chosen when there is a diary (startScreen)
     if (screen === 'home' && diary) showDay(diary, date);
-    else if (screen === 'install-first') showInstallFirst(host, env.platform === 'iphone' ? 'iphone' : 'android', useBrowser);
+    else if (screen === 'install-first') showInstallFirst(host, phoneOf(env.platform), useBrowser);
     else showFirstLaunch(host, env.platform, { copyPrompt, applySettings, restore, startWithoutAi });
     document.documentElement.scrollTop = 0;
   }
@@ -87,6 +110,10 @@ export function startApp(env: AppEnv): void {
     }, () => toast.show(NOT_A_COPY));
   }
 
+  env.whenHidden(() => {
+    session.flush();
+    log.saveNow();
+  });
   if (diary) env.onDiary(diary);
   show(startScreen({ hasDiary: diary !== null, installed: env.installed, platform: env.platform, browserChosen: browser.chosen() }));
 }
