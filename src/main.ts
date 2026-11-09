@@ -6,6 +6,7 @@ import './styles/components.css';
 import './styles/screens.css';
 import './styles/home.css';
 import './styles/sections.css';
+import './styles/calendar.css';
 import { startApp } from './app/app';
 import { detectPlatform, isInstalled } from './app/start';
 import { diaryAccent } from './domain/diary';

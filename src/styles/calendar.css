@@ -1,0 +1,324 @@
+/*
+ * The calendar block (Figma calendar/month 131:2314, calendar/stat-card,
+ * calendar/legend, calendar/day 131:1588), the calendar sheet
+ * (example/home-calendar-sheet 283:9716) and the pulse timer
+ * (tracker/pulse-timer 398:11959). Values as in «бета 0.81», which Figma
+ * was synced with; tints from --accent-rgb (no color-mix(), iOS 15.4).
+ */
+
+/* on home: on glass and between accent lines, like the sections */
+.home .cal-block {
+  border-top: var(--stroke-4) solid var(--accent);
+  border-bottom: var(--stroke-4) solid var(--accent);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 25%);
+  background: var(--panel);
+  padding: var(--gap-items) var(--pad-screen-x);
+}
+.cal-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+  min-width: 0;
+}
+.cal-block h3 {
+  margin-top: var(--gap-group);
+}
+.cal-block h3:first-child {
+  margin-top: 0;
+}
+.cal-block ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- «цей тиждень» ---- */
+.stats {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--gap-micro);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--gap-items);
+  min-width: 0;
+  padding: var(--gap-items);
+  background: var(--surface);
+}
+.stat__label {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.stat__value {
+  font-variant-numeric: tabular-nums;
+}
+/* «з 5 днів» moves to the next line as a whole, never word by word */
+.stat__goal {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ---- «середнє за 7 днів» ---- */
+.avgs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap-micro) var(--gap-group);
+}
+.avg {
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+.avg__label {
+  color: var(--muted);
+}
+
+/* ---- the month ---- */
+.cal {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gap-items);
+  min-width: 0;
+}
+/* the legend keeps its width; the grid takes the rest, up to 300 px */
+.cal__info {
+  flex: 1 0 auto;
+  padding-bottom: 56px;
+}
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+  color: var(--muted);
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-micro);
+  white-space: nowrap;
+}
+.swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+.swatch--lv1 { background: rgb(var(--accent-rgb) / 30%); }
+.swatch--lv2 { background: rgb(var(--accent-rgb) / 50%); }
+.swatch--lv3 { background: rgb(var(--accent-rgb) / 70%); }
+.marker {
+  flex: none;
+  box-sizing: border-box;
+  width: 7px;
+  height: 7px;
+  margin: 0 2.5px;
+  border-radius: 50%;
+}
+.marker--workout {
+  background: var(--ink);
+}
+.marker--movement {
+  border: var(--stroke-2) solid var(--ink);
+}
+
+.cal__body {
+  display: flex;
+  flex: 0 1 300px;
+  flex-direction: column;
+  gap: var(--gap-micro);
+  min-width: 0;
+}
+.cal__weekdays,
+.cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--gap-micro);
+}
+.cal__weekdays {
+  color: var(--muted);
+  text-align: center;
+}
+
+.cal-day {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  background: var(--sunk);
+  color: var(--ink);
+  font-size: calc(12px * var(--text-scale));
+  font-variant-numeric: tabular-nums;
+  font-weight: 420;
+  line-height: 1;
+}
+/* the look stays 36 px; the tap area grows to 44 (TODO note in Figma) */
+button.cal-day::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+button.cal-day {
+  --fg-0: var(--ink);
+  --fg-hover: var(--ink);
+  --weight-0: 420;
+  --weight-hover: 420;
+}
+.cal-day--out {
+  background: none;
+  color: var(--disabled);
+}
+.cal-day--future {
+  border: var(--stroke-4) solid var(--disabled);
+  color: var(--disabled);
+}
+/* levels after the plain cell, so their fill wins (Olesia, 2026-10-31: 30 / 50 / 70 %, no outline) */
+.cal-day--lv1 { background-color: rgb(var(--accent-rgb) / 30%); }
+.cal-day--lv2 { background-color: rgb(var(--accent-rgb) / 50%); }
+.cal-day--lv3 { background-color: rgb(var(--accent-rgb) / 70%); }
+.cal-day--workout::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.cal-day--movement {
+  background-image: radial-gradient(circle at 5.5px calc(100% - 5.5px), transparent 2.2px, var(--ink) 2.3px, var(--ink) 3.5px, transparent 3.6px);
+}
+.cal-day--today {
+  --weight-0: 720;
+  --weight-hover: 720;
+  box-shadow: inset 0 0 0 var(--stroke-1) var(--accent);
+}
+.cal-day--today.cal-day--lv2,
+.cal-day--today.cal-day--lv3 {
+  box-shadow: inset 0 0 0 var(--stroke-1) var(--ink);
+}
+.cal-day--shown {
+  box-shadow: 0 0 0 1px var(--bg), 0 0 0 3px var(--ink);
+}
+.cal-day--today.cal-day--shown {
+  box-shadow: inset 0 0 0 var(--stroke-1) var(--accent), 0 0 0 1px var(--bg), 0 0 0 3px var(--ink);
+}
+.cal__nav {
+  display: flex;
+  justify-content: space-between;
+}
+.cal__nav .ctl:disabled {
+  opacity: 0.35;
+}
+
+/* ---- the sheet from the date: scrim + sheet above the bar ---- */
+.cal-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.cal-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 60%);
+}
+.cal-sheet__panel {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  max-height: calc(100vh - 48px);
+  padding-bottom: calc(var(--pad-bottom-bar) + 24px + env(safe-area-inset-bottom));
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-top: var(--stroke-4) solid var(--accent);
+  background: var(--bg);
+  box-shadow: 0 -2px 12px rgb(0 0 0 / 25%);
+}
+.cal-sheet__panel .cal-block {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--gap-items) var(--pad-screen-x);
+}
+
+/* ---- the date in the bar opens the sheet ---- */
+.date-nav__date {
+  --fg-0: var(--ink);
+  --fg-hover: var(--ink);
+  --ring-w-hover: 0px;
+  min-height: var(--tap);
+  padding: 0 4px;
+}
+.date-nav__date.t-h5 { --weight-0: 500; --weight-hover: 500; }
+.date-nav__date.t-h4 { --weight-0: 700; --weight-hover: 700; }
+@media (hover: hover) {
+  .date-nav__date:hover {
+    text-decoration: underline;
+    text-decoration-thickness: var(--stroke-4);
+    text-underline-offset: 4px;
+  }
+}
+
+/* ---- pulse timer ---- */
+.pulse {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.pulse__left {
+  margin: 0;
+  color: var(--accent);
+  font-size: calc(50px * var(--text-scale));
+  font-variant-numeric: tabular-nums;
+  font-weight: 660;
+  line-height: 1.2;
+}
+.pulse__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap-items);
+}
+.pulse__result {
+  color: var(--accent);
+}
+.pulse .labeled__fields {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.pulse p {
+  margin: 0;
+}
+.pulse > .btn {
+  align-self: flex-start;
+}
+
+/* the end of the countdown: one short flash over everything */
+.flash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background: var(--accent);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flash {
+    animation: flash 360ms ease-out;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    opacity: 0.6;
+  }
+}
+@keyframes flash {
+  from { opacity: 0.8; }
+  to { opacity: 0; }
+}

@@ -11,7 +11,10 @@ import { goalLine, heroFor, homeSections, type SectionId, type SectionSpec } fro
 import {
   checkInBody, daytimeBody, morningBody, movementBody, noteBody, workoutBody, type SectionContext,
 } from '../home/sections';
-import { formatStopwatch, type HomeSession } from '../home/session';
+import { formatCountdown, formatStopwatch, type HomeSession } from '../home/session';
+import { calendarMarkup, type CalendarView } from '../home/calendar';
+import { endSignal } from '../home/signal';
+import { monthOf, shiftMonth } from '../domain/stats';
 import { wireAccordions } from '../ui/accordion';
 import { iconSvg } from '../ui/icons';
 import type { ToastMessage } from '../ui/toast';
@@ -78,7 +81,7 @@ const BAR = `
       <p class="bar__goal t-3rd-semibold" aria-live="polite"></p>
       <div class="date-nav">
         <button type="button" class="ctl icon-btn icon-btn--secondary date-nav__step" data-step="-1" aria-label="попередній день">${iconSvg('chevron-left')}</button>
-        <p class="date-nav__date" aria-live="polite"><span aria-hidden="true"></span><span class="visually-hidden"></span></p>
+        <button type="button" class="ctl date-nav__date" aria-live="polite" aria-haspopup="dialog" aria-expanded="false"><span aria-hidden="true"></span><span class="visually-hidden"></span></button>
         <button type="button" class="ctl icon-btn icon-btn--secondary date-nav__step" data-step="1" aria-label="наступний день">${iconSvg('chevron-right')}</button>
       </div>
     </div>
@@ -93,6 +96,7 @@ function markup(state: HomeState, actions: HomeActions): string {
       <h1 class="visually-hidden">головна</h1>
       <header class="hero"><p class="hero__text"></p></header>
       <div class="home__sections">${sections.join('')}</div>
+      <section class="cal-block" aria-label="календар">${calendarMarkup(calendarView(state, 'home'))}</section>
       ${FOOTER}
     </div>
     ${BAR}`;
@@ -128,6 +132,81 @@ function fillHero(host: HTMLElement, state: HomeState): () => void {
 
 const dayOf = (state: HomeState): Day => state.days[state.date] ?? emptyDay(state.date);
 
+function calendarView(state: HomeState, place: string): CalendarView {
+  return {
+    settings: state.settings,
+    date: state.date,
+    today: state.today,
+    month: state.session.month ?? monthOf(state.date),
+    dayAt: (key) => state.days[key] ?? emptyDay(key),
+    place,
+  };
+}
+
+/* ---- the calendar: on home and in the sheet from the date (Figma example/home-calendar-sheet) ---- */
+
+interface Calendar {
+  /** Draws the block on home again, e.g. after typing changed the week. */
+  refresh(state: HomeState): void;
+  closeSheet(): void;
+}
+
+function wireCalendar(host: HTMLElement, state: HomeState, go: (date: DayKey) => void, signal: AbortSignal): Calendar {
+  let current = state;
+  const dateButton = part<HTMLButtonElement>(host, '.date-nav__date');
+  const sheet = () => host.querySelector<HTMLElement>('.cal-sheet');
+
+  function closeSheet(): void {
+    if (!sheet()) return;
+    sheet()!.remove();
+    dateButton.setAttribute('aria-expanded', 'false');
+    dateButton.focus({ preventScroll: true });
+  }
+
+  /** Days open that day; arrows change the month in place and keep the focus. */
+  function onTap(event: Event): void {
+    const button = (event.target as Element).closest<HTMLElement>('[data-cal]');
+    if (!button) return;
+    if (button.dataset.cal === 'day') {
+      closeSheet();
+      go(String(button.dataset.day) as DayKey);
+      return;
+    }
+    const container = button.closest<HTMLElement>('.cal-block')!;
+    const by = String(button.dataset.by);
+    state.session.month = shiftMonth(calendarView(current, '').month, Number(by));
+    container.innerHTML = calendarMarkup(calendarView(current, container.dataset.place ?? 'home'));
+    container.querySelector<HTMLElement>(`[data-cal="month"][data-by="${by}"]`)!.focus();
+  }
+
+  function openSheet(): void {
+    host.insertAdjacentHTML('beforeend', `
+      <div class="cal-sheet" role="dialog" aria-modal="true" aria-label="календар">
+        <div class="cal-sheet__scrim"></div>
+        <div class="cal-sheet__panel"><div class="cal-block" data-place="sheet">${calendarMarkup(calendarView(current, 'sheet'))}</div></div>
+      </div>`);
+    const opened = sheet()!;
+    dateButton.setAttribute('aria-expanded', 'true');
+    part(host, '.bar').classList.remove('bar--hidden');
+    opened.addEventListener('click', onTap);
+    part(opened, '.cal-sheet__scrim').addEventListener('click', closeSheet);
+    opened.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeSheet();
+    });
+    (opened.querySelector<HTMLElement>('[aria-current="date"]') ?? opened.querySelector<HTMLElement>('button'))!.focus({ preventScroll: true });
+  }
+
+  part(host, '.home .cal-block').addEventListener('click', onTap);
+  dateButton.addEventListener('click', () => (sheet() ? closeSheet() : openSheet()), { signal });
+  return {
+    refresh(next) {
+      current = next;
+      part(host, '.home .cal-block').innerHTML = calendarMarkup(calendarView(next, 'home'));
+    },
+    closeSheet,
+  };
+}
+
 function fillBar(host: HTMLElement, state: HomeState): void {
   const dayAt = (key: DayKey): Day => state.days[key] ?? emptyDay(key);
   const goal = goalLine(weekGoal(state.date, state.today, dayAt, state.settings));
@@ -136,7 +215,7 @@ function fillBar(host: HTMLElement, state: HomeState): void {
   goalText.hidden = goal === null;
   const date = part<HTMLElement>(host, '.date-nav__date');
   // without the goal line the date takes header 4 (Olesia, 2026-10-29)
-  date.className = `date-nav__date ${goal === null ? 't-h4' : 't-h5'}`;
+  date.className = `ctl date-nav__date ${goal === null ? 't-h4' : 't-h5'}`;
   date.firstElementChild!.textContent = formatShort(state.date);
   date.lastElementChild!.textContent = formatLong(state.date);
   part<HTMLButtonElement>(host, '.date-nav [data-step="1"]').disabled = state.date >= state.today;
@@ -197,7 +276,7 @@ function restoreFocus(host: HTMLElement, mark: FocusMark): void {
 }
 
 /** The day's sections: taps and typing become edits; a render keeps the focus where it was. */
-function sectionControls(host: HTMLElement, state: HomeState, actions: HomeActions): SectionControls {
+function sectionControls(host: HTMLElement, state: HomeState, actions: HomeActions, calendar: Calendar): SectionControls {
   let current = state;
   const keepingFocus = (draw: () => void) => {
     const mark = focusMark(host);
@@ -215,6 +294,7 @@ function sectionControls(host: HTMLElement, state: HomeState, actions: HomeActio
       }
       current = { ...current, days: actions.edit(edit, false) };
       fillBar(host, current);
+      calendar.refresh(current);
     },
     render: () => keepingFocus(() => actions.refresh()),
     toast: (message) => actions.toast(message),
@@ -234,6 +314,29 @@ function tickStopwatches(host: HTMLElement, state: HomeState, signal: AbortSigna
   signal.addEventListener('abort', () => clearInterval(timer));
 }
 
+/** The pulse countdown counts on screen. */
+function tickPulse(host: HTMLElement, state: HomeState, signal: AbortSignal): void {
+  const run = state.session.pulse;
+  if (run?.phase !== 'counting') return;
+  const timer = setInterval(() => {
+    const left = host.querySelector<HTMLElement>('[data-pulse-left]');
+    if (left) left.textContent = formatCountdown(run.ends - Date.now());
+  }, 200);
+  signal.addEventListener('abort', () => clearInterval(timer));
+}
+
+/** The end of the countdown: the signal, then the question about the beats, with the focus in its field. */
+function pulseEnd(host: HTMLElement, state: HomeState, controls: SectionControls): () => void {
+  return () => {
+    const run = state.session.pulse;
+    if (run?.phase !== 'counting') return;
+    state.session.pulse = { ...run, phase: 'beats' };
+    endSignal();
+    controls.render();
+    host.querySelector<HTMLElement>('[data-input="beats"]')?.focus({ preventScroll: true });
+  };
+}
+
 /** Shows home; returns what to undo when another screen takes its place. */
 export function showHome(host: HTMLElement, state: HomeState, actions: HomeActions): () => void {
   host.innerHTML = markup(state, actions);
@@ -245,16 +348,25 @@ export function showHome(host: HTMLElement, state: HomeState, actions: HomeActio
     if (trigger.dataset.section) actions.rememberSection(trigger.dataset.section, open);
     else state.session.open.set(String(trigger.dataset.memo), open);
   });
-  const controls = sectionControls(host, state, actions);
+  const listeners = new AbortController();
+  // another day: the calendar follows it, a pulse result is put away
+  const go = (date: DayKey) => {
+    state.session.month = null;
+    if (state.session.pulse?.phase === 'done') state.session.pulse = null;
+    actions.goTo(date);
+  };
+  const calendar = wireCalendar(host, state, go, listeners.signal);
+  const controls = sectionControls(host, state, actions, calendar);
   wireSections(home, controls);
   state.session.flush = () => flushDrafts(controls);
+  state.session.pulseEnd = pulseEnd(host, state, controls);
   part(host, '.bar__menu').addEventListener('click', () => actions.openMenu());
 
-  const listeners = new AbortController();
   tickStopwatches(host, state, listeners.signal);
+  tickPulse(host, state, listeners.signal);
   wireDateNav(host, (days) => {
     const next = addDays(state.date, days);
-    if (days !== 0 && next <= state.today) actions.goTo(next);
+    if (days !== 0 && next <= state.today) go(next);
   }, listeners.signal);
   wireScroll(host, listeners.signal);
 
