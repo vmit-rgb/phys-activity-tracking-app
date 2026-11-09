@@ -13,7 +13,9 @@ import type { DayKey } from './dates';
  * - `dw`: the daytime warm-up chips («для чого») marked today.
  * - `wo`: the workout picked today (`session`), sets per exercise (`ex`: weight `w`,
  *   reps `r`, seconds `s`) and opened set rows (`rows`); null when none was picked.
- * - `mv`: movement per kind: `km`, `min`, `steps`.
+ * - `mv`: movement per kind, as laps («кола», Olesia 2026-11-09): `km`, `min`, `steps`.
+ *   Stored as 0.81 stores one entry (the first lap) plus `more` for the next laps,
+ *   so 0.81 still reads the first lap and a copy keeps moving both ways.
  * - `names`: the names of exercises used that day, so a deleted exercise still reads fine.
  */
 
@@ -30,7 +32,7 @@ export interface Day {
   readonly mw: { readonly ticks: readonly string[]; readonly times: Table<readonly (number | null)[]>; readonly rows: Table<number> };
   readonly dw: readonly string[];
   readonly wo: { readonly session: string; readonly ex: Table<readonly SetLog[]>; readonly rows: Table<number> } | null;
-  readonly mv: Table<MovementLog>;
+  readonly mv: Table<readonly MovementLog[]>;
   readonly names: Table<string>;
 }
 
@@ -61,7 +63,7 @@ function readAnswer(value: unknown): Answer | null {
 
 const readNumbers = (value: unknown) => (Array.isArray(value) ? value.map(num) : null);
 const readSet = (value: unknown): SetLog => ({ w: num(raw(value).w), r: num(raw(value).r), s: num(raw(value).s) });
-const hasSet = (set: SetLog) => set.w !== null || set.r !== null || set.s !== null;
+export const hasSet = (set: SetLog) => set.w !== null || set.r !== null || set.s !== null;
 
 function readWorkout(value: unknown): Day['wo'] {
   const workout = raw(value);
@@ -73,9 +75,13 @@ function readWorkout(value: unknown): Day['wo'] {
   };
 }
 
-function readMovement(value: unknown): MovementLog | null {
-  const movement: MovementLog = { km: num(raw(value).km), min: num(raw(value).min), steps: num(raw(value).steps) };
-  return movement.km === null && movement.min === null && movement.steps === null ? null : movement;
+const readLap = (value: unknown): MovementLog => ({ km: num(raw(value).km), min: num(raw(value).min), steps: num(raw(value).steps) });
+export const hasLap = (lap: MovementLog) => lap.km !== null || lap.min !== null || lap.steps !== null;
+
+function readMovement(value: unknown): MovementLog[] | null {
+  const more = raw(value).more;
+  const laps = [readLap(value), ...(Array.isArray(more) ? more.filter(isRaw).map(readLap) : [])];
+  return laps.some(hasLap) ? laps : null;
 }
 
 export function emptyDay(date: DayKey): Day {
@@ -99,10 +105,15 @@ export function readDay(value: unknown, date: DayKey): Day {
   };
 }
 
-/** Sets without anything in them at the end of the list are left out, as 0.81 does. */
-function trimSets(sets: readonly SetLog[]): SetLog[] {
-  const last = sets.reduce((found, set, index) => (hasSet(set) ? index : found), -1);
-  return sets.slice(0, last + 1);
+/** Entries without anything in them at the end of a list are left out, as 0.81 does with sets. */
+function trimEnd<T>(list: readonly T[], has: (entry: T) => boolean): T[] {
+  const last = list.reduce((found, entry, index) => (has(entry) ? index : found), -1);
+  return list.slice(0, last + 1);
+}
+
+function writeMovement(mv: Day['mv']): Raw {
+  const kinds = Object.entries(mv).map(([id, laps]) => [id, trimEnd(laps, hasLap)] as const).filter(([, laps]) => laps.length > 0);
+  return Object.fromEntries(kinds.map(([id, [first, ...more]]) => [id, more.length ? { ...first, more } : first]));
 }
 
 const someTime = (times: Day['mw']['times']) => Object.values(times).some((list) => list.some((x) => x !== null));
@@ -111,7 +122,7 @@ const someAnswer = (t: Day['t']) => Object.values(t).some((answers) => Object.ke
 /** Whether anything at all was logged (0.81 `hasData`); an empty day isn't stored. */
 export function hasData(day: Day): boolean {
   return someAnswer(day.t) || someTime(day.mw.times) || day.note !== '' || day.mw.ticks.length > 0
-    || day.dw.length > 0 || day.wo !== null || Object.keys(day.mv).length > 0;
+    || day.dw.length > 0 || day.wo !== null || Object.values(day.mv).some((laps) => laps.some(hasLap));
 }
 
 /** The day as stored, or null when there is nothing to keep (0.81 `compactDay`). */
@@ -120,7 +131,7 @@ export function writeDay(day: Day): Raw | null {
   const t = Object.fromEntries(Object.entries(day.t).filter(([, answers]) => Object.keys(answers).length > 0));
   const wo = day.wo && {
     ...day.wo,
-    ex: Object.fromEntries(Object.entries(day.wo.ex).map(([id, sets]) => [id, trimSets(sets)] as const).filter(([, sets]) => sets.length > 0)),
+    ex: Object.fromEntries(Object.entries(day.wo.ex).map(([id, sets]) => [id, trimEnd(sets, hasSet)] as const).filter(([, sets]) => sets.length > 0)),
   };
-  return { v: 2, date: day.date, t, note: day.note, mw: day.mw, dw: day.dw, wo, mv: day.mv, names: day.names };
+  return { v: 2, date: day.date, t, note: day.note, mw: day.mw, dw: day.dw, wo, mv: writeMovement(day.mv), names: day.names };
 }

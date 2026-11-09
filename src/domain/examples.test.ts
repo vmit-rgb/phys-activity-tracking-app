@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { diaryAccent, parseDiary, serializeDiary } from './diary';
 import { EXAMPLE_DIARY } from './examples';
+import { readSettings } from './settings';
 
 describe('EXAMPLE_DIARY («почати без ШІ»)', () => {
   const saved = parseDiary(serializeDiary(EXAMPLE_DIARY, new Date()))!;
@@ -17,6 +18,27 @@ describe('EXAMPLE_DIARY («почати без ШІ»)', () => {
     for (const section of ['morningWarmup', 'daytimeWarmup', 'workout', 'movement']) {
       expect(saved.profile[section]).toMatchObject({ enabled: true });
     }
+  });
+
+  it('is a light example (Olesia, 2026-11-09): two levels, one of the rest, 2–3 exercises everywhere', () => {
+    const settings = readSettings(saved.profile);
+    expect(settings.morningWarmup.levels).toHaveLength(2);
+    expect(settings.daytimeWarmup.groups).toHaveLength(1);
+    expect(settings.workout.sessions).toHaveLength(1);
+    expect(settings.movement.kinds).toHaveLength(1);
+    const counts = [
+      ...settings.morningWarmup.levels.map((level) => level.items.length),
+      ...settings.daytimeWarmup.groups.map((group) => group.items.length),
+      ...settings.workout.sessions.map((session) => session.items.length),
+    ];
+    expect(counts.every((n) => n >= 2 && n <= 3)).toBe(true);
+  });
+
+  it('asks in the morning, after the workout and one question in the evening', () => {
+    const asked = (moment: string) => readSettings(saved.profile).trackers.filter((t) => t.ask.includes(moment as never)).length;
+    expect(asked('morning')).toBeGreaterThan(0);
+    expect(asked('afterWorkout')).toBeGreaterThan(0);
+    expect(asked('evening')).toBe(1);
   });
 
   it('uses the default accent', () => {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DayKey } from '../domain/dates';
 import { readDay } from '../domain/day';
 import { readSettings } from '../domain/settings';
+import { homeSession } from '../home/session';
 import { showHome, type HomeActions, type HomeState } from './home';
 
 // Invented data only: nothing from a real log.
@@ -27,12 +28,13 @@ function show(over: Partial<HomeState> = {}): void {
     days: { [key('2026-11-09')]: readDay({ dw: ['back'] }, key('2026-11-09')) },
     date: TODAY,
     today: TODAY,
+    session: homeSession(),
     ...over,
   }, actions);
 }
 
 const text = (selector: string) => host.querySelector(selector)?.textContent;
-const titles = () => [...host.querySelectorAll('.accordion__title')].map((title) => title.textContent);
+const titles = () => [...host.querySelectorAll('.accordion--section .accordion__title')].map((title) => title.textContent);
 const nextDay = () => host.querySelector<HTMLButtonElement>('[aria-label="наступний день"]')!;
 const prevDay = () => host.querySelector<HTMLButtonElement>('[aria-label="попередній день"]')!;
 
@@ -52,6 +54,9 @@ beforeEach(() => {
     openMenu: vi.fn<() => void>(),
     sectionOpen: (id) => !closed.has(id),
     rememberSection: (id, open) => (open ? closed.delete(id) : closed.add(id)),
+    edit: () => ({}),
+    refresh: () => {},
+    toast: () => {},
   };
   show();
 });

@@ -1,19 +1,27 @@
 import { addDays, formatLong, formatShort, type DayKey } from '../domain/dates';
 import { emptyDay, type Day } from '../domain/day';
 import type { Diary } from '../domain/diary';
+import type { Edit } from '../domain/log';
 import { weekGoal } from '../domain/progress';
 import type { Settings } from '../domain/settings';
+import { flushDrafts, wireSections, type SectionControls } from '../home/controls';
 import { barShown, swipeDays, toTopShown, type Point } from '../home/gestures';
 import { HERO_STYLES, heroStyle, type HeroStyle } from '../home/hero-fit';
-import { goalLine, heroFor, homeSections, type SectionSpec } from '../home/home-view';
+import { goalLine, heroFor, homeSections, type SectionId, type SectionSpec } from '../home/home-view';
+import {
+  checkInBody, daytimeBody, morningBody, movementBody, noteBody, workoutBody, type SectionContext,
+} from '../home/sections';
+import { formatStopwatch, type HomeSession } from '../home/session';
 import { wireAccordions } from '../ui/accordion';
 import { iconSvg } from '../ui/icons';
+import type { ToastMessage } from '../ui/toast';
 import { FOOTER, part } from './parts';
 
 /*
  * Home (Figma `screen/home-default` 73:2601 open, 338:16522 closed;
  * `navigation` 189:6897; `button/to-top` 288:10620). Stage 5a: the frame of
- * the screen; the inside of the sections comes in 5b, the calendar in 5c.
+ * the screen; 5b: the inside of the sections (home/sections.ts, home/controls.ts);
+ * the calendar comes in 5c.
  * The ASCII scene behind the phrase comes in stage 7 (Olesia, 2026-11-09).
  * Texts from the settings are set as text, never as HTML.
  */
@@ -23,6 +31,7 @@ export interface HomeState {
   readonly days: Diary['days'];
   readonly date: DayKey;
   readonly today: DayKey;
+  readonly session: HomeSession;
 }
 
 export interface HomeActions {
@@ -31,9 +40,24 @@ export interface HomeActions {
   /** Whether a section is open; open unless the person closed it. */
   sectionOpen(id: string): boolean;
   rememberSection(id: string, open: boolean): void;
+  /** Applies an edit to the day shown and keeps it; `render` shows home again. Returns the days after it. */
+  edit(edit: Edit, render: boolean): Diary['days'];
+  /** Shows home again without changing anything. */
+  refresh(): void;
+  toast(message: ToastMessage): void;
 }
 
-function sectionMarkup({ id, title, description }: SectionSpec, open: boolean): string {
+const BODIES: Record<SectionId, (ctx: SectionContext) => string> = {
+  'ck-morning': (ctx) => checkInBody(ctx, 'morning'),
+  mw: morningBody,
+  dw: daytimeBody,
+  wo: workoutBody,
+  mv: movementBody,
+  'ck-evening': (ctx) => checkInBody(ctx, 'evening'),
+  note: noteBody,
+};
+
+function sectionMarkup({ id, title, description }: SectionSpec, open: boolean, ctx: SectionContext): string {
   return `
     <section class="home-section" aria-labelledby="sec-${id}-title">
       <h2 class="home-section__heading">
@@ -42,6 +66,7 @@ function sectionMarkup({ id, title, description }: SectionSpec, open: boolean): 
       </h2>
       <div class="home-section__body" id="sec-${id}"${open ? '' : ' hidden'}>
         <p class="t-1st-regular">${description}</p>
+        ${BODIES[id](ctx)}
       </div>
     </section>`;
 }
@@ -61,7 +86,8 @@ const BAR = `
   <button type="button" class="ctl icon-btn icon-btn--primary to-top" aria-label="вгору" hidden>${iconSvg('arrow-up')}</button>`;
 
 function markup(state: HomeState, actions: HomeActions): string {
-  const sections = homeSections(state.settings).map((section) => sectionMarkup(section, actions.sectionOpen(section.id)));
+  const ctx: SectionContext = { settings: state.settings, day: dayOf(state), days: state.days, session: state.session };
+  const sections = homeSections(state.settings).map((section) => sectionMarkup(section, actions.sectionOpen(section.id), ctx));
   return `
     <div class="home">
       <h1 class="visually-hidden">головна</h1>
@@ -100,6 +126,8 @@ function fillHero(host: HTMLElement, state: HomeState): () => void {
   };
 }
 
+const dayOf = (state: HomeState): Day => state.days[state.date] ?? emptyDay(state.date);
+
 function fillBar(host: HTMLElement, state: HomeState): void {
   const dayAt = (key: DayKey): Day => state.days[key] ?? emptyDay(key);
   const goal = goalLine(weekGoal(state.date, state.today, dayAt, state.settings));
@@ -111,7 +139,7 @@ function fillBar(host: HTMLElement, state: HomeState): void {
   date.className = `date-nav__date ${goal === null ? 't-h4' : 't-h5'}`;
   date.firstElementChild!.textContent = formatShort(state.date);
   date.lastElementChild!.textContent = formatLong(state.date);
-  part<HTMLButtonElement>(host, '[data-step="1"]').disabled = state.date >= state.today;
+  part<HTMLButtonElement>(host, '.date-nav [data-step="1"]').disabled = state.date >= state.today;
 }
 
 /** The bar hides on scroll down; «вгору» shows once scrolled. */
@@ -151,16 +179,79 @@ function wireDateNav(host: HTMLElement, step: (days: number) => void, signal: Ab
   }, { passive: true, signal });
 }
 
+const FOCUSABLE = '[data-act], input, textarea, button.accordion';
+
+interface FocusMark { readonly key: string | undefined; readonly index: number }
+
+/** Where the focus was, so a new render can put it back: the field's key or the control's place. */
+function focusMark(host: HTMLElement): FocusMark {
+  const all = [...host.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  const index = all.findIndex((element) => element === document.activeElement);
+  return { key: all[index]?.dataset.key, index };
+}
+
+function restoreFocus(host: HTMLElement, mark: FocusMark): void {
+  const all = [...host.querySelectorAll<HTMLElement>(FOCUSABLE)];
+  const target = all.find((element) => mark.key !== undefined && element.dataset.key === mark.key) ?? all[mark.index];
+  target?.focus({ preventScroll: true });
+}
+
+/** The day's sections: taps and typing become edits; a render keeps the focus where it was. */
+function sectionControls(host: HTMLElement, state: HomeState, actions: HomeActions): SectionControls {
+  let current = state;
+  const keepingFocus = (draw: () => void) => {
+    const mark = focusMark(host);
+    draw();
+    restoreFocus(host, mark);
+  };
+  return {
+    settings: state.settings,
+    session: state.session,
+    day: () => dayOf(current),
+    edit(edit, render) {
+      if (render) {
+        keepingFocus(() => actions.edit(edit, true));
+        return;
+      }
+      current = { ...current, days: actions.edit(edit, false) };
+      fillBar(host, current);
+    },
+    render: () => keepingFocus(() => actions.refresh()),
+    toast: (message) => actions.toast(message),
+  };
+}
+
+/** Running stopwatches of the day shown count on screen. */
+function tickStopwatches(host: HTMLElement, state: HomeState, signal: AbortSignal): void {
+  const prefix = `${state.date}|`;
+  if (![...state.session.running.keys()].some((key) => key.startsWith(prefix))) return;
+  const timer = setInterval(() => {
+    for (const time of host.querySelectorAll<HTMLElement>('[data-sw-time]')) {
+      const started = state.session.running.get(String(time.dataset.swTime));
+      if (started !== undefined) time.textContent = formatStopwatch(performance.now() - started);
+    }
+  }, 50);
+  signal.addEventListener('abort', () => clearInterval(timer));
+}
+
 /** Shows home; returns what to undo when another screen takes its place. */
 export function showHome(host: HTMLElement, state: HomeState, actions: HomeActions): () => void {
   host.innerHTML = markup(state, actions);
   const fit = fillHero(host, state);
   fillBar(host, state);
   // on .home, which every render makes anew: on host the listeners would pile up
-  wireAccordions(part(host, '.home'), (trigger, open) => actions.rememberSection(String(trigger.dataset.section), open));
+  const home = part<HTMLElement>(host, '.home');
+  wireAccordions(home, (trigger, open) => {
+    if (trigger.dataset.section) actions.rememberSection(trigger.dataset.section, open);
+    else state.session.open.set(String(trigger.dataset.memo), open);
+  });
+  const controls = sectionControls(host, state, actions);
+  wireSections(home, controls);
+  state.session.flush = () => flushDrafts(controls);
   part(host, '.bar__menu').addEventListener('click', () => actions.openMenu());
 
   const listeners = new AbortController();
+  tickStopwatches(host, state, listeners.signal);
   wireDateNav(host, (days) => {
     const next = addDays(state.date, days);
     if (days !== 0 && next <= state.today) actions.goTo(next);

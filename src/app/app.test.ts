@@ -30,6 +30,7 @@ function start(over: Partial<AppEnv> = {}, storage: KeyValue = localStorage): vo
     onDiary,
     today: () => '2026-11-09' as DayKey,
     sections: sectionMemory(localStorage),
+    whenHidden: () => {},
     ...over,
   });
 }
