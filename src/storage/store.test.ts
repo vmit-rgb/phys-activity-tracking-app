@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { parseDiary, serializeDiary } from '../domain/diary';
 import { EXAMPLE_DIARY } from '../domain/examples';
-import { browserChoice, diaryStore, DIARY_KEY, sectionMemory } from './store';
+import { browserChoice, diaryStore, DIARY_KEY, sectionMemory, storageFor } from './store';
 
 const now = () => new Date('2026-11-09T08:00:00.000Z');
 
@@ -71,5 +71,24 @@ describe('sectionMemory (closed home sections)', () => {
   it('only forgets when the phone is full', () => {
     const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } };
     expect(() => sectionMemory(full).remember('mw', false)).not.toThrow();
+  });
+});
+
+describe('storageFor (Olesia, 2026-11-09: the app in a browser tab keeps nothing)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  it('keeps the diary on the phone only in the installed app', () => {
+    expect(storageFor(true, { local: localStorage, session: sessionStorage })).toBe(localStorage);
+  });
+
+  it('keeps it in the tab otherwise, and never touches what the installed app keeps', () => {
+    diaryStore(localStorage, now).save(EXAMPLE_DIARY);
+    const tab = storageFor(false, { local: localStorage, session: sessionStorage });
+    expect(diaryStore(tab, now).load()).toBeNull();
+    diaryStore(tab, now).save({ ...EXAMPLE_DIARY, days: {} });
+    expect(diaryStore(localStorage, now).load()).toEqual(EXAMPLE_DIARY);
   });
 });

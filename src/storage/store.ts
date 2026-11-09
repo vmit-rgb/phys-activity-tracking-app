@@ -54,3 +54,13 @@ export function sectionMemory(storage: KeyValue): { open(id: string): boolean; r
     },
   };
 }
+
+/**
+ * Where the app keeps everything (Olesia, 2026-11-09): the installed app on
+ * the phone; a browser tab only in that tab, so a new tab starts from the
+ * first screen. The tab never reads or writes the phone's storage: on Android
+ * the installed app shares it with Chrome, and the tab must not touch that diary.
+ */
+export function storageFor<T extends KeyValue>(installed: boolean, storages: { local: T; session: T }): T {
+  return installed ? storages.local : storages.session;
+}
