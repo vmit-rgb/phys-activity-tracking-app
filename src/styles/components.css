@@ -494,7 +494,7 @@
 .toast__emoticon {
   color: var(--accent);
 }
-.toast__undo[hidden] {
+.toast__action[hidden] {
   display: none;
 }
 .toast__close .icon {

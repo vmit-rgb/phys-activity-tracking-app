@@ -8,7 +8,7 @@ import { wireAccordions } from './ui/accordion';
 import { DEFAULT_APPEARANCE, startAppearance, type Appearance, type Theme } from './ui/appearance';
 import { trackInputModality } from './ui/modality';
 import { ICON_NAMES, iconSvg } from './ui/icons';
-import { mountToast } from './ui/toast';
+import { mountToast, undo } from './ui/toast';
 
 // The living component sheet: every base component in its states, with the
 // appearance switches of the profile. Not part of the app itself.
@@ -115,7 +115,7 @@ wireAccordions(sheet);
 const toast = mountToast(document.body);
 const messages = {
   saved: { message: 'збережено', emoticon: ':)', showIcon: true },
-  removed: { message: 'підхід видалено', showIcon: true, onUndo: () => {} },
+  removed: { message: 'підхід видалено', showIcon: true, action: undo(() => {}) },
   info: { message: 'за цей день записів немає' },
 };
 sheet.addEventListener('click', (event) => {
