@@ -1,0 +1,215 @@
+/*
+ * Design tokens from Figma «phys-activity-tracking-app», read 2026-11-09:
+ * collections tracker/colors (dark, light), tracker/dimensions,
+ * tracker/text-size (default, larger-text), tracker/tap-targets
+ * (default, larger-targets) and the 9 accents of foundations/accent-colors.
+ *
+ * data-theme is always 'dark' or 'light' (appearance.ts resolves «follow
+ * the phone»). Colours need nothing newer than iOS 15.4 / Chrome 105:
+ * no light-dark(), no color-mix(); the alpha tints come from --accent-rgb.
+ */
+:root {
+  color-scheme: dark;
+
+  --bg: #161616;
+  --ink: #e9e9e9;
+  --on-accent: #161d1b;
+  /* text on the section title bar: dark in both themes (Olesia, 2026-11-09) */
+  --on-sec-head: #161d1b;
+  --iron: #e7e7e7;
+  --ok: #75eea5;
+  --warn: #f2be56;
+  --err: #ee696b;
+  /* inactive UI: low contrast on purpose, WCAG 1.4.3 does not apply */
+  --disabled: #5d5d5d;
+  --disabled-on: #282c2a;
+  --scrim-shadow: rgb(0 0 0 / 25%);
+
+  --accent: rgb(var(--accent-rgb));
+  --surface: rgb(var(--accent-rgb) / 5%);
+  --sunk: rgb(var(--accent-rgb) / 10%);
+  --line: rgb(var(--accent-rgb) / 85%);
+  --sec-head: rgb(var(--accent-rgb) / 65%);
+
+  --gap-nano: 2px;
+  --gap-micro: 4px;
+  --gap-items: 8px;
+  --gap-group: 16px;
+  --gap-section: 24px;
+  --gap-huge: 48px;
+  --pad-screen-top: 24px;
+  --pad-screen-x: 16px;
+  --pad-screen-bottom: 40px;
+  --pad-bottom-bar: 80px;
+  --content-max: 560px;
+  --radius-pill: 999px;
+
+  --stroke-focus: 2px;
+  --stroke-1: 1.6px;
+  --stroke-2: 1.3px;
+  --stroke-3: 1px;
+  --stroke-4: 0.7px;
+  --stroke-5: 0.4px;
+  /* Figma focus/ring: 2 px of page colour on the edge, 4 px of accent outside */
+  --focus-ring: inset 0 0 0 var(--stroke-focus) var(--bg), 0 0 0 4px var(--accent);
+
+  --tap: 48px;
+  --text-scale: 1;
+
+  --font: 'Noto Sans Mono', ui-monospace, 'DejaVu Sans Mono', monospace;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f6f5f7;
+  --ink: #1a1a1a;
+  --on-accent: #ffffff;
+  --on-sec-head: #1a1a1a;
+  --iron: #2a2a2a;
+  --ok: #1e7d45;
+  --warn: #8a5d00;
+  --err: #b3261e;
+  --disabled: #959595;
+  --disabled-on: #ffffff;
+}
+
+:root[data-larger-text] {
+  --text-scale: 1.2;
+}
+:root[data-larger-targets] {
+  --tap: 56px;
+}
+
+/* Accents, dark theme: primary (as rgb) · mid · quiet (dark shade) · muted text.
+   Pink is also the default before the script runs. */
+
+:root[data-theme='dark'][data-accent='gray'] {
+  --accent-rgb: 193 187 197;
+  --accent-mid: #97919b;
+  --accent-quiet: #504d52;
+  --muted: #b9b6bb;
+}
+
+:root[data-theme='dark'][data-accent='orange'] {
+  --accent-rgb: 255 130 42;
+  --accent-mid: #be8464;
+  --accent-quiet: #5c4a40;
+  --muted: #c5b3a9;
+}
+
+:root,
+:root[data-theme='dark'][data-accent='pink'] {
+  --accent-rgb: 255 113 157;
+  --accent-mid: #c07e8f;
+  --accent-quiet: #5d484d;
+  --muted: #c6b1b6;
+}
+
+:root[data-theme='dark'][data-accent='magenta'] {
+  --accent-rgb: 255 78 248;
+  --accent-mid: #b181ad;
+  --accent-quiet: #584956;
+  --muted: #c1b2bf;
+}
+
+:root[data-theme='dark'][data-accent='purple'] {
+  --accent-rgb: 209 124 255;
+  --accent-mid: #a685b9;
+  --accent-quiet: #544a5a;
+  --muted: #bdb3c3;
+}
+
+:root[data-theme='dark'][data-accent='violet'] {
+  --accent-rgb: 167 149 254;
+  --accent-mid: #938bc5;
+  --accent-quiet: #4e4c5e;
+  --muted: #b7b5c7;
+}
+
+:root[data-theme='dark'][data-accent='blue'] {
+  --accent-rgb: 118 167 254;
+  --accent-mid: #7794c8;
+  --accent-quiet: #454f5f;
+  --muted: #afb8c8;
+}
+
+:root[data-theme='dark'][data-accent='cyan'] {
+  --accent-rgb: 21 235 230;
+  --accent-mid: #4ca4a1;
+  --accent-quiet: #3b5453;
+  --muted: #a6bdbb;
+}
+
+:root[data-theme='dark'][data-accent='mint'] {
+  --accent-rgb: 33 239 194;
+  --accent-mid: #58a58e;
+  --accent-quiet: #3e544c;
+  --muted: #a8bdb5;
+}
+
+
+/* Accents, light theme: primary · mid · quiet (tint) · muted text. */
+
+:root[data-theme='light'][data-accent='gray'] {
+  --accent-rgb: 102 97 106;
+  --accent-mid: #89848d;
+  --accent-quiet: #dbd7de;
+  --muted: #656267;
+}
+
+:root[data-theme='light'][data-accent='orange'] {
+  --accent-rgb: 181 85 4;
+  --accent-mid: #b07757;
+  --accent-quiet: #ead4c8;
+  --muted: #705f57;
+}
+
+:root[data-theme='light'][data-accent='pink'] {
+  --accent-rgb: 194 57 106;
+  --accent-mid: #b17081;
+  --accent-quiet: #ebd1d7;
+  --muted: #705e62;
+}
+
+:root[data-theme='light'][data-accent='magenta'] {
+  --accent-rgb: 190 3 185;
+  --accent-mid: #a3739f;
+  --accent-quiet: #e5d2e3;
+  --muted: #6c5e6a;
+}
+
+:root[data-theme='light'][data-accent='purple'] {
+  --accent-rgb: 155 70 198;
+  --accent-mid: #9877ab;
+  --accent-quiet: #e0d4e8;
+  --muted: #685f6e;
+}
+
+:root[data-theme='light'][data-accent='violet'] {
+  --accent-rgb: 117 97 197;
+  --accent-mid: #857db6;
+  --accent-quiet: #d8d6ec;
+  --muted: #636171;
+}
+
+:root[data-theme='light'][data-accent='blue'] {
+  --accent-rgb: 65 111 193;
+  --accent-mid: #6986ba;
+  --accent-quiet: #cedaee;
+  --muted: #5b6472;
+}
+
+:root[data-theme='light'][data-accent='cyan'] {
+  --accent-rgb: 9 125 123;
+  --accent-mid: #3c9693;
+  --accent-quiet: #c4e0de;
+  --muted: #536867;
+}
+
+:root[data-theme='light'][data-accent='mint'] {
+  --accent-rgb: 6 128 102;
+  --accent-mid: #499780;
+  --accent-quiet: #c6e0d7;
+  --muted: #556862;
+}
