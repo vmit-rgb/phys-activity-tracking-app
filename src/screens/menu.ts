@@ -35,8 +35,11 @@ const THEME_SWITCH: Record<ThemeChoice, string> = {
   light: `<button type="button" class="ctl icon-btn icon-btn--secondary menu__theme" aria-label="темна тема">${iconSvg('moon')}</button>`,
 };
 
-const item = (kind: 'link' | 'help', name: MenuItem, label: string) =>
-  `<button type="button" class="ctl btn btn--${kind === 'link' ? 'primary' : 'secondary'} menu__${kind}" data-menu="${name}">${label}</button>`;
+/** `look`: «btn--primary menu__link» for menu/links, «btn--secondary menu__help» for menu/help-links. */
+const item = (look: string, name: MenuItem, label: string) =>
+  `<button type="button" class="ctl btn ${look}" data-menu="${name}">${label}</button>`;
+const LINK = 'btn--primary menu__link';
+const HELP = 'btn--secondary menu__help';
 
 const REMINDER = '<p class="t-2nd-regular" data-backup-reminder>давненько не було копії. збережи, поки все на місці :)</p>';
 
@@ -47,9 +50,9 @@ function markup(state: MenuState): string {
       <h1 class="visually-hidden">меню</h1>
       <div class="menu__content">
         <nav class="menu__group menu__group--links" aria-label="розділи">
-          ${item('link', 'history', 'історія')}
-          ${item('link', 'settings', 'налаштування')}
-          ${item('link', 'search', 'пошук у нотатках')}
+          ${item(LINK, 'history', 'історія')}
+          ${item(LINK, 'settings', 'налаштування')}
+          ${item(LINK, 'search', 'пошук у нотатках')}
         </nav>
         <section class="menu__backup" aria-label="копія">
           <p class="t-3rd-regular muted" data-backup-line>${state.backupLine}</p>
@@ -57,10 +60,10 @@ function markup(state: MenuState): string {
           <button type="button" class="ctl btn btn--tertiary" data-menu="backup">зберегти копію</button>
         </section>
         <nav class="menu__group menu__group--help" aria-label="допомога">
-          ${item('help', 'whats-new', 'що нового в застосунку')}
-          ${item('help', 'how-to-use', 'як користуватись')}
-          ${item('help', 'share', 'поділитися застосунком')}
-          ${item('help', 'feedback', 'додати фідбек')}
+          ${item(HELP, 'whats-new', 'що нового в застосунку')}
+          ${item(HELP, 'how-to-use', 'як користуватись')}
+          ${item(HELP, 'share', 'поділитися застосунком')}
+          ${item(HELP, 'feedback', 'додати фідбек')}
         </nav>
         ${FOOTER}
       </div>

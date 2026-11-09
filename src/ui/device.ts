@@ -12,7 +12,6 @@ export function saveFile(doc: Document, name: string, text: string): void {
   const link = doc.createElement('a');
   link.href = url;
   link.download = name;
-  link.hidden = true;
   doc.body.append(link);
   link.click();
   link.remove();
