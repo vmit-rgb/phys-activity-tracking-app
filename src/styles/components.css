@@ -1,0 +1,498 @@
+/*
+ * Base components from Figma (components/atoms, toast/saved). States are
+ * written once for every control (.ctl); a variant only says how it looks
+ * in each state through these properties:
+ *   --fill-*   background          --fg-*     text and icon colour
+ *   --ring-*   outline colour      --ring-w-* outline width
+ *   --weight-* font weight
+ * suffixes: -0 default, -hf hover/focus, -pressed, -disabled.
+ */
+.ctl {
+  --fill: var(--fill-0, transparent);
+  --fg: var(--fg-0, var(--accent));
+  --ring: var(--ring-0, transparent);
+  --ring-w: var(--ring-w-0, 0px);
+  --weight: var(--weight-0, 600);
+  --fg-alpha: 100%;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-items);
+  min-height: var(--tap);
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--fill);
+  box-shadow: inset 0 0 0 var(--ring-w) var(--ring);
+  color: color-mix(in srgb, var(--fg) var(--fg-alpha), transparent);
+  font: inherit;
+  font-weight: var(--weight);
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ctl:focus-visible {
+  outline: none;
+}
+.ctl:focus-visible,
+.ctl:has(:focus-visible) {
+  --fill: var(--fill-hf, var(--fill-0, transparent));
+  --fg: var(--fg-hf, var(--fg-0, var(--accent)));
+  --ring: var(--ring-hf, var(--accent));
+  --ring-w: var(--ring-w-hf, var(--stroke-focus));
+  --weight: var(--weight-hf, 720);
+}
+@media (hover: hover) {
+  .ctl:hover {
+    --fill: var(--fill-hf, var(--fill-0, transparent));
+    --fg: var(--fg-hf, var(--fg-0, var(--accent)));
+    --ring: var(--ring-hf, var(--accent));
+    --ring-w: var(--ring-w-hf, var(--stroke-focus));
+    --weight: var(--weight-hf, 720);
+  }
+}
+.ctl:active {
+  --fill: var(--fill-pressed, var(--fill-0, transparent));
+  --fg: var(--fg-pressed, var(--muted));
+  --ring: var(--ring-pressed, var(--ring-0, transparent));
+  --ring-w: var(--ring-w-0, 0px);
+  --weight: var(--weight-0, 600);
+  --fg-alpha: var(--fg-alpha-pressed, 70%);
+}
+.ctl.ctl:is(:disabled, [aria-disabled='true']) {
+  --fill: var(--fill-disabled, transparent);
+  --fg: var(--fg-disabled, var(--disabled));
+  --ring: var(--ring-disabled, transparent);
+  --ring-w: var(--ring-w-0, 0px);
+  --weight: var(--weight-0, 600);
+  --fg-alpha: 100%;
+  cursor: default;
+}
+
+/* ---- button (73:2478) ---- */
+.btn {
+  text-decoration: underline;
+  text-underline-position: from-font;
+}
+.btn--primary {
+  --fill-0: var(--accent);
+  --fg-0: var(--on-accent);
+  --fill-hf: var(--accent-mid);
+  --fill-pressed: var(--muted);
+  --fg-pressed: var(--on-accent);
+  --fill-disabled: var(--disabled);
+  --fg-disabled: var(--disabled-on);
+  padding: 8px;
+  font-size: calc(17px * var(--text-scale));
+  font-stretch: 94%;
+  line-height: 1.3;
+}
+.btn--secondary {
+  --ring-0: var(--accent);
+  --ring-w-0: var(--stroke-2);
+  --ring-pressed: var(--muted);
+  --ring-disabled: var(--disabled);
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-size: calc(14px * var(--text-scale));
+  font-stretch: 98%;
+  line-height: 1.3;
+}
+/* tertiary and destructive: text only; the focus ring is a pill around it */
+.btn--tertiary,
+.btn--destructive {
+  --ring-w-hf: 0px;
+  padding: 8px 0;
+  font-size: calc(12px * var(--text-scale));
+  font-stretch: 100%;
+  line-height: 1.3;
+}
+.btn--destructive {
+  --fg-0: var(--err);
+  --fg-hf: var(--err);
+}
+.btn--tertiary::after,
+.btn--destructive::after {
+  content: '';
+  position: absolute;
+  inset: 0 -16px;
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+.btn--tertiary:focus-visible::after,
+.btn--destructive:focus-visible::after {
+  box-shadow: inset 0 0 0 3px var(--accent);
+}
+@media (hover: hover) {
+  .btn--tertiary:not(:disabled, [aria-disabled='true']):hover::after,
+  .btn--destructive:not(:disabled, [aria-disabled='true']):hover::after {
+    box-shadow: inset 0 0 0 3px var(--accent);
+  }
+}
+
+/* ---- icons and button/icon (73:2528) ---- */
+.icon {
+  display: block;
+  width: 25px;
+  height: 25px;
+  flex: none;
+}
+.icon-btn {
+  --fg-alpha-pressed: 100%;
+  min-width: var(--tap);
+  padding: 0;
+}
+.icon-btn--primary {
+  --ring-0: var(--accent);
+  --ring-w-0: var(--stroke-1);
+  --ring-pressed: var(--muted);
+  --ring-disabled: var(--disabled);
+  padding: 8px;
+}
+/* secondary has no frame: hover/focus makes the glyph bolder, as in Figma */
+.icon-btn--secondary {
+  --ring-w-hf: 0px;
+}
+.icon-btn .icon path {
+  stroke: currentColor;
+  stroke-width: calc((var(--weight) - 600) / 120 * 1.2px);
+}
+.icon-btn--small .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---- tab (179:3176) ---- */
+.tab {
+  --fg-alpha-pressed: 100%;
+  padding: 8px;
+  font-size: calc(17px * var(--text-scale));
+  font-stretch: 94%;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-position: from-font;
+}
+.tab[aria-selected='true'] {
+  --fill-0: var(--accent);
+  --fg-0: var(--on-accent);
+  --fill-hf: var(--accent-mid);
+  --fill-pressed: var(--muted);
+  --fg-pressed: var(--on-accent);
+  --fill-disabled: var(--disabled);
+  --fg-disabled: var(--disabled-on);
+}
+
+/* ---- checkbox (73:3051): [ ] and [x], the row around it is the tap target ---- */
+.checkbox {
+  --fg-0: var(--muted);
+  --fg-hf: var(--muted);
+  --ring-w-hf: 0px;
+  --weight-0: 420;
+  --fg-alpha-pressed: 100%;
+  justify-content: flex-start;
+  font-size: calc(17px * var(--text-scale));
+  font-stretch: 94%;
+  line-height: 1.3;
+}
+.checkbox__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.checkbox__box::before {
+  content: '[ ]';
+  white-space: pre;
+}
+.checkbox__input:checked + .checkbox__box::before {
+  content: '[x]';
+}
+.checkbox__label {
+  color: var(--ink);
+  font-weight: 420;
+}
+
+/* ---- input/base, text (73:3457): three rows, grows by dragging ---- */
+.field {
+  display: block;
+  width: 100%;
+  min-width: 200px;
+  min-height: calc(var(--tap) + 1.3em * 2);
+  padding: 8px;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--accent);
+  color: var(--ink);
+  font: inherit;
+  font-size: calc(17px * var(--text-scale));
+  font-weight: 420;
+  font-stretch: 94%;
+  line-height: 1.3;
+  resize: vertical;
+  user-select: text;
+}
+.field::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+@media (hover: hover) {
+  .field:hover {
+    box-shadow: inset 0 0 0 var(--stroke-focus) var(--accent);
+  }
+}
+.field:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--stroke-1) var(--muted);
+}
+.field[aria-invalid='true'] {
+  background: var(--sunk);
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--err);
+  color: var(--err);
+}
+.field:disabled {
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--disabled);
+  color: var(--disabled);
+}
+
+/* ---- input/base, number: [ 0000 ] одиниці. The input fills the brackets,
+   so the caret lands where the finger taps (ACCESSIBILITY.md, text fields). ---- */
+.number {
+  --part: var(--muted);
+  --num-line: var(--muted);
+  --num-line-w: var(--stroke-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-micro);
+  width: 180px;
+  min-width: 150px;
+  max-width: 400px;
+  min-height: var(--tap);
+  background: var(--surface);
+  cursor: text;
+}
+.number__bracket {
+  color: var(--part);
+  font-size: calc(20px * var(--text-scale));
+  font-weight: 500;
+  font-stretch: 90%;
+  line-height: 1.3;
+}
+.number__input {
+  flex: 1;
+  min-width: 2ch;
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: var(--num-line-w) solid var(--num-line);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: calc(17px * var(--text-scale));
+  font-weight: 420;
+  font-stretch: 94%;
+  user-select: text;
+}
+.number__input:focus {
+  outline: none;
+}
+.number__unit {
+  color: var(--part);
+  font-size: calc(12px * var(--text-scale));
+  font-weight: 420;
+  font-stretch: 100%;
+  white-space: nowrap;
+}
+@media (hover: hover) {
+  .number:hover {
+    --part: var(--accent);
+    --num-line: var(--accent);
+  }
+}
+.number:focus-within {
+  --part: var(--muted);
+  --num-line: var(--muted);
+  --num-line-w: var(--stroke-focus);
+}
+.number:focus-within .number__bracket,
+.number:focus-within .number__unit {
+  font-weight: 700;
+}
+.number:has([aria-invalid='true']) {
+  --part: var(--err);
+  --num-line: var(--err);
+}
+.number:has([aria-invalid='true']) .number__input {
+  color: var(--err);
+}
+.number:has(:disabled) {
+  --part: var(--disabled);
+  --num-line: var(--disabled);
+  cursor: default;
+}
+
+/* ---- divider (172:6055) ---- */
+.divider {
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+/* ---- accordion/trigger (97:3401): section, group, paragraph, mini ---- */
+.accordion {
+  --ring-w-hf: var(--stroke-focus);
+  --fg-alpha-pressed: 100%;
+  width: 100%;
+  min-width: 200px;
+  justify-content: space-between;
+  gap: 10px;
+  text-decoration: none;
+}
+.accordion__title {
+  flex: 1;
+  min-width: 0;
+  text-decoration: underline;
+  text-decoration-skip-ink: none;
+  text-underline-position: from-font;
+}
+.accordion__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tap);
+  min-height: var(--tap);
+}
+.accordion__icon .icon path {
+  stroke: currentColor;
+  stroke-width: calc((var(--weight) - var(--weight-0, 600)) / 120 * 1.2px);
+}
+.accordion--section {
+  --fill-0: var(--sec-head);
+  --fg-0: var(--on-accent);
+  --fill-hf: var(--accent-mid);
+  --fg-hf: var(--on-accent);
+  --fill-pressed: var(--muted);
+  --fg-pressed: var(--on-accent);
+  --ring-disabled: var(--disabled);
+  --weight-0: 700;
+  --weight-hf: 700;
+  padding: 4px 16px 8px;
+  backdrop-filter: blur(4px);
+  font-size: calc(29px * var(--text-scale));
+  font-stretch: 80%;
+  line-height: 1.3;
+}
+.accordion--section:is(:disabled, [aria-disabled='true']) {
+  --ring-w-0: var(--stroke-1);
+}
+.accordion--group {
+  --ring-0: var(--accent);
+  --ring-w-0: var(--stroke-5);
+  --ring-pressed: var(--muted);
+  --ring-disabled: var(--disabled);
+  --weight-0: 500;
+  --weight-hf: 700;
+  display: inline-grid;
+  grid-template: 'title icon' auto 'meta meta' auto / 1fr auto;
+  align-items: center;
+  padding: 0 0 4px 4px;
+  font-size: calc(24px * var(--text-scale));
+  font-stretch: 90%;
+  line-height: 1.3;
+}
+.accordion--group:is(:disabled, [aria-disabled='true']) {
+  --ring-w-0: var(--stroke-5);
+}
+.accordion--group .accordion__title {
+  grid-area: title;
+}
+.accordion--group .accordion__icon {
+  grid-area: icon;
+}
+.accordion__meta {
+  grid-area: meta;
+  color: var(--ink);
+  font-size: calc(14px * var(--text-scale));
+  font-weight: 420;
+  font-stretch: 98%;
+}
+.accordion--group:is(:disabled, [aria-disabled='true']) .accordion__meta {
+  color: var(--disabled);
+}
+.accordion--paragraph,
+.accordion--mini {
+  --ring-w-hf: 0px;
+  --ring-disabled: var(--disabled);
+  --weight-0: 420;
+  --weight-hf: 720;
+  padding: 0 0 0 4px;
+  line-height: 1.3;
+}
+.accordion--paragraph:is(:disabled, [aria-disabled='true']),
+.accordion--mini:is(:disabled, [aria-disabled='true']) {
+  --ring-w-0: var(--stroke-5);
+}
+.accordion--paragraph {
+  padding-bottom: 4px;
+  font-size: calc(14px * var(--text-scale));
+  font-stretch: 98%;
+}
+.accordion--mini {
+  font-size: calc(12px * var(--text-scale));
+  font-stretch: 100%;
+}
+.accordion--paragraph .icon {
+  width: 16px;
+  height: 16px;
+}
+.accordion--mini .icon {
+  width: 12.5px;
+  height: 12.5px;
+}
+
+/* ---- toast/saved (206:3756): screen-wide, above the bottom bar ---- */
+.toast {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 50;
+  border-top: var(--stroke-4) solid var(--accent);
+  background: var(--bg);
+  box-shadow: 0 2px 12px var(--scrim-shadow);
+}
+.toast[hidden] {
+  display: none;
+}
+.toast__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-items);
+  max-width: var(--content-max);
+  min-height: var(--tap);
+  margin: 0 auto;
+  padding: 4px var(--pad-screen-x);
+}
+.toast__check {
+  color: var(--accent);
+}
+.toast__check[hidden] {
+  display: none;
+}
+.toast__message {
+  flex: 1;
+  color: var(--ink);
+}
+.toast__emoticon {
+  color: var(--accent);
+}
+.toast__undo[hidden] {
+  display: none;
+}
+.toast__close .icon {
+  width: 20px;
+  height: 20px;
+}
