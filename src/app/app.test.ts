@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DayKey } from '../domain/dates';
+import { readDay } from '../domain/day';
 import { serializeDiary, type Diary } from '../domain/diary';
 import { EXAMPLE_DIARY } from '../domain/examples';
 import { browserChoice, diaryStore, type KeyValue } from '../storage/store';
@@ -8,7 +10,7 @@ import { startApp, type AppEnv } from './app';
 // Invented data only.
 const COPY_081 = serializeDiary({
   profile: { format: 'phys-activity-profile', version: 1, theme: { accent: 'green' } },
-  days: { '2026-11-07': { v: 2, date: '2026-11-07', note: 'вправа 1' } } as Diary['days'],
+  days: { ['2026-11-07' as DayKey]: readDay({ note: 'вправа 1' }, '2026-11-07' as DayKey) },
 }, new Date('2026-11-08T10:00:00Z'));
 
 let host: HTMLElement;
