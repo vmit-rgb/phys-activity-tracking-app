@@ -9,11 +9,12 @@ import { showInstallFirst } from '../screens/install-first';
 import type { DiaryStore, sectionMemory } from '../storage/store';
 import type { Toast, ToastMessage } from '../ui/toast';
 import { logKeeper } from './keeper';
+import { pagesOverHome, type DeviceEnv } from './pages';
 import { startScreen, type Phone, type Platform, type StartScreen } from './start';
 
 export { SAVE_DELAY_MS } from './keeper';
 
-export interface AppEnv {
+export interface AppEnv extends DeviceEnv {
   host: HTMLElement;
   store: DiaryStore;
   browser: { chosen(): boolean; choose(): void };
@@ -35,8 +36,6 @@ const PASTE_SOON: ToastMessage = { message: 'вставку налаштуван
 const NOT_A_COPY: ToastMessage = { message: 'цей файл не схожий на копію з трекера', emoticon: '>_<' };
 const RESTORED: ToastMessage = { message: 'відновлено з файлу', emoticon: ':)', showIcon: true };
 const NOT_SAVED: ToastMessage = { message: 'не вдалося зберегти: схоже, на телефоні забракло місця', emoticon: '>_<' };
-/* Нитка's draft: the menu comes in stage 6. */
-const MENU_SOON: ToastMessage = { message: 'меню ще робимо, скоро буде', emoticon: ':)' };
 
 /** install-first shows Android's steps unless the phone is an iPhone. */
 const phoneOf = (platform: Platform): Phone => (platform === 'iphone' ? 'iphone' : 'android');
@@ -48,6 +47,20 @@ export function startApp(env: AppEnv): void {
   let leave = () => {};
   const session = homeSession();
   const log = logKeeper(store, toast);
+  // the menu opens only from home, so there is a diary whenever it asks
+  const pages = pagesOverHome(env, {
+    host,
+    toast,
+    today: env.today,
+    diary: () => diary!,
+    date: () => date,
+    showHome: (day) => showDay(diary!, day),
+    replace(draw) {
+      leave();
+      leave = draw();
+      document.documentElement.scrollTop = 0;
+    },
+  });
 
   function showDay(current: Diary, next: DayKey): void {
     date = next;
@@ -58,7 +71,11 @@ export function startApp(env: AppEnv): void {
         session.flush();
         showDay(shown, day);
       },
-      openMenu: () => toast.show(MENU_SOON),
+      openMenu: () => {
+        session.flush();
+        log.saveNow();
+        pages.open('menu');
+      },
       sectionOpen: env.sections.open,
       rememberSection: env.sections.remember,
       edit(change, render) {

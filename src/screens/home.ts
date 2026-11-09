@@ -1,13 +1,12 @@
-import { addDays, formatLong, formatShort, type DayKey } from '../domain/dates';
+import type { DayKey } from '../domain/dates';
 import { emptyDay, type Day } from '../domain/day';
 import type { Diary } from '../domain/diary';
 import type { Edit } from '../domain/log';
-import { weekGoal } from '../domain/progress';
 import type { Settings } from '../domain/settings';
 import { flushDrafts, wireSections, type SectionControls } from '../home/controls';
-import { barShown, swipeDays, toTopShown, type Point } from '../home/gestures';
+import { barShown, toTopShown } from '../home/gestures';
 import { HERO_STYLES, heroStyle, type HeroStyle } from '../home/hero-fit';
-import { goalLine, heroFor, homeSections, type SectionId, type SectionSpec } from '../home/home-view';
+import { heroFor, homeSections, type SectionId, type SectionSpec } from '../home/home-view';
 import {
   checkInBody, daytimeBody, morningBody, movementBody, noteBody, workoutBody, type SectionContext,
 } from '../home/sections';
@@ -18,6 +17,7 @@ import { monthOf, shiftMonth } from '../domain/stats';
 import { wireAccordions } from '../ui/accordion';
 import { iconSvg } from '../ui/icons';
 import type { ToastMessage } from '../ui/toast';
+import { barMarkup, fillBar, wireDateNav } from './bar';
 import { FOOTER, part } from './parts';
 
 /*
@@ -74,18 +74,7 @@ function sectionMarkup({ id, title, description }: SectionSpec, open: boolean, c
     </section>`;
 }
 
-const BAR = `
-  <nav class="bar" aria-label="навігація">
-    <button type="button" class="ctl icon-btn icon-btn--secondary bar__menu" aria-label="меню">${iconSvg('menu')}</button>
-    <div class="bar__right">
-      <p class="bar__goal t-3rd-semibold" aria-live="polite"></p>
-      <div class="date-nav">
-        <button type="button" class="ctl icon-btn icon-btn--secondary date-nav__step" data-step="-1" aria-label="попередній день">${iconSvg('chevron-left')}</button>
-        <button type="button" class="ctl date-nav__date" aria-live="polite" aria-haspopup="dialog" aria-expanded="false"><span aria-hidden="true"></span><span class="visually-hidden"></span></button>
-        <button type="button" class="ctl icon-btn icon-btn--secondary date-nav__step" data-step="1" aria-label="наступний день">${iconSvg('chevron-right')}</button>
-      </div>
-    </div>
-  </nav>
+const TO_TOP = `
   <button type="button" class="ctl icon-btn icon-btn--primary to-top" aria-label="вгору" hidden>${iconSvg('arrow-up')}</button>`;
 
 function markup(state: HomeState, actions: HomeActions): string {
@@ -99,7 +88,7 @@ function markup(state: HomeState, actions: HomeActions): string {
       <section class="cal-block" aria-label="календар">${calendarMarkup(calendarView(state, 'home'))}</section>
       ${FOOTER}
     </div>
-    ${BAR}`;
+    ${barMarkup('menu')}${TO_TOP}`;
 }
 
 /** Lines a phrase takes in a style, measured on a hidden copy of the same width. */
@@ -207,20 +196,6 @@ function wireCalendar(host: HTMLElement, state: HomeState, go: (date: DayKey) =>
   };
 }
 
-function fillBar(host: HTMLElement, state: HomeState): void {
-  const dayAt = (key: DayKey): Day => state.days[key] ?? emptyDay(key);
-  const goal = goalLine(weekGoal(state.date, state.today, dayAt, state.settings));
-  const goalText = part<HTMLElement>(host, '.bar__goal');
-  goalText.textContent = goal ?? '';
-  goalText.hidden = goal === null;
-  const date = part<HTMLElement>(host, '.date-nav__date');
-  // without the goal line the date takes header 4 (Olesia, 2026-10-29)
-  date.className = `ctl date-nav__date ${goal === null ? 't-h4' : 't-h5'}`;
-  date.firstElementChild!.textContent = formatShort(state.date);
-  date.lastElementChild!.textContent = formatLong(state.date);
-  part<HTMLButtonElement>(host, '.date-nav [data-step="1"]').disabled = state.date >= state.today;
-}
-
 /** The bar hides on scroll down; «вгору» shows once scrolled. */
 function wireScroll(host: HTMLElement, signal: AbortSignal): void {
   const bar = part<HTMLElement>(host, '.bar');
@@ -238,24 +213,6 @@ function wireScroll(host: HTMLElement, signal: AbortSignal): void {
     if (Math.abs(y - lastY) > 6) lastY = y;
   }, { passive: true, signal });
   bar.addEventListener('focusin', () => bar.classList.remove('bar--hidden'), { signal });
-}
-
-/** Arrows and a swipe on the date move by a day. */
-function wireDateNav(host: HTMLElement, step: (days: number) => void, signal: AbortSignal): void {
-  for (const button of host.querySelectorAll<HTMLButtonElement>('.date-nav__step')) {
-    button.addEventListener('click', () => step(Number(button.dataset.step)));
-  }
-  const dateNav = part<HTMLElement>(host, '.date-nav');
-  let start: Point | null = null;
-  dateNav.addEventListener('touchstart', (event) => {
-    const touch = event.touches[0];
-    start = event.touches.length === 1 && touch ? { x: touch.clientX, y: touch.clientY } : null;
-  }, { passive: true, signal });
-  dateNav.addEventListener('touchend', (event) => {
-    const touch = event.changedTouches[0];
-    if (start && touch) step(swipeDays(start, { x: touch.clientX, y: touch.clientY }));
-    start = null;
-  }, { passive: true, signal });
 }
 
 const FOCUSABLE = '[data-act], input, textarea, button.accordion';
@@ -364,10 +321,7 @@ export function showHome(host: HTMLElement, state: HomeState, actions: HomeActio
 
   tickStopwatches(host, state, listeners.signal);
   tickPulse(host, state, listeners.signal);
-  wireDateNav(host, (days) => {
-    const next = addDays(state.date, days);
-    if (days !== 0 && next <= state.today) go(next);
-  }, listeners.signal);
+  wireDateNav(host, state, go, listeners.signal);
   wireScroll(host, listeners.signal);
 
   fit();

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeDevice } from '../app/test-env';
 import { SAVE_DELAY_MS, startApp } from '../app/app';
 import type { DayKey } from '../domain/dates';
 import { emptyDay, readDay } from '../domain/day';
@@ -62,6 +63,7 @@ function start(days: Diary['days'] = {}, settings: Diary['profile'] = profile): 
     toast: mountToast(document.body),
     today: () => TODAY,
     sections: sectionMemory(localStorage),
+    ...fakeDevice().env,
     onDiary: () => {},
     whenHidden: (save) => {
       hide = save;
@@ -399,6 +401,7 @@ describe('saving', () => {
       toast: mountToast(document.body),
       today: () => TODAY,
       sections: sectionMemory(localStorage),
+      ...fakeDevice().env,
       onDiary: () => {},
       whenHidden: (save) => {
         hide = save;

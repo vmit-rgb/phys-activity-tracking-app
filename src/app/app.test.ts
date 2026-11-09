@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fakeDevice } from './test-env';
 import type { DayKey } from '../domain/dates';
 import { readDay } from '../domain/day';
 import { serializeDiary, type Diary } from '../domain/diary';
@@ -30,6 +31,7 @@ function start(over: Partial<AppEnv> = {}, storage: KeyValue = localStorage): vo
     onDiary,
     today: () => '2026-11-09' as DayKey,
     sections: sectionMemory(localStorage),
+    ...fakeDevice().env,
     whenHidden: () => {},
     ...over,
   });
@@ -187,9 +189,9 @@ describe('home', () => {
     expect(host.querySelector('.hero__text')!.textContent).toContain('це запис за нд, 08.11.2026.');
   });
 
-  it('says the menu is coming soon', () => {
+  it('opens the menu from ≡', () => {
     click('.bar__menu');
-    expect(toastText()).toBe('меню ще робимо, скоро буде :)');
+    expect(heading()).toBe('меню');
   });
 });
 

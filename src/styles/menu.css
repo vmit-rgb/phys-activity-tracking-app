@@ -1,0 +1,119 @@
+/*
+ * The menu (Figma screen/menu 183:3210) and its pages (screen/whats-new
+ * 391:9237, screen/how-to-use 391:9276). The bar is home's (.bar).
+ */
+.menu,
+.page {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding-bottom: calc(var(--pad-bottom-bar) + 24px + env(safe-area-inset-bottom));
+}
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-huge);
+  padding-top: max(var(--pad-screen-top), env(safe-area-inset-top));
+}
+
+/* menu/top-bar: ☼ / ☾ at the size of the bar's ≡ */
+.menu__top {
+  display: flex;
+  padding: 8px var(--pad-screen-x);
+}
+.menu__theme {
+  min-width: 75px;
+  min-height: 75px;
+}
+.menu__theme .icon {
+  width: 39px;
+  height: 39px;
+}
+
+.menu__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+}
+
+/* menu/links and menu/help-links: 16 px from the left, running off the right edge */
+.menu__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+  padding-left: var(--pad-screen-x);
+  overflow-x: clip;
+}
+.menu__link,
+.menu__help {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: max(48px, var(--tap));
+  font-size: calc(14px * var(--text-scale));
+  font-stretch: 98%;
+}
+.menu__link {
+  padding: 8px;
+}
+/* a pill cut by the screen edge: its right side and border sit past the edge */
+.menu__help {
+  width: calc(100% + 4px);
+  border-radius: var(--radius-pill) 0 0 var(--radius-pill);
+}
+
+/* menu/backup, type status */
+.menu__backup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap-micro);
+  padding: 0 var(--pad-screen-x);
+}
+.menu__backup p {
+  margin: 0;
+}
+
+/* pages: title, list, footer; the bar holds ≡ 🔍 ✕ (navigation `history`) */
+.page h2 {
+  margin: 0;
+}
+.faq__question {
+  font: inherit;
+}
+.news__entry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  width: 100%;
+  padding-bottom: var(--gap-group);
+  border-bottom: 1px solid var(--line);
+}
+.news__entry h2 {
+  color: var(--accent);
+  font-weight: 720;
+}
+.news__changes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.news__changes li::before {
+  content: '> ';
+}
+.news {
+  gap: var(--gap-group);
+}
+.faq {
+  gap: var(--gap-items);
+}
+.faq__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+  width: 100%;
+}
+.faq__item p {
+  margin: 0;
+}
+.faq__item p[hidden] {
+  display: none;
+}
