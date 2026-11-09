@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { parseDiary, serializeDiary } from '../domain/diary';
 import { EXAMPLE_DIARY } from '../domain/examples';
-import { browserChoice, diaryStore, DIARY_KEY } from './store';
+import { browserChoice, diaryStore, DIARY_KEY, sectionMemory } from './store';
 
 const now = () => new Date('2026-11-09T08:00:00.000Z');
 
@@ -52,5 +52,24 @@ describe('browserChoice («подивитися тут, без встановл�
     expect(browserChoice(localStorage).chosen()).toBe(false);
     browserChoice(localStorage).choose();
     expect(browserChoice(localStorage).chosen()).toBe(true);
+  });
+});
+
+describe('sectionMemory (closed home sections)', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('keeps a section open until it is closed, and remembers both', () => {
+    const memory = sectionMemory(localStorage);
+    expect(memory.open('mw')).toBe(true);
+    memory.remember('mw', false);
+    expect(sectionMemory(localStorage).open('mw')).toBe(false);
+    expect(sectionMemory(localStorage).open('wo')).toBe(true);
+    memory.remember('mw', true);
+    expect(sectionMemory(localStorage).open('mw')).toBe(true);
+  });
+
+  it('only forgets when the phone is full', () => {
+    const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } };
+    expect(() => sectionMemory(full).remember('mw', false)).not.toThrow();
   });
 });

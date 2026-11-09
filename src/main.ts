@@ -4,10 +4,12 @@ import './styles/base.css';
 import './styles/typography.css';
 import './styles/components.css';
 import './styles/screens.css';
+import './styles/home.css';
 import { startApp } from './app/app';
 import { detectPlatform, isInstalled } from './app/start';
 import { diaryAccent } from './domain/diary';
-import { browserChoice, diaryStore } from './storage/store';
+import { dayKeyOf } from './domain/dates';
+import { browserChoice, diaryStore, sectionMemory } from './storage/store';
 import { DEFAULT_APPEARANCE, startAppearance } from './ui/appearance';
 import { trackInputModality } from './ui/modality';
 import { watchForUpdates } from './pwa/updates';
@@ -26,6 +28,8 @@ startApp({
   platform: detectPlatform(navigator),
   installed: isInstalled((query) => matchMedia(query), navigator as { standalone?: boolean }),
   toast,
+  today: () => dayKeyOf(new Date()),
+  sections: sectionMemory(localStorage),
   onDiary: (diary) => {
     applyAppearance({ ...DEFAULT_APPEARANCE, accent: diaryAccent(diary) });
     // ask the browser not to clear the diary when space runs low

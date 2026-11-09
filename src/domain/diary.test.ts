@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { diaryAccent, isDayKey, parseDiary, serializeDiary, type Diary } from './diary';
+import type { DayKey } from './dates';
+import { emptyDay, readDay } from './day';
+import { diaryAccent, parseDiary, serializeDiary } from './diary';
 
 // Invented data only: nothing from a real log.
 const profile = { format: 'phys-activity-profile', version: 1, theme: { accent: 'blue' }, exercises: [] };
@@ -13,26 +15,13 @@ const backup = (extra: object = {}) => JSON.stringify({
   ...extra,
 });
 
-describe('isDayKey', () => {
-  it('accepts a real calendar date', () => {
-    expect(isDayKey('2026-11-09')).toBe(true);
-    expect(isDayKey('2028-02-29')).toBe(true);
-  });
-  it('refuses other text and impossible dates', () => {
-    expect(isDayKey('2026-11-9')).toBe(false);
-    expect(isDayKey('2026-02-30')).toBe(false);
-    expect(isDayKey('2026-13-01')).toBe(false);
-    expect(isDayKey('x2026-11-09')).toBe(false);
-    expect(isDayKey(20261109)).toBe(false);
-  });
-});
-
 describe('parseDiary', () => {
   it('reads a copy saved by «бета 0.81»', () => {
     const diary = parseDiary(backup());
     expect(diary?.profile).toEqual(profile);
     expect(Object.keys(diary!.days)).toEqual(['2026-11-07']);
-    expect(diary!.days['2026-11-07' as keyof Diary['days']]).toEqual({ v: 2, date: '2026-11-07', note: 'вправа 1' });
+    const date = '2026-11-07' as DayKey;
+    expect(diary!.days[date]).toEqual({ ...emptyDay(date), note: 'вправа 1' });
   });
 
   it('keeps only days with a real date and an object inside', () => {
@@ -64,6 +53,15 @@ describe('serializeDiary', () => {
     const text = serializeDiary(diary, new Date('2026-11-09T08:00:00.000Z'));
     expect(parseDiary(text)).toEqual(diary);
     expect(JSON.parse(text)).toMatchObject({ format: 'phys-activity-backup', version: 1, savedAt: '2026-11-09T08:00:00.000Z', app: 'бета 0.9' });
+  });
+
+  it('writes days in the «бета 0.81» shape and leaves empty days out', () => {
+    const full = '2026-11-07' as DayKey;
+    const empty = '2026-11-08' as DayKey;
+    const diary = { profile, days: { [full]: readDay({ note: 'ок' }, full), [empty]: emptyDay(empty) } };
+    const days = JSON.parse(serializeDiary(diary, new Date())).days;
+    expect(Object.keys(days)).toEqual([full]);
+    expect(days[full]).toEqual({ v: 2, date: full, t: {}, note: 'ок', mw: { ticks: [], times: {}, rows: {} }, dw: [], wo: null, mv: {}, names: {} });
   });
 });
 
