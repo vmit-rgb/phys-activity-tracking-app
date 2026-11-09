@@ -6,8 +6,14 @@ export interface ToastMessage {
   readonly emoticon?: string;
   /** ✓ only when a process has a result: збережено, видалено, скасовано… */
   readonly showIcon?: boolean;
-  /** Offers «скасувати»; deleting always does. */
-  readonly onUndo?: () => void;
+  /** One text button, e.g. «скасувати» (deleting always offers it) or «оновити». */
+  readonly action?: ToastAction;
+}
+
+export interface ToastAction {
+  readonly label: string;
+  /** What to show next; nothing closes the toast. */
+  readonly run: () => ToastMessage | void;
 }
 
 export interface Toast {
@@ -15,6 +21,11 @@ export interface Toast {
 }
 
 const UNDONE: ToastMessage = { message: 'скасовано', showIcon: true };
+
+/** «скасувати»: runs the undo, then says «скасовано». */
+export function undo(run: () => void): ToastAction {
+  return { label: 'скасувати', run: () => { run(); return UNDONE; } };
+}
 
 /**
  * The single toast of the app (Figma `toast/saved`). It never closes on its
@@ -27,15 +38,15 @@ export function mountToast(host: HTMLElement): Toast {
       <div class="toast__inner">
         <span class="toast__check" hidden>${iconSvg('check')}</span>
         <p class="toast__message t-2nd-regular"></p>
-        <button type="button" class="btn btn--tertiary toast__undo" hidden>скасувати</button>
+        <button type="button" class="btn btn--tertiary toast__action" hidden></button>
         <button type="button" class="icon-btn icon-btn--secondary toast__close" aria-label="закрити">${iconSvg('close')}</button>
       </div>
     </div>`);
   const box = host.querySelector<HTMLElement>('.toast:last-child')!;
   const check = box.querySelector<HTMLElement>('.toast__check')!;
   const text = box.querySelector<HTMLElement>('.toast__message')!;
-  const undo = box.querySelector<HTMLButtonElement>('.toast__undo')!;
-  let onUndo: (() => void) | undefined;
+  const button = box.querySelector<HTMLButtonElement>('.toast__action')!;
+  let action: ToastAction | undefined;
 
   function show(next: ToastMessage): void {
     text.textContent = next.message;
@@ -46,14 +57,16 @@ export function mountToast(host: HTMLElement): Toast {
       text.append(' ', emoticon);
     }
     check.hidden = !next.showIcon;
-    onUndo = next.onUndo;
-    undo.hidden = !onUndo;
+    action = next.action;
+    button.textContent = action?.label ?? '';
+    button.hidden = !action;
     box.hidden = false;
   }
 
-  undo.addEventListener('click', () => {
-    onUndo?.();
-    show(UNDONE);
+  button.addEventListener('click', () => {
+    const after = action?.run();
+    if (after) show(after);
+    else box.hidden = true;
   });
   box.querySelector('.toast__close')!.addEventListener('click', () => {
     box.hidden = true;

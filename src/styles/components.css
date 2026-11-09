@@ -171,7 +171,7 @@
   text-decoration: underline;
   text-underline-position: from-font;
 }
-.tab[aria-selected='true'] {
+.tab:is([aria-selected='true'], [aria-pressed='true']) {
   --fill-0: var(--accent);
   --fg-0: var(--on-accent);
   --fill-hover: var(--accent-mid);
@@ -494,7 +494,7 @@
 .toast__emoticon {
   color: var(--accent);
 }
-.toast__undo[hidden] {
+.toast__action[hidden] {
   display: none;
 }
 .toast__close .icon {

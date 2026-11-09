@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mountToast, type Toast } from './toast';
+import { mountToast, undo, type Toast } from './toast';
 
 describe('toast', () => {
   let host: HTMLElement;
   let toast: Toast;
   const box = () => host.querySelector<HTMLElement>('.toast')!;
   const text = () => host.querySelector<HTMLElement>('.toast__message')!;
-  const undo = () => host.querySelector<HTMLButtonElement>('.toast__undo');
+  const action = () => host.querySelector<HTMLButtonElement>('.toast__action')!;
   const close = () => host.querySelector<HTMLButtonElement>('.toast__close')!;
 
   beforeEach(() => {
@@ -45,18 +45,28 @@ describe('toast', () => {
 
   it('runs undo once and then says «скасовано» without another undo', () => {
     const onUndo = vi.fn();
-    toast.show({ message: 'підхід видалено', showIcon: true, onUndo });
-    undo()!.click();
+    toast.show({ message: 'підхід видалено', showIcon: true, action: undo(onUndo) });
+    expect(action().textContent).toBe('скасувати');
+    action().click();
     expect(onUndo).toHaveBeenCalledTimes(1);
     expect(text().textContent).toBe('скасовано');
-    expect(undo()!.hidden).toBe(true);
+    expect(action().hidden).toBe(true);
     expect(box().hidden).toBe(false);
   });
 
-  it('hides undo for a message that cannot be undone', () => {
-    toast.show({ message: 'видалено', onUndo: () => {} });
+  it('hides the action for a message without one', () => {
+    toast.show({ message: 'видалено', action: undo(() => {}) });
     toast.show({ message: 'не вдалося зберегти' });
-    expect(undo()!.hidden).toBe(true);
+    expect(action().hidden).toBe(true);
+  });
+
+  it('runs another action under its own label and closes when it has nothing more to say', () => {
+    const update = vi.fn();
+    toast.show({ message: 'є нова версія', emoticon: ':)', action: { label: 'оновити', run: update } });
+    expect(action().textContent).toBe('оновити');
+    action().click();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(box().hidden).toBe(true);
   });
 
   it('keeps a single toast when shown again', () => {

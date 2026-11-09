@@ -1,0 +1,147 @@
+/*
+ * Screen layout from Figma (screen/first-launch 390:9149, screen/install-first
+ * 390:9345): sections 48 px apart, 16 px inside, 16 px side padding.
+ */
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-huge);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding-top: max(var(--pad-screen-top), env(safe-area-inset-top));
+}
+.screen__section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap-group);
+  padding: 0 var(--pad-screen-x);
+}
+.screen__section > * {
+  max-width: 100%;
+}
+.screen__section h1,
+.screen__section h2 {
+  margin: 0;
+}
+
+/* group/language: right-aligned «укр / eng» */
+.lang {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--gap-items);
+  padding: 0 var(--pad-screen-x);
+}
+.lang__slash {
+  color: var(--muted);
+  font-size: calc(14px * var(--text-scale));
+}
+/* «eng» is not ready yet, but looks as drawn: an accent link */
+.lang .lang__soon.ctl {
+  --fg-disabled: var(--accent);
+  cursor: default;
+}
+
+.btn--wide {
+  width: 100%;
+}
+
+/* numbered steps: «1.» as text, like the console style of the screens */
+.steps {
+  margin: 0;
+  padding-left: 3ch;
+}
+.steps li::marker {
+  content: counter(list-item) '. ';
+}
+
+/* group/console-warnings: console text with markers */
+.console {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  background: var(--sunk);
+}
+.console__command {
+  color: var(--muted);
+}
+.console__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-group);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.console__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--gap-items);
+}
+.console__marker {
+  flex: none;
+  font-size: calc(14px * var(--text-scale));
+  font-weight: 720;
+  font-stretch: 98%;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.console__marker--info { color: var(--muted); }
+.console__marker--warn { color: var(--warn); }
+.console__marker--ai { color: var(--accent); }
+
+/* tabs/platform: two halves inside one accent frame */
+.segmented {
+  display: flex;
+  width: 100%;
+  box-shadow: inset 0 0 0 var(--stroke-2) var(--accent);
+}
+.segmented .tab {
+  flex: 1 1 0;
+}
+
+.paste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  width: 100%;
+}
+.paste[hidden] {
+  display: none;
+}
+.paste > p:first-child {
+  margin-bottom: var(--gap-items);
+}
+.paste__field {
+  width: 100%;
+  min-height: calc(3 * 1.3em + 16px);
+  resize: vertical;
+}
+
+/* «або»: tertiary buttons with a hint right under them */
+.screen__section--tight {
+  gap: var(--gap-group);
+}
+.option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap-nano);
+}
+
+.logo {
+  margin: 0;
+  font-size: calc(50px * var(--text-scale));
+  font-weight: 720;
+}
+
+.footer {
+  padding: 16px var(--pad-screen-x) max(24px, env(safe-area-inset-bottom));
+}
+.footer p + p {
+  margin-top: var(--gap-nano);
+}
