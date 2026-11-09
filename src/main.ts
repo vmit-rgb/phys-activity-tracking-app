@@ -10,6 +10,7 @@ import { diaryAccent } from './domain/diary';
 import { browserChoice, diaryStore } from './storage/store';
 import { DEFAULT_APPEARANCE, startAppearance } from './ui/appearance';
 import { trackInputModality } from './ui/modality';
+import { watchForUpdates } from './pwa/updates';
 import { mountToast } from './ui/toast';
 
 // Wiring only: everything with a decision in it lives in the modules above.
@@ -31,3 +32,16 @@ startApp({
     void navigator.storage?.persist?.();
   },
 });
+
+// offline copy and «є нова версія :)»; only in the built app, never in development
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  void watchForUpdates(navigator.serviceWorker, import.meta.env.BASE_URL, {
+    offer: (apply) => toast.show({ message: 'є нова версія', emoticon: ':)', action: { label: 'оновити', run: apply } }),
+    reload: () => location.reload(),
+    onReturn: (check) => document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') check();
+    }),
+  }).catch(() => {
+    // no offline copy (e.g. a private window): the app still works online
+  });
+}
