@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { parseDiary, serializeDiary } from '../domain/diary';
 import { EXAMPLE_DIARY } from '../domain/examples';
-import { browserChoice, diaryStore, DIARY_KEY, sectionMemory, storageFor } from './store';
+import type { DayKey } from '../domain/dates';
+import { backupMemory, browserChoice, diaryStore, DIARY_KEY, sectionMemory, storageFor, themeMemory } from './store';
 
 const now = () => new Date('2026-11-09T08:00:00.000Z');
 
@@ -90,5 +91,39 @@ describe('storageFor (Olesia, 2026-11-09: the app in a browser tab keeps nothing
     expect(diaryStore(tab, now).load()).toBeNull();
     diaryStore(tab, now).save({ ...EXAMPLE_DIARY, days: {} });
     expect(diaryStore(localStorage, now).load()).toEqual(EXAMPLE_DIARY);
+  });
+});
+
+describe('remembered on this phone only: theme and the last copy', () => {
+  beforeEach(() => localStorage.clear());
+  const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } };
+
+  it('follows the phone until a theme is chosen, then keeps the choice', () => {
+    expect(themeMemory(localStorage).chosen()).toBeNull();
+    themeMemory(localStorage).choose('light');
+    expect(themeMemory(localStorage).chosen()).toBe('light');
+    themeMemory(localStorage).choose('dark');
+    expect(themeMemory(localStorage).chosen()).toBe('dark');
+  });
+
+  it('ignores a theme it does not know', () => {
+    localStorage.setItem('phys-activity-tracking-app/theme', 'sepia');
+    expect(themeMemory(localStorage).chosen()).toBeNull();
+  });
+
+  it('remembers the day of the last copy', () => {
+    expect(backupMemory(localStorage).last()).toBeNull();
+    backupMemory(localStorage).remember('2026-11-20' as DayKey);
+    expect(backupMemory(localStorage).last()).toBe('2026-11-20');
+  });
+
+  it('ignores a broken day', () => {
+    localStorage.setItem('phys-activity-tracking-app/last-copy', 'yesterday');
+    expect(backupMemory(localStorage).last()).toBeNull();
+  });
+
+  it('only forgets when the phone is full', () => {
+    expect(() => themeMemory(full).choose('light')).not.toThrow();
+    expect(() => backupMemory(full).remember('2026-11-20' as DayKey)).not.toThrow();
   });
 });
