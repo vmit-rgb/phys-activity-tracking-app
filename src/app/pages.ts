@@ -5,6 +5,7 @@ import { readSettings } from '../domain/settings';
 import { showHowToUse, showWhatsNew, type HelpActions } from '../screens/help';
 import { showHistory } from '../screens/history';
 import { showMenu, type MenuItem } from '../screens/menu';
+import type { PdfFonts } from '../pdf/pdf';
 import type { backupMemory, ThemeChoice } from '../storage/store';
 import type { Toast, ToastMessage } from '../ui/toast';
 import { settingsPage, type SettingsEnv, type SettingsPage } from './settings-page';
@@ -28,7 +29,9 @@ export interface DeviceEnv extends Pick<SettingsEnv, 'look' | 'motionReduced'> {
   /** The day of the last copy, on this phone. */
   backups: ReturnType<typeof backupMemory>;
   /** Hands a file to the phone (its downloads); throws when the phone refuses. */
-  saveFile(name: string, text: string): void;
+  saveFile(name: string, content: string | Uint8Array<ArrayBuffer>): void;
+  /** The font embedded in a PDF, loaded when the first PDF is made; rejects when it can't load. */
+  pdfFonts(): Promise<PdfFonts>;
   /** The phone's share sheet; 'unavailable' when it has none. */
   share(data: ShareData): Promise<'shared' | 'cancelled' | 'unavailable'>;
   /** Puts text on the clipboard; false when the phone refuses. */

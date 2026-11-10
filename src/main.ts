@@ -19,6 +19,7 @@ import { trackInputModality } from './ui/modality';
 import { watchForUpdates } from './pwa/updates';
 import { mountToast } from './ui/toast';
 import { copyWith, saveFile, screenHistory, shareWith } from './ui/device';
+import type { PdfFonts } from './pdf/pdf';
 
 // Wiring only: everything with a decision in it lives in the modules above.
 const root = document.documentElement;
@@ -65,7 +66,9 @@ startApp({
   },
   motionReduced: () => matchMedia('(prefers-reduced-motion: reduce)').matches,
   backups: backupMemory(storage),
-  saveFile: (name, text) => saveFile(document, name, text),
+  saveFile: (name, content) => saveFile(document, name, content),
+  // a separate file, loaded with the first PDF (and kept offline with the rest)
+  pdfFonts: async () => (await import('./pdf/noto-sans-mono-pdf.json')).default as PdfFonts,
   share: (data) => shareWith(navigator, data),
   copyText: (text) => copyWith(navigator.clipboard, text),
   now: () => new Date(),

@@ -422,9 +422,30 @@ describe('settings: copy and export', () => {
     expect(device.saved[0]!.name).toBe('trekr-vpravy-2026-11-09.json');
   });
 
-  it('says the PDF comes soon', async () => {
+  it('saves the records and the exercises as PDF', async () => {
     await tap('зберегти PDF');
-    expect(toastText()).toBe('PDF ще робимо, скоро буде :)');
+    await vi.waitFor(() => expect(device.saved).toHaveLength(1));
+    expect(device.saved[0]!.name).toBe('trekr-zapysy-2026-11-09.pdf');
+    expect(device.saved[0]!.text.startsWith('%PDF-1.4\n')).toBe(true);
+    expect(device.saved[0]!.text).toContain('/Count 1');
+    expect(toastText()).toBe('збережено');
+    await tap('вправи');
+    await tap('зберегти PDF');
+    await vi.waitFor(() => expect(device.saved).toHaveLength(2));
+    expect(device.saved[1]!.name).toBe('trekr-vpravy-2026-11-09.pdf');
+  });
+
+  it('says so when the PDF cannot be made', async () => {
+    device.fontsWork = false;
+    await tap('зберегти PDF');
+    await vi.waitFor(() => expect(toastText()).toBe('не вдалося зібрати PDF >_<'));
+    expect(device.saved).toEqual([]);
+  });
+
+  it('says so when the phone refuses the PDF', async () => {
+    device.saveWorks = false;
+    await tap('зберегти PDF');
+    await vi.waitFor(() => expect(toastText()).toBe('не вдалося зберегти файл >_<'));
   });
 
   it('says so when the phone refuses the file', async () => {

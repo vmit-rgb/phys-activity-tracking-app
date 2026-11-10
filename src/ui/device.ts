@@ -3,12 +3,14 @@ import type { DeviceEnv, ShareData } from '../app/pages';
 /* The phone's own tools, behind the small interfaces the app asks for (DeviceEnv). */
 
 /**
- * Hands a text file to the phone as a download (Android: «Завантаження»).
+ * Hands a file to the phone as a download (Android: «Завантаження»): text
+ * (JSON) or bytes (PDF), typed by its name.
  * The link is clicked once and removed; the file's address lives a moment
  * longer, because some browsers read it after the click.
  */
-export function saveFile(doc: Document, name: string, text: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+export function saveFile(doc: Document, name: string, content: string | Uint8Array<ArrayBuffer>): void {
+  const type = name.endsWith('.pdf') ? 'application/pdf' : 'application/json';
+  const url = URL.createObjectURL(new Blob([content], { type }));
   const link = doc.createElement('a');
   link.href = url;
   link.download = name;

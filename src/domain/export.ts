@@ -8,7 +8,7 @@ import type { ActivityKind, Exercise, Settings, WarmupItem, WorkoutEntry, Workou
 /*
  * «копія й експорт» → «експорт» (COPY.md, Menu; «бета 0.81» `exportAI`,
  * `exportJSON`, `logLines`, `exerciseLines`). Two tabs: «записи» (the log)
- * and «вправи» (what the person does). The PDF comes in its own PR (Olesia, 2026-11-10).
+ * and «вправи» (what the person does), each as text, JSON or PDF (`exportPDF`).
  */
 
 export type ExportTab = 'records' | 'exercises';
@@ -27,12 +27,16 @@ function blockLine(block: DayBlock): string {
     `${group.title} (${group.items.map((item) => (item.times ? `${item.name} ${item.times}` : item.name)).join(', ')})`).join('; ')}`;
 }
 
+/** Days with records, newest first: the date, then one line per block. */
+function recordDays(days: Diary['days'], settings: Settings): string[][] {
+  const shown = Object.values(days).filter(hasData).sort((a, b) => b.date.localeCompare(a.date));
+  return shown.map((day: Day) => [formatShort(day.date), ...dayBlocks(day, days, settings).map(blockLine)]);
+}
+
 /** Days with records, newest first, each as its date and one line per block. */
 export function recordsText(days: Diary['days'], settings: Settings, today: DayKey): string {
   const head = `Мій щоденник руху й самопочуття (експорт з трекера, ${dotted(today)}). Це записи, а не діагнози: не інтерпретуй значення як медичні.`;
-  const shown = Object.values(days).filter(hasData).sort((a, b) => b.date.localeCompare(a.date));
-  const blocks = shown.map((day: Day) =>
-    [formatShort(day.date), ...dayBlocks(day, days, settings).map((block) => `  ${blockLine(block)}`)].join('\n'));
+  const blocks = recordDays(days, settings).map(([date, ...lines]) => [date, ...lines.map((line) => `  ${line}`)].join('\n'));
   return [head, ...blocks].join('\n\n');
 }
 
@@ -98,9 +102,62 @@ const SECTION_TEXTS: readonly [ActivityKind, (settings: Settings) => string[]][]
   ['morningWarmup', morningText], ['daytimeWarmup', daytimeText], ['workout', workoutText], ['movement', movementText],
 ];
 
+/** Each section that is on, as indented lines. */
+const exerciseSections = (settings: Settings) =>
+  SECTION_TEXTS.filter(([kind]) => settings[kind].enabled).map(([, text]) => text(settings));
+
 export function exercisesText(settings: Settings, today: DayKey): string {
-  const sections = SECTION_TEXTS.filter(([kind]) => settings[kind].enabled).map(([, text]) => text(settings).join('\n'));
+  const sections = exerciseSections(settings).map((lines) => lines.join('\n'));
   return [`Мої вправи (з трекера, ${dotted(today)}):`, ...sections].join('\n\n');
+}
+
+/* ---- PDF: the same texts, laid out as «бета 0.81» `exportPDF` did ---- */
+
+export interface PdfLine {
+  readonly text: string;
+  /** Points. */
+  readonly size: number;
+  readonly bold: boolean;
+  /** Points from the left margin. */
+  readonly indent: number;
+}
+
+export interface PdfDocument {
+  readonly name: string;
+  readonly lines: readonly PdfLine[];
+}
+
+const pdfLine = (text: string, size: number, bold = false, indent = 0): PdfLine => ({ text, size, bold, indent });
+const gap = (size: number) => pdfLine('', size);
+
+function recordLines(days: Diary['days'], settings: Settings): PdfLine[] {
+  return recordDays(days, settings).flatMap(([date, ...blocks]) =>
+    [pdfLine(date!, 12, true), ...blocks.map((block) => pdfLine(block, 9.5, false, 12)), gap(6)]);
+}
+
+/** Depth from the leading spaces: sections large, their first level (levels, sessions) bold, items («•») plain. */
+function exerciseLines(settings: Settings): PdfLine[] {
+  return exerciseSections(settings).flatMap((lines, i) => [...(i ? [gap(6)] : []), ...lines.map((line) => {
+    const text = line.trim();
+    const depth = line.length - line.trimStart().length;
+    return pdfLine(text, depth ? 9.5 : 13, depth <= 2 && !text.startsWith('•'), depth * 3);
+  })]);
+}
+
+/** The PDF's file name and lines; `footer` names the app at the bottom (Olesia, 2026-11-10). */
+export function pdfDocument(tab: ExportTab, days: Diary['days'], settings: Settings, today: DayKey, footer: string): PdfDocument {
+  const records = tab === 'records';
+  return {
+    name: `${records ? 'trekr-zapysy' : 'trekr-vpravy'}-${today}.pdf`,
+    lines: [
+      pdfLine(records ? 'щоденник руху й самопочуття' : 'мої вправи', 16, true),
+      pdfLine(`експорт ${formatShort(today)}${records ? ' · це щоденник, а не медичний документ' : ''}`, 9),
+      gap(6),
+      ...(records ? recordLines(days, settings) : exerciseLines(settings)),
+      gap(8),
+      pdfLine(footer, 8),
+    ],
+  };
 }
 
 /* ---- JSON files, as «бета 0.81» saves them ---- */

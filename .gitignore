@@ -8,5 +8,6 @@ coverage/
 # Personal data must never reach this public repo:
 # backups and exports saved from the tracker.
 trekr-*.json
+trekr-*.pdf
 *-kopiya-*.json
 target/
