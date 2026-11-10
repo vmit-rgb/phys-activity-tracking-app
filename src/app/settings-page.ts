@@ -7,8 +7,10 @@ import { plural } from '../domain/numbers';
 import {
   cleanForSave, withAccent, withAccessibility, withEncouragement, withGoal, withPulseTimer, type ProfileEdit,
 } from '../domain/profile-edit';
+import { tidy } from '../domain/sections-edit';
 import { readSettings, type ActivityKind, type Settings } from '../domain/settings';
 import { showSettings, type PartId, type SettingsAct } from '../screens/settings';
+import { SectionsEditor } from './sections-page';
 import { confirmDialog, editText } from '../ui/dialog';
 import type { Toast, ToastMessage } from '../ui/toast';
 
@@ -85,10 +87,20 @@ class Draft implements SettingsPage {
   private exportTab: ExportTab = 'records';
   private pasted = '';
   private shown = false;
+  readonly sections: SectionsEditor;
 
   constructor(private readonly env: SettingsEnv, private readonly home: SettingsHome) {
-    this.saved = home.diary().profile;
+    // tidy: what the screen can't show is dropped, so its indices are the profile's
+    this.saved = tidy(home.diary().profile);
     this.draft = this.saved;
+    this.sections = new SectionsEditor({
+      settings: () => this.settings(),
+      profile: () => this.draft,
+      change: (edit) => this.change(edit),
+      replace: (profile) => this.change(() => profile),
+      redraw: () => this.redraw(),
+      say: (message) => this.say(message),
+    });
   }
 
   settings(): Settings {
@@ -108,7 +120,13 @@ class Draft implements SettingsPage {
       backupLine: this.home.backupLine(),
       exportTab: this.exportTab,
       pasted: this.pasted,
-    }, { act: (action) => ACTS[action.act](this, action as never), paste: (text) => (this.pasted = text), restore: (file) => void this.restore(file) });
+      sections: this.sections.view(),
+    }, {
+      act: (action) => ACTS[action.act](this, action as never),
+      paste: (text) => (this.pasted = text),
+      restore: (file) => void this.restore(file),
+      lifted: () => this.sections.lifted(),
+    });
     return () => {
       this.shown = false;
     };
@@ -323,6 +341,23 @@ const ACTS: Acts = {
   'export-pdf': (p) => void p.exportPdf(),
   'delete-records': (p) => void p.deleteRecords(),
   'delete-all': (p) => void p.deleteAll(),
+  edit: (p, a) => void p.sections.edit(a.path, a.edit, a.label),
+  rm: (p, a) => void p.sections.remove(a.slot),
+  inner: (p, a) => p.sections.toggle(a.id),
+  add: (p, a) => void p.sections.add(a.what, a.kind, a.list),
+  menu: (p, a) => p.sections.openMenu(a.slot, a.family),
+  'menu-item': (p, a) => p.sections.menuItem(a.key),
+  ask: (p, a) => p.sections.ask(a.path, a.moment, a.on),
+  timed: (p, a) => p.sections.timed(a.path, a.on),
+  wfield: (p, a) => p.sections.field('wfield', a.path, a.field, a.on),
+  mfield: (p, a) => p.sections.field('mfield', a.path, a.field, a.on),
+  'kind-on': (p, a) => p.sections.activity(a.kind, a.on),
+  target: (p, a) => p.sections.target(a.kind, a.delta),
+  pick: (p, a) => p.sections.pick(a.slot),
+  'pick-start': (p) => p.sections.startPicking(),
+  'pick-done': (p) => p.sections.finishPicking(true),
+  'pick-cancel': (p) => p.sections.finishPicking(false),
+  drop: (p, a) => p.sections.drop(a.from, a.target),
 };
 
 export function settingsPage(env: SettingsEnv, home: SettingsHome): SettingsPage {

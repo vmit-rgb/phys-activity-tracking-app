@@ -82,7 +82,7 @@ describe('settings: the page (Figma screen/edit-profile 186:3278)', () => {
     expect(heading()).toBe('налаштування');
     expect(partTitles()).toEqual([
       'тижнева ціль', 'підбадьорлива фраза', 'акцентний колір', 'доступність', 'самопочуття',
-      'налаштування через ШІ', 'копія й експорт', 'видалення',
+      'ранкова розминка', 'денна розминка', 'тренування', 'рух', 'налаштування через ШІ', 'копія й експорт', 'видалення',
     ]);
     expect(button('тижнева ціль').getAttribute('aria-expanded')).toBe('false');
     expect(button('зберегти налаштування')).toBeTruthy();
@@ -312,6 +312,7 @@ describe('settings: the pulse timer', () => {
   beforeEach(async () => {
     await openSettings();
     await openPart('самопочуття');
+    await tap('розгорнути: одне число');
   });
 
   it('shows the timer of each one-number question, with its length', async () => {
@@ -607,17 +608,20 @@ describe('settings: less common paths', () => {
     expect(toastText()).toBe('цей файл не схожий на копію з трекера >_<');
   });
 
-  it('explains the timer when no question takes a number', async () => {
+  it('has no timer when no question takes a number', async () => {
     await openSettings({ profile: { ...EXAMPLE_DIARY.profile, trackers: [] }, days: {} });
     await openPart('самопочуття');
-    expect(host.textContent).toContain('таймер для пульсу ставиться на питання з одним числом. їх поки немає.');
+    await tap('розгорнути: одне число');
+    expect(host.textContent).toContain('наприклад, пульс');
+    expect(host.textContent).not.toContain('таймер для пульсу');
     expect(meta('доступність')).toBe('стандартно');
   });
 
   it('turns a timer on at 30 s on an unnamed question', async () => {
     await openSettings({ profile: { ...EXAMPLE_DIARY.profile, trackers: [{ id: 'n', name: '', kind: 'number', ask: ['morning'] }] }, days: {} });
     await openPart('самопочуття');
-    expect(host.querySelector('.st-timer h3')!.textContent).toBe('без назви');
+    await tap('розгорнути: одне число');
+    expect(button('видалити: без назви')).toBeTruthy();
     await tick('таймер для пульсу');
     expect(button('30 с').getAttribute('aria-pressed')).toBe('true');
     await tap('зберегти налаштування');

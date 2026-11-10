@@ -1,24 +1,30 @@
 import { ACCENTS, type Accent } from '../domain/accents';
 import type { ExportTab } from '../domain/export';
 import { plural } from '../domain/numbers';
+import type { Slot } from '../domain/sections-edit';
 import {
-  ACCESSIBILITY_KEYS, ACTIVITY_KINDS, PULSE_SECONDS, type AccessibilityKey, type ActivityKind, type PulseSeconds, type Settings, type Tracker,
+  ACCESSIBILITY_KEYS, ACTIVITY_KINDS, type AccessibilityKey, type ActivityKind, type Moment, type PulseSeconds, type Settings, type Tracker,
 } from '../domain/settings';
 import { esc } from '../ui/html';
 import { iconSvg } from '../ui/icons';
+import { wireDrag, type DropTarget } from './drag';
 import { FOOTER, part, wireRestore } from './parts';
+import { act, checkbox, daysSlider, destructive, secondary, tertiary } from './settings-bits';
+import {
+  daytimeBody, KIND_NAMES, morningBody, movementBody, sectionMetas, wellbeingBody, workoutBody, type EditKind, type SectionsView,
+} from './settings-sections';
 
 /*
- * «налаштування» (Figma screen/edit-profile 186:3278), stage 6c: the parts
- * goal, phrase, accent, «доступність», the pulse timer, the AI, copy and
- * export, deleting; the sections' contents come in 6d. Each part is
- * `accordion/trigger` (group) + `group/section-body`, closed until opened,
- * with a line of what it holds while closed («бета 0.81»). The bar is
- * navigation `edit-profile`: 💾 ✕. Texts: COPY.md «Settings» and «Added
- * 2026-11-08 in Figma».
+ * «налаштування» (Figma screen/edit-profile 186:3278): the parts goal,
+ * phrase, accent, «доступність», «самопочуття» and the four sections
+ * (stage 6d, screens/settings-sections.ts), the AI, copy and export,
+ * deleting. Each part is `accordion/trigger` (group) + `group/section-body`,
+ * closed until opened, with a line of what it holds while closed («бета
+ * 0.81»). The bar is navigation `edit-profile`: 💾 ✕. Texts: COPY.md
+ * «Settings» and «Added 2026-11-08 in Figma».
  */
 
-export type PartId = 'goal' | 'phrase' | 'accent' | 'access' | 'wellbeing' | 'ai' | 'backup' | 'delete';
+export type PartId = 'goal' | 'phrase' | 'accent' | 'access' | 'wellbeing' | 'morning' | 'daytime' | 'workout' | 'movement' | 'ai' | 'backup' | 'delete';
 
 export interface SettingsState {
   /** The settings as edited, not saved yet. */
@@ -30,7 +36,10 @@ export interface SettingsState {
   readonly exportTab: ExportTab;
   /** What is in the paste field, kept over a redraw. */
   readonly pasted: string;
+  readonly sections: SectionsView;
 }
+
+export type AddWhat = 'tracker' | 'level' | 'zone' | 'session' | 'movement' | 'exercise';
 
 /** What a tap asks for; the page decides. Values come from the markup's data attributes. */
 export type SettingsAct =
@@ -41,26 +50,39 @@ export type SettingsAct =
   | { readonly act: 'phrase'; readonly index: number }
   | { readonly act: 'phrase-rm'; readonly index: number }
   | { readonly act: 'phrase-add' | 'save' | 'close' | 'copy-prompt' | 'copy-settings' | 'apply' | 'backup' | 'export-ai' | 'export-json' | 'export-pdf' | 'delete-records' | 'delete-all' }
+  | { readonly act: 'pick-start' | 'pick-done' | 'pick-cancel' }
   | { readonly act: 'accent'; readonly accent: Accent }
   | { readonly act: 'access'; readonly key: AccessibilityKey; readonly on: boolean }
   | { readonly act: 'timer'; readonly tracker: string; readonly on: boolean }
   | { readonly act: 'timer-length'; readonly tracker: string; readonly seconds: PulseSeconds }
-  | { readonly act: 'export-tab'; readonly tab: ExportTab };
+  | { readonly act: 'export-tab'; readonly tab: ExportTab }
+  | { readonly act: 'edit'; readonly path: string; readonly edit: EditKind; readonly label: string }
+  | { readonly act: 'rm'; readonly slot: Slot }
+  | { readonly act: 'inner'; readonly id: string }
+  | { readonly act: 'add'; readonly what: AddWhat; readonly kind: Tracker['kind']; readonly list: string }
+  | { readonly act: 'menu'; readonly slot: Slot; readonly family: string }
+  | { readonly act: 'menu-item'; readonly key: string }
+  | { readonly act: 'ask'; readonly path: string; readonly moment: Moment; readonly on: boolean }
+  | { readonly act: 'timed'; readonly path: string; readonly on: boolean }
+  | { readonly act: 'wfield'; readonly path: string; readonly field: string; readonly on: boolean }
+  | { readonly act: 'mfield'; readonly path: string; readonly field: string; readonly on: boolean }
+  | { readonly act: 'kind-on'; readonly kind: ActivityKind; readonly on: boolean }
+  | { readonly act: 'target'; readonly kind: ActivityKind; readonly delta: number }
+  | { readonly act: 'pick'; readonly slot: Slot }
+  | { readonly act: 'drop'; readonly from: Slot; readonly target: DropTarget };
 
 export interface SettingsActions {
   act(action: SettingsAct): void;
   paste(text: string): void;
   restore(file: File): void;
+  /** A dragged entry is up: a short vibration, if allowed. */
+  lifted(): void;
 }
 
 /* COPY.md: accent names from Figma. */
 export const ACCENT_NAMES: Record<Accent, string> = {
   gray: 'сірий', orange: 'помаранчевий', pink: 'рожевий', magenta: 'пурпуровий', purple: 'фіолетовий',
   violet: 'лавандовий', blue: 'блакитний', cyan: 'бірюзовий', mint: 'м’ятний',
-};
-
-const KIND_NAMES: Record<ActivityKind, string> = {
-  morningWarmup: 'ранкова розминка', daytimeWarmup: 'денна розминка', workout: 'тренування', movement: 'рух',
 };
 
 /* ACCESSIBILITY.md and Figma section/accessibility; «вимкнути звук» added by Olesia 2026-11-10. */
@@ -89,19 +111,6 @@ const DAYS = ['день', 'дні', 'днів'] as const;
 const PHRASES = ['фраза', 'фрази', 'фраз'] as const;
 const FIELDS = ['поле', 'поля', 'полів'] as const;
 
-/* ---- pieces ---- */
-
-function checkbox(label: string, checked: boolean, data: string, disabled = false): string {
-  return `
-    <label class="ctl checkbox"><input class="checkbox__input" type="checkbox" ${data}${checked ? ' checked' : ''}${disabled ? ' disabled' : ''} /><span class="checkbox__box" aria-hidden="true"></span>
-      <span class="checkbox__label t-1st-semibold">${label}</span></label>`;
-}
-
-const act = (name: string, extra = '') => `data-act="${name}"${extra ? ` ${extra}` : ''}`;
-const tertiary = (label: string, data: string) => `<button type="button" class="ctl btn btn--tertiary" ${data}>${label}</button>`;
-const secondary = (label: string, data: string) => `<button type="button" class="ctl btn btn--secondary st-wide" ${data}>${label}</button>`;
-const destructive = (label: string, data: string) => `<button type="button" class="ctl btn btn--destructive" ${data}>${label}</button>`;
-
 /** One part: accordion/trigger (group) and its body; the line under the title only while closed. */
 function partMarkup(id: PartId, title: string, meta: string, open: boolean, body: () => string): string {
   return `
@@ -120,20 +129,11 @@ function partMarkup(id: PartId, title: string, meta: string, open: boolean, body
 
 function goalBody({ goal, ...settings }: Settings): string {
   const on = ACTIVITY_KINDS.filter((kind) => settings[kind].enabled);
-  const label = 'днів на тиждень';
-  const step = (delta: number, name: string, icon: 'add' | 'remove', off: boolean) =>
-    `<button type="button" class="ctl icon-btn icon-btn--secondary" ${act('goal-days', `data-delta="${delta}"`)} aria-label="${name}: ${label}"${off ? ' disabled' : ''}>${iconSvg(icon)}</button>`;
   const details = `
       <div class="st-indent">
         <p class="t-2nd-bold">що треба виконати, щоб день був «зроблено»</p>
         ${on.map((kind) => checkbox(KIND_NAMES[kind], goal.done.includes(kind), `${act('goal-kind')} data-kind="${kind}"`)).join('')}
-        <div class="st-days">
-          <div class="st-days__head"><span class="t-1st-semibold">${label}</span><span class="st-days__value t-3rd-semibold" aria-live="polite">${goal.days}/7</span></div>
-          <div class="slider-row">${step(-1, 'менше', 'remove', goal.days <= 0)}
-            <input type="range" class="slider" min="0" max="7" step="1" value="${goal.days}" aria-label="${label}" aria-valuetext="${goal.days} з 7" data-input="goal-days" />${
-  step(1, 'більше', 'add', goal.days >= 7)}
-          </div>
-        </div>
+        ${daysSlider({ label: 'днів на тиждень', value: goal.days, name: 'goal-days', spoken: 'днів на тиждень' })}
       </div>`;
   return `${checkbox('рахувати тижневу ціль', goal.enabled, act('goal-on'))}${goal.enabled ? details : ''}`;
 }
@@ -161,28 +161,6 @@ function accessBody(settings: Settings, reduced: boolean): string {
   };
   const note = reduced ? '<p class="t-3rd-regular muted">на телефоні ввімкнено «зменшити рух», тож анімації вимкнені.</p>' : '';
   return `${ACCESSIBILITY_KEYS.map(row).join('')}${note}`;
-}
-
-function timerBody(tracker: Tracker & { kind: 'number' }): string {
-  const id = esc(tracker.id);
-  const length = (seconds: PulseSeconds) => `<button type="button" class="ctl tab" ${act('timer-length', `data-tracker="${id}" data-seconds="${seconds}"`)}
-        aria-pressed="${tracker.timer === seconds}">${seconds} с</button>`;
-  const lengths = tracker.timer === null ? '' : `<div class="segmented st-lengths" role="group" aria-label="скільки триває таймер">${PULSE_SECONDS.map(length).join('')}</div>`;
-  return `
-      <div class="st-timer">
-        <h3 class="t-h6">${esc(tracker.name || 'без назви')}</h3>
-        ${checkbox('таймер для пульсу', tracker.timer !== null, `${act('timer')} data-tracker="${id}"`)}
-        <p class="t-3rd-regular muted">на головній зʼявиться таймер: рахуєш удари, поки він іде, потім вписуєш число — застосунок перерахує в уд/хв.</p>
-        ${lengths}
-      </div>`;
-}
-
-const oneNumber = (settings: Settings) => settings.trackers.filter((t): t is Tracker & { kind: 'number' } => t.kind === 'number');
-
-function wellbeingBody(settings: Settings): string {
-  const timers = oneNumber(settings);
-  return timers.length ? timers.map(timerBody).join('')
-    : '<p class="t-3rd-regular muted">таймер для пульсу ставиться на питання з одним числом. їх поки немає.</p>';
 }
 
 function aiBody(state: SettingsState): string {
@@ -239,12 +217,17 @@ function metas(state: SettingsState): Record<PartId, string> {
   const { settings } = state;
   const { goal, encouragement } = settings;
   const fields = settings.trackers.length;
+  const sections = sectionMetas(settings);
   return {
     goal: goal.enabled ? `${goal.days} ${plural(goal.days, DAYS)} на тиждень` : 'вимкнено',
     phrase: `${encouragement.length} ${plural(encouragement.length, PHRASES)}`,
     accent: ACCENT_NAMES[settings.accent],
     access: accessMeta(settings, state.motionReduced),
     wellbeing: `${fields} ${plural(fields, FIELDS)}`,
+    morning: sections.morningWarmup,
+    daytime: sections.daytimeWarmup,
+    workout: sections.workout,
+    movement: sections.movement,
     ai: '',
     backup: state.backupLine,
     delete: '',
@@ -253,13 +236,18 @@ function metas(state: SettingsState): Record<PartId, string> {
 
 function markup(state: SettingsState): string {
   const { settings } = state;
+  const ctx = { settings, view: state.sections };
   const meta = metas(state);
   const parts: [PartId, string, () => string][] = [
     ['goal', 'тижнева ціль', () => goalBody(settings)],
     ['phrase', 'підбадьорлива фраза', () => phraseBody(settings)],
     ['accent', 'акцентний колір', () => accentBody(settings)],
     ['access', 'доступність', () => accessBody(settings, state.motionReduced)],
-    ['wellbeing', 'самопочуття', () => wellbeingBody(settings)],
+    ['wellbeing', 'самопочуття', () => wellbeingBody(ctx)],
+    ['morning', 'ранкова розминка', () => morningBody(ctx)],
+    ['daytime', 'денна розминка', () => daytimeBody(ctx)],
+    ['workout', 'тренування', () => workoutBody(ctx)],
+    ['movement', 'рух', () => movementBody(ctx)],
     ['ai', 'налаштування через ШІ', () => aiBody(state)],
     ['backup', 'копія й експорт', () => backupBody(state)],
     ['delete', 'видалення', deleteBody],
@@ -267,7 +255,10 @@ function markup(state: SettingsState): string {
   return `
     <div class="settings">
       <h1 class="visually-hidden">налаштування</h1>
-      <p class="settings__intro t-2nd-regular">тапни на будь-який текст, щоб змінити його. коли закінчиш — збережи внизу.</p>
+      <div class="settings__intro">
+        <p class="t-2nd-regular">тапни на будь-який текст, щоб змінити його. коли закінчиш — збережи внизу.</p>
+        <p class="t-3rd-regular muted">усе всередині розділів можна перетягувати: вправи, рівні, трекери. так міняється порядок, а вправа може переїхати в інший рівень чи тренування.</p>
+      </div>
       <div class="settings__parts">${parts.map(([id, title, body]) => partMarkup(id, title, meta[id], state.open.has(id), body)).join('')}</div>
       ${FOOTER}
     </div>
@@ -282,6 +273,7 @@ function markup(state: SettingsState): string {
 type Read = (element: HTMLElement, checked: boolean) => SettingsAct;
 
 const d = (element: HTMLElement, name: string) => String(element.dataset[name]);
+const slot = (el: HTMLElement): Slot => ({ list: d(el, 'list'), index: Number(d(el, 'index')) });
 
 /** Turns a tapped element into what it asks for. */
 const READ: Record<string, Read> = {
@@ -295,6 +287,19 @@ const READ: Record<string, Read> = {
   timer: (el, on) => ({ act: 'timer', tracker: d(el, 'tracker'), on }),
   'timer-length': (el) => ({ act: 'timer-length', tracker: d(el, 'tracker'), seconds: Number(d(el, 'seconds')) as PulseSeconds }),
   'export-tab': (el) => ({ act: 'export-tab', tab: d(el, 'tab') as ExportTab }),
+  edit: (el) => ({ act: 'edit', path: d(el, 'path'), edit: d(el, 'edit') as EditKind, label: d(el, 'label') }),
+  rm: (el) => ({ act: 'rm', slot: slot(el) }),
+  inner: (el) => ({ act: 'inner', id: d(el, 'id') }),
+  add: (el) => ({ act: 'add', what: d(el, 'what') as AddWhat, kind: d(el, 'kind') as Tracker['kind'], list: d(el, 'list') }),
+  menu: (el) => ({ act: 'menu', slot: slot(el), family: d(el, 'family') }),
+  'menu-item': (el) => ({ act: 'menu-item', key: d(el, 'key') }),
+  ask: (el, on) => ({ act: 'ask', path: d(el, 'path'), moment: d(el, 'moment') as Moment, on }),
+  timed: (el, on) => ({ act: 'timed', path: d(el, 'path'), on }),
+  wfield: (el, on) => ({ act: 'wfield', path: d(el, 'path'), field: d(el, 'field'), on }),
+  mfield: (el, on) => ({ act: 'mfield', path: d(el, 'path'), field: d(el, 'field'), on }),
+  'kind-on': (el, on) => ({ act: 'kind-on', kind: d(el, 'kind') as ActivityKind, on }),
+  target: (el) => ({ act: 'target', kind: d(el, 'kind') as ActivityKind, delta: Number(d(el, 'delta')) }),
+  pick: (el) => ({ act: 'pick', slot: slot(el) }),
 };
 
 /** A tap on a part's title or on a button with `data-act`. */
@@ -307,9 +312,11 @@ function tapped(target: Element): SettingsAct | null {
   return READ[name]?.(button, false) ?? { act: name } as SettingsAct;
 }
 
-/** Typing: the days slider moved by itself, or text in the paste field. */
+/** Typing: a days slider moved by itself, or text in the paste field. */
 function typed(host: HTMLElement, input: HTMLInputElement, actions: SettingsActions): void {
-  if (input.dataset.input === 'goal-days') return actions.act({ act: 'goal-days', delta: Number(input.value) - Number(input.defaultValue) });
+  const moved = Number(input.value) - Number(input.defaultValue);
+  if (input.dataset.input === 'goal-days') return actions.act({ act: 'goal-days', delta: moved });
+  if (input.dataset.input === 'target') return actions.act({ act: 'target', kind: d(input, 'kind') as ActivityKind, delta: moved });
   // checkboxes say «input» too: only the paste field is text
   if (input.dataset.input !== 'paste') return;
   actions.paste(input.value);
@@ -321,19 +328,28 @@ function wire(host: HTMLElement, actions: SettingsActions, state: SettingsState)
     const action = tapped(event.target as Element);
     if (action) actions.act(action);
   });
-  // only checkboxes say «change» here: the paste field and the slider are heard on «input»
+  // only checkboxes say «change» here: the paste field and the sliders are heard on «input»
   host.addEventListener('change', (event) => {
     const input = event.target as HTMLInputElement;
     if (input.type === 'checkbox') actions.act(READ[d(input, 'act')]!(input, input.checked));
   });
   host.addEventListener('input', (event) => typed(host, event.target as HTMLInputElement, actions));
+  // an open menu closes with Escape
+  host.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.sections.menu) actions.act({ act: 'menu-item', key: 'cancel' });
+  });
   // «відновити з копії» is there while its part is open
   if (state.open.has('ai')) wireRestore(host, actions.restore);
+  wireDrag(host, {
+    drop: (from, target) => actions.act({ act: 'drop', from, target }),
+    menu: (from, family) => actions.act({ act: 'menu', slot: from, family }),
+    lifted: actions.lifted,
+  });
 }
 
 /**
  * Draws the page (again, after every change: the scroll and the focused
- * control stay).
+ * control stay; an open menu gets the focus).
  */
 export function showSettings(host: HTMLElement, state: SettingsState, actions: SettingsActions): void {
   const focused = document.activeElement instanceof HTMLElement && host.contains(document.activeElement) ? focusKey(document.activeElement) : null;
@@ -341,11 +357,13 @@ export function showSettings(host: HTMLElement, state: SettingsState, actions: S
   host.innerHTML = `<div class="settings-screen">${markup(state)}</div>`;
   // listeners live on the new root, so a redraw drops the old ones with the old markup
   wire(part(host, '.settings-screen'), actions, state);
-  if (focused) host.querySelector<HTMLElement>(focused)?.focus({ preventScroll: true });
+  const menu = host.querySelector<HTMLElement>('.st-menu button');
+  if (menu) menu.focus({ preventScroll: true });
+  else if (focused) host.querySelector<HTMLElement>(focused)?.focus({ preventScroll: true });
   scrollTo(0, y);
 }
 
-const FOCUS_KEYS = ['part', 'act', 'index', 'kind', 'key', 'accent', 'tracker', 'seconds', 'tab', 'input'];
+const FOCUS_KEYS = ['part', 'act', 'index', 'kind', 'key', 'accent', 'tracker', 'seconds', 'tab', 'input', 'path', 'list', 'id', 'moment', 'field', 'what', 'delta'];
 
 /** A selector that finds the same control after a redraw. */
 function focusKey(element: HTMLElement): string | null {
