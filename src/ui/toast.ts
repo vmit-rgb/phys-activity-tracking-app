@@ -39,7 +39,7 @@ export function mountToast(host: HTMLElement): Toast {
         <span class="toast__check" hidden>${iconSvg('check')}</span>
         <p class="toast__message t-2nd-regular"></p>
         <button type="button" class="btn btn--tertiary toast__action" hidden></button>
-        <button type="button" class="icon-btn icon-btn--secondary toast__close" aria-label="закрити">${iconSvg('close')}</button>
+        <button type="button" class="ctl icon-btn icon-btn--secondary toast__close" aria-label="закрити">${iconSvg('close')}</button>
       </div>
     </div>`);
   const box = host.querySelector<HTMLElement>('.toast:last-child')!;

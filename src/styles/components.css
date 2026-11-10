@@ -472,6 +472,10 @@
 .toast[hidden] {
   display: none;
 }
+/* Sits on top of the bottom bar while it is shown (bar: 8 + 75 + max(8, safe area)). */
+body:has(.bar:not(.bar--hidden)) .toast {
+  bottom: calc(83px + max(8px, env(safe-area-inset-bottom)));
+}
 .toast__inner {
   display: flex;
   align-items: center;
