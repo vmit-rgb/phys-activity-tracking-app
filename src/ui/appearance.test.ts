@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import tokens from '../styles/tokens.css?raw';
 import { ACCENTS } from '../domain/accents';
-import { DEFAULT_APPEARANCE, startAppearance, type SystemTheme } from './appearance';
+import { DEFAULT_APPEARANCE, lookOf, startAppearance, type SystemTheme } from './appearance';
 
 /** A phone whose theme can be switched in the test. */
 function fakePhone(light: boolean) {
@@ -51,7 +51,9 @@ describe('appearance', () => {
   it('applies a new choice and both accessibility options', () => {
     const phone = fakePhone(false);
     const apply = startAppearance(root, phone.media, DEFAULT_APPEARANCE);
-    apply({ accent: 'cyan', theme: 'system', largerText: true, largerTargets: true });
+    apply({ ...DEFAULT_APPEARANCE, accent: 'cyan', largerText: true, largerTargets: true, noMotion: true, mirrored: true });
+    expect(root.hasAttribute('data-no-motion')).toBe(true);
+    expect(root.hasAttribute('data-mirrored')).toBe(true);
     expect(root.dataset.accent).toBe('cyan');
     expect(root.hasAttribute('data-larger-text')).toBe(true);
     expect(root.hasAttribute('data-larger-targets')).toBe(true);
@@ -87,5 +89,15 @@ describe('accent tokens', () => {
   it('needs nothing newer than iOS 15.4 for colours', () => {
     const code = tokens.replace(/\/\*[\s\S]*?\*\//g, '');
     expect(code).not.toMatch(/light-dark\(|color-mix\(/);
+  });
+});
+
+describe('lookOf', () => {
+  it('takes the accent and the «доступність» switches from a profile', () => {
+    expect(lookOf({ theme: { accent: 'mint' }, accessibility: { largerText: true, mirrored: true } })).toEqual({
+      accent: 'mint', largerText: true, largerTargets: false, noMotion: false, mirrored: true,
+    });
+    const { theme: _theme, ...defaults } = DEFAULT_APPEARANCE;
+    expect(lookOf({})).toEqual(defaults);
   });
 });

@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import type { JsonObject } from '../domain/diary';
 import type { ThemeChoice } from '../storage/store';
 import { backupMemory } from '../storage/store';
 import type { DeviceEnv, ShareData } from './pages';
@@ -19,6 +20,10 @@ export function fakeDevice() {
     shareResult: 'shared' as Awaited<ReturnType<DeviceEnv['share']>>,
     copyWorks: true,
     saveWorks: true,
+    /** Every profile whose look was put on screen, the last one shown now. */
+    looks: [] as JsonObject[],
+    /** The phone's «reduce motion». */
+    motionReduced: false,
     /** The phone's own back button or gesture. */
     pressBack() {
       if (depths.length > 1) depths.pop();
@@ -33,6 +38,8 @@ export function fakeDevice() {
         theme = next;
       },
     },
+    look: (profile) => device.looks.push(profile),
+    motionReduced: () => device.motionReduced,
     backups: backupMemory(localStorage),
     saveFile(name, text) {
       if (!device.saveWorks) throw new Error('NotAllowedError');

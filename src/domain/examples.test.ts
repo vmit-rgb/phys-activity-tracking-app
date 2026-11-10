@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { diaryAccent, parseDiary, serializeDiary } from './diary';
+import { parseDiary, serializeDiary, type Diary } from './diary';
 import { EXAMPLE_DIARY } from './examples';
 import { readSettings } from './settings';
+
+const diaryAccent = (diary: Diary) => readSettings(diary.profile).accent;
 
 describe('EXAMPLE_DIARY («почати без ШІ»)', () => {
   const saved = parseDiary(serializeDiary(EXAMPLE_DIARY, new Date()))!;

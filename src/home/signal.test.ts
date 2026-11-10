@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 /* The end of the pulse timer on phones that can and can't make each signal. */
 
 const started: number[] = [];
+const ALL_ON = { noVibration: false, noSound: false };
 
 class FakeAudio {
   currentTime = 0;
@@ -32,7 +33,7 @@ describe('endSignal', () => {
     vi.stubGlobal('AudioContext', FakeAudio);
     const { endSignal, prepareSound } = await import('./signal');
     prepareSound();
-    endSignal();
+    endSignal(ALL_ON);
     expect(started).toEqual([0]);
   });
 
@@ -42,7 +43,7 @@ describe('endSignal', () => {
     Object.defineProperty(navigator, 'vibrate', { configurable: true, value: vibrate });
     const { endSignal, FLASH_MS, prepareSound } = await import('./signal');
     prepareSound();
-    endSignal();
+    endSignal(ALL_ON);
     expect(vibrate).toHaveBeenCalledWith([200, 100, 200]);
     expect(document.querySelector('.flash')).not.toBeNull();
     vi.advanceTimersByTime(FLASH_MS);
@@ -52,7 +53,21 @@ describe('endSignal', () => {
   it('flashes on a phone without vibration', async () => {
     Object.defineProperty(navigator, 'vibrate', { configurable: true, value: undefined });
     const { endSignal } = await import('./signal');
-    endSignal();
+    endSignal(ALL_ON);
+    expect(document.querySelector('.flash')).not.toBeNull();
+  });
+});
+
+describe('endSignal with «доступність»', () => {
+  it('keeps quiet and still with «вимкнути звук» and «вимкнути вібровідгук», but still flashes', async () => {
+    vi.stubGlobal('AudioContext', FakeAudio);
+    const vibrate = vi.fn(() => true);
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: vibrate });
+    const { endSignal, prepareSound } = await import('./signal');
+    prepareSound();
+    endSignal({ noVibration: true, noSound: true });
+    expect(started).toEqual([]);
+    expect(vibrate).not.toHaveBeenCalled();
     expect(document.querySelector('.flash')).not.toBeNull();
   });
 });

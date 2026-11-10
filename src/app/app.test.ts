@@ -197,7 +197,7 @@ describe('home', () => {
 
 describe('when the phone refuses to store', () => {
   it('says so and stays on the first screen', () => {
-    start({}, { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } });
+    start({}, { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); }, removeItem: () => {} });
     click('[data-start-without-ai]');
     expect(toastText()).toBe('не вдалося зберегти: схоже, на телефоні забракло місця >_<');
     expect(heading()).toBe('привіт! почнімо з налаштувань :)');

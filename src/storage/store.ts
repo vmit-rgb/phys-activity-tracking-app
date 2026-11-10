@@ -5,6 +5,7 @@ import { parseDiary, serializeDiary, type Diary } from '../domain/diary';
 export interface KeyValue {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem(key: string): void;
 }
 
 export const DIARY_KEY = 'phys-activity-tracking-app/diary';
@@ -18,6 +19,8 @@ export interface DiaryStore {
   load(): Diary | null;
   /** Throws when the phone refuses to store it (e.g. storage full). */
   save(diary: Diary): void;
+  /** «стерти все»: no diary on this phone; an entry set aside as unreadable stays. */
+  clear(): void;
 }
 
 /**
@@ -33,6 +36,7 @@ export function diaryStore(storage: KeyValue, now: () => Date): DiaryStore {
       if (previous !== null && parseDiary(previous) === null) storage.setItem(UNREADABLE_KEY, previous);
       storage.setItem(DIARY_KEY, serializeDiary(diary, now()));
     },
+    clear: () => storage.removeItem(DIARY_KEY),
   };
 }
 

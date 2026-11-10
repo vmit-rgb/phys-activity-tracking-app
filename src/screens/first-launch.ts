@@ -1,5 +1,5 @@
 import type { Phone, Platform } from '../app/start';
-import { FOOTER, LANGUAGE_SWITCH, part, PHONE_NAMES, platformToggles, wirePlatformToggles } from './parts';
+import { FOOTER, LANGUAGE_SWITCH, part, PHONE_NAMES, platformToggles, wirePlatformToggles, wireRestore } from './parts';
 
 export interface FirstLaunchActions {
   copyPrompt(): void;
@@ -100,13 +100,7 @@ function wirePaste(host: HTMLElement, detected: Platform, actions: FirstLaunchAc
 }
 
 function wireOtherWays(host: HTMLElement, actions: FirstLaunchActions): void {
-  const file = part<HTMLInputElement>(host, '[data-restore-file]');
-  part(host, '[data-restore]').addEventListener('click', () => file.click());
-  file.addEventListener('change', () => {
-    const picked = file.files?.[0];
-    file.value = '';
-    if (picked) actions.restore(picked);
-  });
+  wireRestore(host, actions.restore);
   part(host, '[data-start-without-ai]').addEventListener('click', () => actions.startWithoutAi());
 }
 

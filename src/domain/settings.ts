@@ -77,8 +77,20 @@ export type Tracker = TrackerBase & (
 
 interface Activity { readonly enabled: boolean; readonly weeklyTarget: number; readonly hint: string }
 
+/**
+ * Settings section «доступність» (ACCESSIBILITY.md; stored in the profile,
+ * Olesia 2026-11-08). `noSound` is the seventh checkbox (Olesia, 2026-11-10).
+ * All off by default.
+ */
+export const ACCESSIBILITY_KEYS = [
+  'noMotion', 'noBackgroundMotion', 'noVibration', 'noSound', 'largerTargets', 'largerText', 'mirrored',
+] as const;
+export type AccessibilityKey = (typeof ACCESSIBILITY_KEYS)[number];
+export type Accessibility = Readonly<Record<AccessibilityKey, boolean>>;
+
 export interface Settings {
   readonly accent: Accent;
+  readonly accessibility: Accessibility;
   readonly goal: { readonly enabled: boolean; readonly days: number; readonly done: readonly ActivityKind[] };
   readonly encouragement: readonly string[];
   readonly morningWarmup: Activity & { readonly levels: readonly Level[] };
@@ -186,6 +198,23 @@ function readActivity(value: Raw): Activity {
   return { enabled: value.enabled === true, weeklyTarget: numberOr(value.weeklyTarget, 0), hint: text(value.hint) };
 }
 
+/**
+ * Before «доступність», «бета 0.76–0.81» kept `theme.motion`: a boolean, or
+ * `{ ui, ascii, vibration }` (PROFILE-FORMAT.md). Read as the matching checkboxes.
+ */
+function oldMotion(value: unknown): Partial<Record<AccessibilityKey, boolean>> {
+  if (value === false) return { noMotion: true };
+  const motion = raw(value);
+  return { noMotion: motion.ui === false, noBackgroundMotion: motion.ascii === false, noVibration: motion.vibration === false };
+}
+
+export function readAccessibility(profile: Raw): Accessibility {
+  const old = oldMotion(raw(profile.theme).motion);
+  const stored = raw(profile.accessibility);
+  const entries = ACCESSIBILITY_KEYS.map((key) => [key, typeof stored[key] === 'boolean' ? stored[key] : old[key] === true] as const);
+  return Object.fromEntries(entries) as Record<AccessibilityKey, boolean>;
+}
+
 export function readSettings(profile: Raw): Settings {
   const theme = raw(profile.theme);
   const goal = raw(profile.goal);
@@ -195,6 +224,7 @@ export function readSettings(profile: Raw): Settings {
   const movement = raw(profile.movement);
   return {
     accent: parseAccent(theme.accent),
+    accessibility: readAccessibility(profile),
     goal: { enabled: goal.enabled !== false, days: numberOr(goal.days, 5), done: pick(ACTIVITY_KINDS, goal.done) },
     encouragement: list(profile.encouragement).map(text).filter((phrase) => phrase.trim() !== ''),
     morningWarmup: {

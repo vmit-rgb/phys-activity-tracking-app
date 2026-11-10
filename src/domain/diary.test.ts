@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { DayKey } from './dates';
 import { emptyDay, readDay } from './day';
-import { diaryAccent, parseDiary, serializeDiary } from './diary';
+import { parseDiary, serializeDiary, type Diary } from './diary';
+import { readSettings } from './settings';
+
+const diaryAccent = (diary: Diary) => readSettings(diary.profile).accent;
 
 // Invented data only: nothing from a real log.
 const profile = { format: 'phys-activity-profile', version: 1, theme: { accent: 'blue' }, exercises: [] };
@@ -65,7 +68,7 @@ describe('serializeDiary', () => {
   });
 });
 
-describe('diaryAccent', () => {
+describe('the accent of a diary (readSettings)', () => {
   it('takes the accent from the settings', () => {
     expect(diaryAccent(parseDiary(backup())!)).toBe('blue');
   });
