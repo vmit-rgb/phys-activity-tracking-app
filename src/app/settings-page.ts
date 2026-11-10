@@ -1,6 +1,8 @@
 import type { DayKey } from '../domain/dates';
 import { readCopy, type Diary, type JsonObject } from '../domain/diary';
-import { exercisesText, exportFile, recordsText, type ExportTab } from '../domain/export';
+import { exercisesText, exportFile, pdfDocument, recordsText, type ExportTab } from '../domain/export';
+import { buildPdf, type PdfFonts } from '../pdf/pdf';
+import { VERSION_LABEL } from '../version';
 import { plural } from '../domain/numbers';
 import {
   cleanForSave, withAccent, withAccessibility, withEncouragement, withGoal, withPulseTimer, type ProfileEdit,
@@ -26,7 +28,9 @@ export interface SettingsEnv {
   /** Puts text on the clipboard; false when the phone refuses. */
   copyText(text: string): Promise<boolean>;
   /** Hands a file to the phone; throws when it refuses. */
-  saveFile(name: string, text: string): void;
+  saveFile(name: string, content: string | Uint8Array<ArrayBuffer>): void;
+  /** The font for PDFs; rejects when it can't load. */
+  pdfFonts(): Promise<PdfFonts>;
   now(): Date;
 }
 
@@ -66,7 +70,8 @@ const RESTORED: ToastMessage = { message: 'відновлено з файлу', 
 const soon = (message: string): ToastMessage => ({ message, emoticon: ':)' });
 const PROMPT_SOON = soon('промпт ще пишемо, скоро буде');
 const PASTE_SOON = soon('вставку налаштувань від ШІ ще робимо, скоро буде');
-const PDF_SOON = soon('PDF ще робимо, скоро буде'); // draft
+const PDF_NOT_MADE: ToastMessage = { message: 'не вдалося зібрати PDF', emoticon: '>_<' }; // «бета 0.81»
+const PDF_FOOTER = `трекер · ${VERSION_LABEL}`; // Olesia, 2026-11-10
 const PHRASE_MAX = 80;
 const DAYS = ['день', 'дні', 'днів'] as const;
 
@@ -203,8 +208,25 @@ class Draft implements SettingsPage {
 
   exportJson(): void {
     const file = exportFile(this.exportTab, this.home.diary(), this.home.today(), this.env.now());
+    this.hand(file.name, file.text);
+  }
+
+  async exportPdf(): Promise<void> {
+    const diary = this.home.diary();
+    const doc = pdfDocument(this.exportTab, diary.days, readSettings(diary.profile), this.home.today(), PDF_FOOTER);
+    let bytes: Uint8Array<ArrayBuffer>;
     try {
-      this.env.saveFile(file.name, file.text);
+      bytes = buildPdf(doc.lines, await this.env.pdfFonts());
+    } catch {
+      return this.say(PDF_NOT_MADE);
+    }
+    this.hand(doc.name, bytes);
+  }
+
+  /** Gives a file to the phone and says how it went. */
+  private hand(name: string, content: string | Uint8Array<ArrayBuffer>): void {
+    try {
+      this.env.saveFile(name, content);
     } catch {
       return this.say(FILE_NOT_SAVED);
     }
@@ -298,7 +320,7 @@ const ACTS: Acts = {
   backup: (p) => p.backup(),
   'export-ai': (p) => void p.exportText(),
   'export-json': (p) => p.exportJson(),
-  'export-pdf': (p) => p.say(PDF_SOON),
+  'export-pdf': (p) => void p.exportPdf(),
   'delete-records': (p) => void p.deleteRecords(),
   'delete-all': (p) => void p.deleteAll(),
 };

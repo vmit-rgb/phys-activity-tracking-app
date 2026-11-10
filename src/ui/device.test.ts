@@ -23,6 +23,20 @@ describe('saveFile', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:copy');
     click.mockRestore();
   });
+
+  it('gives each file the type its name says', () => {
+    const blobs: Blob[] = [];
+    URL.createObjectURL = vi.fn((blob: Blob) => {
+      blobs.push(blob);
+      return 'blob:file';
+    });
+    URL.revokeObjectURL = vi.fn();
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    saveFile(document, 'trekr-zapysy-2026-11-20.pdf', new Uint8Array([37, 80, 68, 70]));
+    saveFile(document, 'trekr-zapysy-2026-11-20.json', '{}');
+    expect(blobs.map((blob) => [blob.type, blob.size])).toEqual([['application/pdf', 4], ['application/json', 2]]);
+    click.mockRestore();
+  });
 });
 
 describe('shareWith', () => {

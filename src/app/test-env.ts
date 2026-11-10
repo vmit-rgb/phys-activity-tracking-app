@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import type { JsonObject } from '../domain/diary';
+import type { PdfFonts } from '../pdf/pdf';
 import type { ThemeChoice } from '../storage/store';
 import { backupMemory } from '../storage/store';
 import type { DeviceEnv, ShareData } from './pages';
@@ -20,6 +21,8 @@ export function fakeDevice() {
     shareResult: 'shared' as Awaited<ReturnType<DeviceEnv['share']>>,
     copyWorks: true,
     saveWorks: true,
+    /** Whether the PDF font loads. */
+    fontsWork: true,
     /** Every profile whose look was put on screen, the last one shown now. */
     looks: [] as JsonObject[],
     /** The phone's «reduce motion». */
@@ -41,9 +44,13 @@ export function fakeDevice() {
     look: (profile) => device.looks.push(profile),
     motionReduced: () => device.motionReduced,
     backups: backupMemory(localStorage),
-    saveFile(name, text) {
+    saveFile(name, content) {
       if (!device.saveWorks) throw new Error('NotAllowedError');
-      device.saved.push({ name, text });
+      device.saved.push({ name, text: typeof content === 'string' ? content : new TextDecoder('latin1').decode(content) });
+    },
+    async pdfFonts() {
+      if (!device.fontsWork) throw new Error('offline');
+      return (await import('../pdf/noto-sans-mono-pdf.json')).default as PdfFonts;
     },
     share: vi.fn(async (data: ShareData) => {
       device.shared.push(data);
