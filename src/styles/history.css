@@ -1,0 +1,249 @@
+/*
+ * «історія» (Figma screen/log-history 165:2758): history/period-summary,
+ * history/period-averages, history/day-card and history/day-block; the
+ * search panel over the bar (search/panel 210:4110, search/field, search/result).
+ * The page frame and the bar come from menu.css and home.css.
+ */
+.history__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-huge);
+}
+/* the two lines sit 16 px above the calendar (section/period-overview) */
+.history__period + .cal-block {
+  margin-top: calc(var(--gap-group) - var(--gap-huge));
+}
+.history__lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+}
+.history__lines p {
+  margin: 0;
+}
+.history__averages .avgs {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.history__averages p {
+  margin: 0;
+}
+
+/* ---- history/day-card: edge to edge between accent lines ---- */
+.history__days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.history__empty {
+  margin: 0;
+  padding: 0 var(--pad-screen-x);
+}
+.day-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+  min-width: 0;
+  padding: var(--gap-items) var(--pad-screen-x);
+  border-top: var(--stroke-5) solid var(--accent);
+  border-bottom: var(--stroke-5) solid var(--accent);
+}
+.day-card__heading {
+  margin: 0;
+  font: inherit;
+}
+/* the card's own lines take the trigger's outline */
+.day-card__trigger {
+  --ring-w-0: 0px;
+  width: 100%;
+  padding-left: 0;
+  text-align: left;
+}
+.day-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+}
+.day-card__body[hidden] {
+  display: none;
+}
+.day-card__edit {
+  align-self: flex-end;
+}
+
+/* ---- history/day-block ---- */
+.day-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  min-width: 0;
+}
+.day-block__title {
+  color: var(--accent);
+}
+.day-block ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.day-block p {
+  margin: 0;
+}
+.day-block__text,
+.value-row__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* data/value-row: label · value unit, on the baseline */
+.value-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--gap-micro);
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+.value-row__value {
+  overflow-wrap: anywhere;
+}
+.value-row--text {
+  display: block;
+}
+.value-row--text > * + * {
+  margin-left: var(--gap-micro);
+}
+/* checklist/single-line, read only: [x] and the name */
+.day-check {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-group);
+  min-height: max(48px, var(--tap));
+}
+.day-check__box {
+  flex: none;
+  color: var(--muted);
+  font-weight: 420;
+}
+.day-check__box::before {
+  content: '[x]';
+  white-space: pre;
+}
+
+/* ---- search/panel: the field and the results over the bar ---- */
+.search {
+  position: fixed;
+  right: 0;
+  bottom: calc(91px + env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  max-width: var(--content-max);
+  max-height: calc(100dvh - 91px - 24px - env(safe-area-inset-bottom));
+  margin: 0 auto;
+  background: var(--bg);
+  box-shadow: 0 -1px 1px rgb(0 0 0 / 30%), 0 -2px 3px rgb(0 0 0 / 15%);
+}
+.search__field {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--gap-items);
+  min-height: 44px;
+  padding-left: var(--gap-items);
+  border: var(--stroke-2) solid var(--accent);
+  background: var(--sunk);
+  color: var(--accent);
+}
+.search__field > .icon {
+  flex: none;
+  width: 25px;
+  height: 25px;
+}
+.search__input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: calc(17px * var(--text-scale));
+  font-weight: 420;
+  font-stretch: 94%;
+}
+.search__input::placeholder {
+  color: var(--muted);
+}
+.search__input:focus {
+  outline: none;
+}
+.search__field:focus-within {
+  box-shadow: var(--focus-ring);
+}
+/* the browser's own × would double ours */
+.search__input::-webkit-search-cancel-button {
+  appearance: none;
+}
+.search__clear {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+}
+.search__clear[hidden] {
+  display: none;
+}
+.search__results {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--panel);
+}
+.search__results:not(:empty) {
+  padding-bottom: var(--gap-group);
+}
+.search__count,
+.search__none {
+  margin: 0;
+  padding: var(--gap-items);
+}
+.search__none {
+  color: var(--accent);
+}
+.search__hit {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gap-items);
+  width: 100%;
+  min-width: 0;
+  padding: var(--gap-items);
+  border-bottom: var(--stroke-2) solid var(--muted);
+  text-align: left;
+}
+.search__date {
+  color: var(--accent);
+}
+.search__snippet {
+  overflow: hidden;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* the matched word: bold on accent shade 3 (Olesia, 2026-11-03) */
+.search__snippet mark {
+  background: var(--accent-quiet);
+  color: var(--ink);
+  font-weight: 720;
+}
+/* 🔍 while the panel is open */
+.bar__search[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}

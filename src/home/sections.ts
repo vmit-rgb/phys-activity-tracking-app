@@ -1,6 +1,7 @@
 import type { DayKey } from '../domain/dates';
 import type { Day, MovementLog } from '../domain/day';
 import { formatLaps, formatSets, lastLaps, lastSets } from '../domain/history';
+import { exerciseName as nameOf, MOMENT_TITLES, sessionName } from '../domain/journal';
 import { lapRows, roundRows, setRows } from '../domain/log';
 import { formatNumber } from '../domain/numbers';
 import { levelDone } from '../domain/progress';
@@ -26,17 +27,6 @@ export interface SectionContext {
   readonly session: HomeSession;
 }
 
-export const MOMENT_TITLES: Record<Moment, string> = {
-  morning: 'самопочуття зранку',
-  afterMorningWarmup: 'самопочуття після розминки',
-  beforeDaytimeWarmup: 'самопочуття до денної розминки',
-  afterDaytimeWarmup: 'самопочуття після денної розминки',
-  beforeWorkout: 'самопочуття до тренування',
-  afterWorkout: 'самопочуття після тренування',
-  beforeMovement: 'самопочуття до руху',
-  afterMovement: 'самопочуття після руху',
-  evening: 'самопочуття ввечері',
-};
 
 const CHECK_IN = 'відміть, як ти зараз. правильних відповідей тут немає.';
 const AI_LINK = 'це посилання дав ШІ. перевір його, перш ніж повторювати.';
@@ -53,13 +43,7 @@ const keyed = (key: string) => `data-key="${esc(key)}"`;
 const muted = (text: string) => (text ? `<p class="t-2nd-regular muted">${esc(text)}</p>` : '');
 const hint = (tracker: Tracker) => (tracker.hint ? `<p class="t-3rd-regular muted">${esc(tracker.hint)}</p>` : '');
 
-function exerciseName(ctx: SectionContext, id: string): string {
-  const exercise = ctx.settings.exercises.find((x) => x.id === id);
-  if (exercise) return exercise.name || 'вправа без назви';
-  // a name kept with any day, as 0.81 did
-  const kept = [ctx.day, ...Object.values(ctx.days)].find((day) => id in day.names);
-  return kept?.names[id] ?? 'вправа, якої вже немає';
-}
+const exerciseName = (ctx: SectionContext, id: string) => nameOf(ctx.settings, [ctx.day, ...Object.values(ctx.days)], id);
 const exerciseById = (ctx: SectionContext, id: string): Exercise | undefined => ctx.settings.exercises.find((x) => x.id === id);
 
 /** An accordion the session remembers; open unless closed (or `openFirst` says otherwise). */
@@ -378,10 +362,6 @@ export function daytimeBody(ctx: SectionContext): string {
 }
 
 /* ---- workout (Figma workout/exercise, workout/exercise-set, exercise/input, stopwatch) ---- */
-
-export function sessionName(name: string): string {
-  return /^тренування/i.test(name) ? name : `тренування ${name.toUpperCase()}`;
-}
 
 function prescription(item: WorkoutItem): string {
   const amount = item.reps || (item.seconds === null ? '' : formatNumber(item.seconds));

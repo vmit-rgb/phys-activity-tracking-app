@@ -1,5 +1,5 @@
 import { wireAccordions } from '../ui/accordion';
-import { iconSvg } from '../ui/icons';
+import { pagesBarMarkup, wirePagesBar } from './bar';
 import { FOOTER, part } from './parts';
 
 /*
@@ -35,6 +35,7 @@ const NEWS: readonly NewsEntry[] = [
       'рух записується колами, а повзунки мають −/+ і кнопку «зберегти»',
       'таймер для пульсу: рахуєш удари, а застосунок переводить в уд/хв',
       'у меню: що нового, як користуватись, поділитися',
+      'історія: календар, середнє за місяць і всі записи по днях. і пошук у нотатках',
     ],
   },
 ];
@@ -49,13 +50,6 @@ const FAQ: readonly (readonly [question: string, answer: string])[] = [
   ['як збільшити текст чи вимкнути анімації?', 'у налаштуваннях, розділ «доступність»: там можна збільшити текст і зони тапу, вимкнути анімації та вібрацію.'],
 ];
 
-const BAR = `
-  <nav class="bar bar--pages" aria-label="навігація">
-    <button type="button" class="ctl icon-btn icon-btn--secondary bar__menu" data-page="menu" aria-label="меню">${iconSvg('menu')}</button>
-    <button type="button" class="ctl icon-btn icon-btn--secondary bar__menu" data-page="search" aria-label="пошук у нотатках">${iconSvg('search')}</button>
-    <button type="button" class="ctl icon-btn icon-btn--secondary bar__menu" data-page="close" aria-label="закрити">${iconSvg('close')}</button>
-  </nav>`;
-
 function page(title: string, description: string, body: string): string {
   return `
     <div class="screen page">
@@ -66,15 +60,12 @@ function page(title: string, description: string, body: string): string {
       ${body}
       ${FOOTER}
     </div>
-    ${BAR}`;
+    ${pagesBarMarkup()}`;
 }
 
 function show(host: HTMLElement, markup: string, actions: HelpActions): void {
   host.innerHTML = markup;
-  part(host, '.bar').addEventListener('click', (event) => {
-    const button = (event.target as Element).closest<HTMLElement>('[data-page]');
-    if (button) actions[button.dataset.page as keyof HelpActions]();
-  });
+  wirePagesBar(host, actions);
 }
 
 const newsEntry = ({ version, changes }: NewsEntry) => `

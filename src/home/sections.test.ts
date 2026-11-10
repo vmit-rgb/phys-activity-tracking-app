@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DayKey } from '../domain/dates';
 import { emptyDay, readDay, type Day } from '../domain/day';
 import { readSettings } from '../domain/settings';
-import { checkInBody, daytimeBody, morningBody, movementBody, sessionName, workoutBody, type SectionContext } from './sections';
+import { checkInBody, daytimeBody, morningBody, movementBody, workoutBody, type SectionContext } from './sections';
 import { homeSession } from './session';
 
 /* What a section shows for unusual settings. Invented data only. */
@@ -102,12 +102,5 @@ describe('exercises, links and how-to', () => {
   it('a workout removed from the settings keeps its records', () => {
     const box = render(workoutBody(ctx({}, readDay({ wo: { session: 'gone' } }, DATE))));
     expect(box.textContent).toContain('цього тренування вже немає в налаштуваннях. записи збережено.');
-  });
-});
-
-describe('sessionName', () => {
-  it('«а» becomes «тренування А»; a full name stays', () => {
-    expect(sessionName('а')).toBe('тренування А');
-    expect(sessionName('Тренування для ніг')).toBe('Тренування для ніг');
   });
 });

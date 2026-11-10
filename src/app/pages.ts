@@ -3,12 +3,14 @@ import type { DayKey } from '../domain/dates';
 import { serializeDiary, type Diary } from '../domain/diary';
 import { readSettings } from '../domain/settings';
 import { showHowToUse, showWhatsNew, type HelpActions } from '../screens/help';
+import { showHistory } from '../screens/history';
 import { showMenu, type MenuItem } from '../screens/menu';
 import type { backupMemory, ThemeChoice } from '../storage/store';
 import type { Toast, ToastMessage } from '../ui/toast';
 
 /*
- * The screens that open over home (stage 6a): the menu and its two pages.
+ * The screens that open over home: the menu and its two pages (stage 6a),
+ * the history with search in notes (stage 6b).
  * Each one is a step in the phone's history, so «назад» closes them one by one.
  */
 
@@ -60,9 +62,7 @@ const LINK_COPIED: ToastMessage = { message: 'посилання скопійо�
 /* Нитка's drafts (stage 6a): what the menu offers before it is built. */
 const NOT_SHARED: ToastMessage = { message: 'не вдалося поділитися', emoticon: '>_<' };
 const soon = (message: string): ToastMessage => ({ message, emoticon: ':)' });
-const HISTORY_SOON = soon('історію ще робимо, скоро буде');
 const SETTINGS_SOON = soon('налаштування ще робимо, скоро будуть');
-const SEARCH_SOON = soon('пошук ще робимо, скоро буде');
 const FEEDBACK_SOON = soon('форму для фідбеку ще робимо, скоро буде');
 
 /** «поділитися застосунком» (Figma caption, Нитка's draft): the landing page, not the app itself. */
@@ -72,7 +72,8 @@ export const SHARE: ShareData = {
   url: 'https://vmit-rgb.github.io/phys-activity-tracking-app-landing-page/',
 };
 
-export type Page = 'menu' | 'whats-new' | 'how-to-use';
+/** 'search' is the history with the search panel open. */
+export type Page = 'menu' | 'whats-new' | 'how-to-use' | 'history' | 'search';
 
 export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): void } {
   let pages: Page[] = [];
@@ -92,18 +93,48 @@ export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): v
     env.history.back(pages.length - depth);
   }
 
-  const help: HelpActions = { menu: () => backTo(1), search: say(SEARCH_SOON), close: () => backTo(0) };
+  /** Home on that day, every screen over it closed. */
+  function goTo(date: DayKey): void {
+    home.showHome(date);
+    backTo(0);
+  }
+
+  const help: HelpActions = { menu: () => backTo(1), search: () => open('search'), close: () => backTo(0) };
+
+  function history(search: boolean): () => void {
+    const diary = home.diary();
+    return showHistory(home.host, {
+      settings: readSettings(diary.profile),
+      days: diary.days,
+      today: home.today(),
+      date: home.date(),
+      search,
+    }, {
+      menu: () => backTo(1),
+      close: () => backTo(0),
+      goTo,
+      toast: (message) => home.toast.show(message),
+    });
+  }
+
+  const helpPage = (show: typeof showWhatsNew) => () => {
+    show(home.host, help);
+    return () => {};
+  };
+
+  /** Each page draws itself and returns what to undo. */
+  const SCREENS: Record<Page, () => () => void> = {
+    menu: () => menu(),
+    'whats-new': helpPage(showWhatsNew),
+    'how-to-use': helpPage(showHowToUse),
+    history: () => history(false),
+    search: () => history(true),
+  };
 
   function draw(): void {
     const page = pages.at(-1);
-    if (!page) home.showHome(home.date());
-    else if (page === 'menu') home.replace(menu);
-    else {
-      home.replace(() => {
-        (page === 'whats-new' ? showWhatsNew : showHowToUse)(home.host, help);
-        return () => {};
-      });
-    }
+    if (page) home.replace(SCREENS[page]);
+    else home.showHome(home.date());
   }
 
   function saveCopy(): void {
@@ -125,9 +156,9 @@ export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): v
   }
 
   const ITEMS: Record<MenuItem, () => void> = {
-    history: say(HISTORY_SOON),
+    history: () => open('history'),
     settings: say(SETTINGS_SOON),
-    search: say(SEARCH_SOON),
+    search: () => open('search'),
     feedback: say(FEEDBACK_SOON),
     backup: saveCopy,
     'whats-new': () => open('whats-new'),
@@ -157,10 +188,7 @@ export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): v
       choose: (item) => ITEMS[item](),
       switchTheme,
       close: () => backTo(0),
-      goTo(date) {
-        home.showHome(date);
-        backTo(0);
-      },
+      goTo,
     });
   }
 

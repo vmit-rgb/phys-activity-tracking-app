@@ -6,8 +6,9 @@
  * was synced with; tints from --accent-rgb (no color-mix(), iOS 15.4).
  */
 
-/* on home: on glass and between accent lines, like the sections */
-.home .cal-block {
+/* on home and in the history: on glass and between accent lines, like the sections */
+.home .cal-block,
+.history .cal-block {
   border-top: var(--stroke-4) solid var(--accent);
   border-bottom: var(--stroke-4) solid var(--accent);
   box-shadow: 0 2px 12px rgb(0 0 0 / 25%);
