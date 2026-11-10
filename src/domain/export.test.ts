@@ -3,7 +3,7 @@ import type { DayKey } from './dates';
 import { readDay } from './day';
 import type { Diary, JsonObject } from './diary';
 import { EXAMPLE_DIARY } from './examples';
-import { exercisesText, exportFile, recordsText } from './export';
+import { exercisesText, exportFile, pdfDocument, recordsText, type PdfLine } from './export';
 import { readSettings } from './settings';
 
 // Invented data only.
@@ -96,6 +96,52 @@ describe('exportFile', () => {
     expect(data).toMatchObject({ format: 'phys-activity-exercises', version: 1 });
     expect(data.workout).toEqual(EXAMPLE_DIARY.profile.workout);
     expect(data.trackers).toBeUndefined();
+  });
+});
+
+describe('pdfDocument', () => {
+  const FOOT = 'трекер · бета 0.9';
+  const texts = (lines: readonly PdfLine[]) => lines.map((line) => line.text);
+
+  it('lays out the records as «бета 0.81» did: title, days in bold, blocks indented, the app at the bottom', () => {
+    const pdf = pdfDocument('records', DIARY.days, SETTINGS, TODAY, FOOT);
+    expect(pdf.name).toBe('trekr-zapysy-2026-11-09.pdf');
+    expect(pdf.lines.slice(0, 4)).toEqual([
+      { text: 'щоденник руху й самопочуття', size: 16, bold: true, indent: 0 },
+      { text: 'експорт пн, 09.11.2026 · це щоденник, а не медичний документ', size: 9, bold: false, indent: 0 },
+      { text: '', size: 6, bold: false, indent: 0 },
+      { text: 'нд, 08.11.2026', size: 12, bold: true, indent: 0 },
+    ]);
+    expect(pdf.lines[4]).toEqual({ text: 'ранкова розминка: рівень 1 (вправа 1); рівень 2 (вправа 1)', size: 9.5, bold: false, indent: 12 });
+    expect(texts(pdf.lines)).toEqual([
+      'щоденник руху й самопочуття', 'експорт пн, 09.11.2026 · це щоденник, а не медичний документ', '',
+      'нд, 08.11.2026', 'ранкова розминка: рівень 1 (вправа 1); рівень 2 (вправа 1)', 'нотатка: перший рядок / другий', '',
+      'сб, 07.11.2026', 'самопочуття зранку: енергія 4', 'денна розминка: для спини', '',
+      '', 'трекер · бета 0.9',
+    ]);
+    expect(pdf.lines.at(-1)).toEqual({ text: FOOT, size: 8, bold: false, indent: 0 });
+  });
+
+  it('lays out the exercises by depth: sections large, levels and sessions bold, exercises indented', () => {
+    const pdf = pdfDocument('exercises', DIARY.days, SETTINGS, TODAY, FOOT);
+    expect(pdf.name).toBe('trekr-vpravy-2026-11-09.pdf');
+    expect(pdf.lines.slice(0, 7)).toEqual([
+      { text: 'мої вправи', size: 16, bold: true, indent: 0 },
+      { text: 'експорт пн, 09.11.2026', size: 9, bold: false, indent: 0 },
+      { text: '', size: 6, bold: false, indent: 0 },
+      { text: 'ранкова розминка', size: 13, bold: true, indent: 0 },
+      { text: 'рівень 1 · 5 хв', size: 9.5, bold: true, indent: 6 },
+      { text: '• вправа 1 — 10', size: 9.5, bold: false, indent: 12 },
+      { text: 'тут буде коротко, як її робити.', size: 9.5, bold: false, indent: 18 },
+    ]);
+    expect(texts(pdf.lines)).toContain('денна розминка — коли довго сидиш');
+    expect(pdf.lines.find((l) => l.text === '• рух 1')).toEqual({ text: '• рух 1', size: 9.5, bold: false, indent: 6 });
+    expect(texts(pdf.lines).at(-1)).toBe(FOOT);
+  });
+
+  it('has only the title and the app when there is nothing to show', () => {
+    expect(texts(pdfDocument('exercises', {}, readSettings({}), TODAY, FOOT).lines))
+      .toEqual(['мої вправи', 'експорт пн, 09.11.2026', '', '', FOOT]);
   });
 });
 
