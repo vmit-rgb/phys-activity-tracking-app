@@ -7,24 +7,29 @@ import './styles/screens.css';
 import './styles/home.css';
 import './styles/sections.css';
 import './styles/calendar.css';
+import './styles/menu.css';
 import { startApp } from './app/app';
 import { detectPlatform, isInstalled } from './app/start';
 import { diaryAccent } from './domain/diary';
 import { dayKeyOf } from './domain/dates';
-import { browserChoice, diaryStore, sectionMemory, storageFor } from './storage/store';
-import { DEFAULT_APPEARANCE, startAppearance } from './ui/appearance';
+import { backupMemory, browserChoice, diaryStore, sectionMemory, storageFor, themeMemory } from './storage/store';
+import { DEFAULT_APPEARANCE, startAppearance, type Appearance } from './ui/appearance';
 import { trackInputModality } from './ui/modality';
 import { watchForUpdates } from './pwa/updates';
 import { mountToast } from './ui/toast';
+import { copyWith, saveFile, screenHistory, shareWith } from './ui/device';
 
 // Wiring only: everything with a decision in it lives in the modules above.
 const root = document.documentElement;
-const applyAppearance = startAppearance(root, matchMedia('(prefers-color-scheme: light)'), DEFAULT_APPEARANCE);
+const installed = isInstalled((query) => matchMedia(query), navigator as { standalone?: boolean });
+const storage = storageFor(installed, { local: localStorage, session: sessionStorage });
+const themes = themeMemory(storage);
+let accent = DEFAULT_APPEARANCE.accent;
+const appearance = (): Appearance => ({ ...DEFAULT_APPEARANCE, accent, theme: themes.chosen() ?? 'system' });
+const applyAppearance = startAppearance(root, matchMedia('(prefers-color-scheme: light)'), appearance());
 trackInputModality(root);
 
 const toast = mountToast(document.body);
-const installed = isInstalled((query) => matchMedia(query), navigator as { standalone?: boolean });
-const storage = storageFor(installed, { local: localStorage, session: sessionStorage });
 startApp({
   host: document.querySelector<HTMLElement>('#app')!,
   store: diaryStore(storage, () => new Date()),
@@ -35,7 +40,8 @@ startApp({
   today: () => dayKeyOf(new Date()),
   sections: sectionMemory(storage),
   onDiary: (diary) => {
-    applyAppearance({ ...DEFAULT_APPEARANCE, accent: diaryAccent(diary) });
+    accent = diaryAccent(diary);
+    applyAppearance(appearance());
     // ask the browser not to clear the diary when space runs low (a tab keeps nothing anyway)
     if (installed) void navigator.storage?.persist?.();
   },
@@ -45,6 +51,19 @@ startApp({
       if (document.visibilityState === 'hidden') save();
     });
   },
+  theme: {
+    shown: () => (root.dataset.theme === 'light' ? 'light' : 'dark'),
+    choose(theme) {
+      themes.choose(theme);
+      applyAppearance(appearance());
+    },
+  },
+  backups: backupMemory(storage),
+  saveFile: (name, text) => saveFile(document, name, text),
+  share: (data) => shareWith(navigator, data),
+  copyText: (text) => copyWith(navigator.clipboard, text),
+  now: () => new Date(),
+  history: screenHistory(history, window),
 });
 
 // offline copy and «є нова версія :)»; only in the built app, never in development

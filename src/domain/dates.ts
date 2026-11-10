@@ -51,3 +51,10 @@ export function formatShort(key: DayKey): string {
 export function formatLong(key: DayKey): string {
   return `${WEEKDAYS_LONG[dateOf(key).getDay()]}, ${withDots(key)}`;
 }
+
+const DAY_MS = 86_400_000;
+
+/** Whole calendar days from `from` to `to`; negative when `to` is earlier. */
+export function daysBetween(from: DayKey, to: DayKey): number {
+  return Math.round((dateOf(to).getTime() - dateOf(from).getTime()) / DAY_MS);
+}

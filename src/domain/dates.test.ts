@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dayKeyOf, formatLong, formatShort, isDayKey, mondayOf, type DayKey } from './dates';
+import { addDays, dayKeyOf, daysBetween, formatLong, formatShort, isDayKey, mondayOf, type DayKey } from './dates';
 
 const key = (text: string) => text as DayKey;
 
@@ -52,5 +52,14 @@ describe('dates on screen', () => {
   });
   it('long: the weekday in full, for screen readers', () => {
     expect(formatLong(key('2026-10-30'))).toBe('пʼятниця, 30.10.2026');
+  });
+});
+
+describe('daysBetween', () => {
+  const key = (text: string) => text as DayKey;
+  it('counts calendar days, also across the clock change', () => {
+    expect(daysBetween(key('2026-10-24'), key('2026-10-26'))).toBe(2);
+    expect(daysBetween(key('2026-11-20'), key('2026-11-20'))).toBe(0);
+    expect(daysBetween(key('2026-11-20'), key('2026-11-17'))).toBe(-3);
   });
 });

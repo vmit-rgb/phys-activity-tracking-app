@@ -1,3 +1,4 @@
+import { isDayKey, type DayKey } from '../domain/dates';
 import { parseDiary, serializeDiary, type Diary } from '../domain/diary';
 
 /** The part of `localStorage` the app uses; a test can pass its own. */
@@ -10,6 +11,8 @@ export const DIARY_KEY = 'phys-activity-tracking-app/diary';
 const UNREADABLE_KEY = `${DIARY_KEY}/unreadable`;
 const BROWSER_KEY = 'phys-activity-tracking-app/browser-chosen';
 const SECTION_KEY = 'phys-activity-tracking-app/section-closed/';
+const THEME_KEY = 'phys-activity-tracking-app/theme';
+const BACKUP_KEY = 'phys-activity-tracking-app/last-copy';
 
 export interface DiaryStore {
   load(): Diary | null;
@@ -45,13 +48,40 @@ export function browserChoice(storage: KeyValue): { chosen(): boolean; choose():
 export function sectionMemory(storage: KeyValue): { open(id: string): boolean; remember(id: string, open: boolean): void } {
   return {
     open: (id) => storage.getItem(SECTION_KEY + id) !== 'yes',
-    remember(id, open) {
-      try {
-        storage.setItem(SECTION_KEY + id, open ? 'no' : 'yes');
-      } catch {
-        // a full phone only forgets which sections were closed
-      }
+    remember: (id, open) => setQuietly(storage, SECTION_KEY + id, open ? 'no' : 'yes'),
+  };
+}
+
+/** Writes what only makes the app nicer: a full phone just forgets it. */
+function setQuietly(storage: KeyValue, key: string, value: string): void {
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // nothing is lost but the remembered choice
+  }
+}
+
+export type ThemeChoice = 'dark' | 'light';
+
+/** The theme chosen with ☼ / ☾ in the menu; light and dark belong to the phone, not the profile (PROFILE-FORMAT.md). */
+export function themeMemory(storage: KeyValue): { chosen(): ThemeChoice | null; choose(theme: ThemeChoice): void } {
+  return {
+    chosen() {
+      const theme = storage.getItem(THEME_KEY);
+      return theme === 'dark' || theme === 'light' ? theme : null;
     },
+    choose: (theme) => setQuietly(storage, THEME_KEY, theme),
+  };
+}
+
+/** The day of the last «зберегти копію», for «остання копія — …» (on this phone only, as in «бета 0.81»). */
+export function backupMemory(storage: KeyValue): { last(): DayKey | null; remember(day: DayKey): void } {
+  return {
+    last() {
+      const day = storage.getItem(BACKUP_KEY);
+      return isDayKey(day) ? day : null;
+    },
+    remember: (day) => setQuietly(storage, BACKUP_KEY, day),
   };
 }
 
