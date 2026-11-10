@@ -19,6 +19,9 @@
   margin: 0;
 }
 .settings__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
   padding: 0 var(--pad-screen-x) 16px;
 }
 .settings__parts {
@@ -169,6 +172,195 @@
 }
 .st-warning {
   color: var(--warn);
+}
+
+/* ---- inside the sections (stage 6d; Figma section/wellbeing … /movement) ---- */
+
+.st-grow {
+  flex: 1;
+  min-width: 0;
+}
+/* .ctl resets the font; the text buttons keep their size from Figma */
+.st-text.t-h6 { --weight-0: 460; font-size: calc(20px * var(--text-scale)); font-stretch: 90%; }
+.st-text.t-1st-semibold { --weight-0: 600; --weight-hover: 720; font-size: calc(17px * var(--text-scale)); }
+.st-text.t-1st-regular { font-size: calc(17px * var(--text-scale)); }
+.st-text.t-3rd-regular { font-size: calc(12px * var(--text-scale)); }
+.st-text--empty {
+  color: var(--muted);
+}
+.st-text--link {
+  flex: none;
+  min-height: 32px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.st-value {
+  flex: none;
+  max-width: 45%;
+  justify-content: flex-end;
+  color: var(--muted);
+  text-align: right;
+}
+.st-rm {
+  flex: none;
+}
+
+/* a tracker kind, a level, a «для чого», a workout: an outlined box with its own +/− */
+.st-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+  padding: 4px 8px 8px;
+  border: var(--stroke-1) solid var(--accent-mid);
+}
+.st-box__head {
+  align-items: flex-start;
+}
+.st-box__head h3 {
+  margin: 0;
+  padding-top: 12px;
+}
+.st-box__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+
+/* entries: draggable, so no text selection or the phone's menu on a long press */
+.st-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.st-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+  padding: 4px 0;
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.st-box__body .st-list > .st-item:not(.st-box) {
+  padding-left: 16px;
+}
+.st-pair,
+.st-asks,
+.st-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-nano);
+}
+.st-pair {
+  flex-direction: row;
+  gap: 16px;
+}
+.st-pair .st-text {
+  flex: none;
+}
+.st-asks,
+.st-fields {
+  padding-left: 8px;
+}
+.st-link {
+  display: flex;
+  align-items: baseline;
+}
+
+/* a group of exercises (Figma settings/exercise-set): one block, label «група вправ» */
+.st-group {
+  padding: 8px;
+  border: var(--stroke-1) solid var(--line);
+  background: var(--sunk);
+}
+.st-group--off {
+  opacity: 0.6;
+}
+
+/* «дії: …»: for the keyboard and screen readers, seen only when focused */
+.st-actions {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.st-actions:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  min-height: var(--tap);
+  clip-path: none;
+  color: var(--accent);
+}
+
+/* the long-press menu (Figma menu/exercise-actions 262:10665) */
+.st-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px;
+  border-block: var(--stroke-1) solid var(--accent);
+  background: var(--bg);
+  box-shadow: 0 2px 12px var(--scrim-shadow, rgb(0 0 0 / 40%));
+}
+.st-menu .btn {
+  justify-content: flex-start;
+  min-height: var(--tap);
+}
+
+/* «створити групу»: exercises become toggles */
+.st-picking {
+  align-items: center;
+}
+.st-pick {
+  justify-content: flex-start;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border: var(--stroke-1) solid var(--line);
+  color: var(--ink);
+  text-align: left;
+}
+.st-pick[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-quiet);
+}
+.st-pick:disabled {
+  color: var(--disabled);
+}
+
+/* dragging (Figma example/edit-profile-drag-and-group 262:10843): lifted, ghost, insertion line, group target, full */
+.st-lift {
+  z-index: 5;
+  outline: var(--stroke-1) solid var(--accent);
+  background: var(--accent-quiet);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
+}
+.st-ghost {
+  opacity: 0.35;
+}
+.st-target {
+  outline: var(--stroke-1) dashed var(--accent);
+  background: var(--accent-quiet);
+}
+.st-full {
+  outline: var(--stroke-1) dashed var(--err);
+}
+.st-line {
+  height: 2px;
+  background: var(--accent);
+}
+.st-proxy {
+  position: fixed;
+  z-index: 70;
+  padding: 8px 12px;
+  border: var(--stroke-1) solid var(--accent);
+  background: var(--bg);
+  color: var(--ink);
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
 }
 
 /* the bar: 💾 left, ✕ right (navigation edit-profile) */
