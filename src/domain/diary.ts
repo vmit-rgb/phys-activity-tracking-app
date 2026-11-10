@@ -1,5 +1,4 @@
 import { VERSION_LABEL } from '../version';
-import { parseAccent, type Accent } from './accents';
 import { isDayKey, type DayKey } from './dates';
 import { readDay, writeDay, type Day } from './day';
 
@@ -38,8 +37,8 @@ function parseDays(days: JsonObject): Record<DayKey, Day> {
   return result;
 }
 
-/** Days with something in them, in the stored shape. */
-function writeDays(days: Diary['days']): Record<string, unknown> {
+/** Days with something in them, in the stored shape (also the days of the records export). */
+export function writeDays(days: Diary['days']): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const day of Object.values(days)) {
     const stored = writeDay(day);
@@ -67,6 +66,11 @@ export function parseDiary(text: string): Diary | null {
   return { profile: data.profile, days: parseDays(data.days) };
 }
 
+/** A copy file read into a diary; null when it isn't a copy or can't be read. */
+export function readCopy(file: Blob): Promise<Diary | null> {
+  return file.text().then(parseDiary, () => null);
+}
+
 /** The diary as a copy that «бета 0.81» and this app both read. */
 export function serializeDiary(diary: Diary, savedAt: Date): string {
   return JSON.stringify({
@@ -77,9 +81,4 @@ export function serializeDiary(diary: Diary, savedAt: Date): string {
     profile: diary.profile,
     days: writeDays(diary.days),
   });
-}
-
-export function diaryAccent(diary: Diary): Accent {
-  const theme = diary.profile.theme;
-  return parseAccent(isObject(theme) ? theme.accent : undefined);
 }

@@ -9,12 +9,12 @@ import './styles/sections.css';
 import './styles/calendar.css';
 import './styles/menu.css';
 import './styles/history.css';
+import './styles/settings.css';
 import { startApp } from './app/app';
 import { detectPlatform, isInstalled } from './app/start';
-import { diaryAccent } from './domain/diary';
 import { dayKeyOf } from './domain/dates';
 import { backupMemory, browserChoice, diaryStore, sectionMemory, storageFor, themeMemory } from './storage/store';
-import { DEFAULT_APPEARANCE, startAppearance, type Appearance } from './ui/appearance';
+import { DEFAULT_APPEARANCE, lookOf, startAppearance, type Appearance } from './ui/appearance';
 import { trackInputModality } from './ui/modality';
 import { watchForUpdates } from './pwa/updates';
 import { mountToast } from './ui/toast';
@@ -25,8 +25,8 @@ const root = document.documentElement;
 const installed = isInstalled((query) => matchMedia(query), navigator as { standalone?: boolean });
 const storage = storageFor(installed, { local: localStorage, session: sessionStorage });
 const themes = themeMemory(storage);
-let accent = DEFAULT_APPEARANCE.accent;
-const appearance = (): Appearance => ({ ...DEFAULT_APPEARANCE, accent, theme: themes.chosen() ?? 'system' });
+let look: Omit<Appearance, 'theme'> = DEFAULT_APPEARANCE;
+const appearance = (): Appearance => ({ ...look, theme: themes.chosen() ?? 'system' });
 const applyAppearance = startAppearance(root, matchMedia('(prefers-color-scheme: light)'), appearance());
 trackInputModality(root);
 
@@ -41,7 +41,7 @@ startApp({
   today: () => dayKeyOf(new Date()),
   sections: sectionMemory(storage),
   onDiary: (diary) => {
-    accent = diaryAccent(diary);
+    look = lookOf(diary.profile);
     applyAppearance(appearance());
     // ask the browser not to clear the diary when space runs low (a tab keeps nothing anyway)
     if (installed) void navigator.storage?.persist?.();
@@ -59,6 +59,11 @@ startApp({
       applyAppearance(appearance());
     },
   },
+  look(profile) {
+    look = lookOf(profile);
+    applyAppearance(appearance());
+  },
+  motionReduced: () => matchMedia('(prefers-reduced-motion: reduce)').matches,
   backups: backupMemory(storage),
   saveFile: (name, text) => saveFile(document, name, text),
   share: (data) => shareWith(navigator, data),

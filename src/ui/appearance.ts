@@ -1,4 +1,6 @@
 import { DEFAULT_ACCENT, type Accent } from '../domain/accents';
+import type { JsonObject } from '../domain/diary';
+import { readSettings } from '../domain/settings';
 
 /** 'system' follows the phone; the other two are a fixed choice. */
 export type Theme = 'system' | 'dark' | 'light';
@@ -11,6 +13,10 @@ export interface Appearance {
   readonly largerText: boolean;
   /** «збільшені зони тапу»: 56 px instead of 48 */
   readonly largerTargets: boolean;
+  /** «вимкнути всі анімації»: motion is instant, as with the phone's «reduce motion» */
+  readonly noMotion: boolean;
+  /** «віддзеркалити нижню панель»: ≡ on the right, the date on the left */
+  readonly mirrored: boolean;
 }
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -18,7 +24,15 @@ export const DEFAULT_APPEARANCE: Appearance = {
   theme: 'system',
   largerText: false,
   largerTargets: false,
+  noMotion: false,
+  mirrored: false,
 };
+
+/** What a profile says about the look; the theme belongs to the phone, not the profile. */
+export function lookOf(profile: JsonObject): Omit<Appearance, 'theme'> {
+  const { accent, accessibility: a } = readSettings(profile);
+  return { accent, largerText: a.largerText, largerTargets: a.largerTargets, noMotion: a.noMotion, mirrored: a.mirrored };
+}
 
 /** The phone's light/dark setting: `matchMedia('(prefers-color-scheme: light)')`. */
 export interface SystemTheme {
@@ -32,6 +46,8 @@ function apply(root: HTMLElement, appearance: Appearance, systemLight: boolean):
   root.dataset.accent = appearance.accent;
   root.toggleAttribute('data-larger-text', appearance.largerText);
   root.toggleAttribute('data-larger-targets', appearance.largerTargets);
+  root.toggleAttribute('data-no-motion', appearance.noMotion);
+  root.toggleAttribute('data-mirrored', appearance.mirrored);
 }
 
 /**

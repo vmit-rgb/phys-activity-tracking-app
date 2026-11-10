@@ -41,7 +41,7 @@ describe('diaryStore', () => {
   });
 
   it('lets a full storage fail loudly, so the screen can say so', () => {
-    const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } };
+    const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); }, removeItem: () => {} };
     expect(() => diaryStore(full, now).save(EXAMPLE_DIARY)).toThrow('QuotaExceededError');
   });
 });
@@ -70,7 +70,7 @@ describe('sectionMemory (closed home sections)', () => {
   });
 
   it('only forgets when the phone is full', () => {
-    const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } };
+    const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); }, removeItem: () => {} };
     expect(() => sectionMemory(full).remember('mw', false)).not.toThrow();
   });
 });
@@ -96,7 +96,7 @@ describe('storageFor (Olesia, 2026-11-09: the app in a browser tab keeps nothing
 
 describe('remembered on this phone only: theme and the last copy', () => {
   beforeEach(() => localStorage.clear());
-  const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); } };
+  const full = { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); }, removeItem: () => {} };
 
   it('follows the phone until a theme is chosen, then keeps the choice', () => {
     expect(themeMemory(localStorage).chosen()).toBeNull();

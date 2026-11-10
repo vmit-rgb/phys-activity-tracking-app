@@ -1,8 +1,11 @@
+import type { Accessibility } from '../domain/settings';
+
 /*
  * The end of the pulse timer: vibration, a short sound and a flash of the
  * screen (ACCESSIBILITY.md: the person is counting with both hands busy).
- * The «доступність» checkboxes that switch these off come with the settings
- * (stage 6). Where a phone can't do one of them, the others still happen.
+ * «вимкнути вібровідгук» and «вимкнути звук» switch the first two off; the
+ * flash always comes (with «вимкнути всі анімації» as a still layer, CSS), so
+ * the end is never lost. Where a phone can't do one of them, the others still happen.
  */
 
 let audio: AudioContext | undefined;
@@ -40,8 +43,8 @@ function flash(): void {
   setTimeout(() => layer.remove(), FLASH_MS);
 }
 
-export function endSignal(): void {
-  navigator.vibrate?.([200, 100, 200]);
-  beep();
+export function endSignal(off: Pick<Accessibility, 'noVibration' | 'noSound'>): void {
+  if (!off.noVibration) navigator.vibrate?.([200, 100, 200]);
+  if (!off.noSound) beep();
   flash();
 }

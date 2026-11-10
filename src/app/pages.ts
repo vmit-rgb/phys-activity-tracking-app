@@ -7,6 +7,7 @@ import { showHistory } from '../screens/history';
 import { showMenu, type MenuItem } from '../screens/menu';
 import type { backupMemory, ThemeChoice } from '../storage/store';
 import type { Toast, ToastMessage } from '../ui/toast';
+import { settingsPage, type SettingsEnv, type SettingsPage } from './settings-page';
 
 /*
  * The screens that open over home: the menu and its two pages (stage 6a),
@@ -21,7 +22,7 @@ export interface ShareData {
 }
 
 /** What the screens over home need from the phone. */
-export interface DeviceEnv {
+export interface DeviceEnv extends Pick<SettingsEnv, 'look' | 'motionReduced'> {
   /** The theme shown now and the choice made with ☼ / ☾ in the menu. */
   theme: { shown(): ThemeChoice; choose(theme: ThemeChoice): void };
   /** The day of the last copy, on this phone. */
@@ -53,6 +54,12 @@ export interface Home {
   showHome(date: DayKey): void;
   /** Undoes the screen shown now and draws the next one; `draw` returns what to undo later. */
   replace(draw: () => () => void): void;
+  /** Stores the diary; false (and a toast) when the phone refuses. */
+  keep(next: Diary): boolean;
+  /** Starts over with this diary on home (a restored copy, an undone «стерти все»). */
+  restart(next: Diary, message?: ToastMessage): void;
+  /** «стерти все»: no diary on this phone, the first screen. */
+  erase(message: ToastMessage): void;
 }
 
 /* COPY.md, Toasts; «не вдалося зберегти файл» as «бета 0.81» says it. */
@@ -62,7 +69,6 @@ const LINK_COPIED: ToastMessage = { message: 'посилання скопійо�
 /* Нитка's drafts (stage 6a): what the menu offers before it is built. */
 const NOT_SHARED: ToastMessage = { message: 'не вдалося поділитися', emoticon: '>_<' };
 const soon = (message: string): ToastMessage => ({ message, emoticon: ':)' });
-const SETTINGS_SOON = soon('налаштування ще робимо, скоро будуть');
 const FEEDBACK_SOON = soon('форму для фідбеку ще робимо, скоро буде');
 
 /** «поділитися застосунком» (Figma caption, Нитка's draft): the landing page, not the app itself. */
@@ -72,11 +78,32 @@ export const SHARE: ShareData = {
   url: 'https://vmit-rgb.github.io/phys-activity-tracking-app-landing-page/',
 };
 
+/** «зберегти копію»; false when the phone refused the file. */
+function saveCopyFile(env: DeviceEnv, home: Home): boolean {
+  const today = home.today();
+  try {
+    env.saveFile(copyFileName(today), serializeDiary(home.diary(), env.now()));
+  } catch {
+    home.toast.show(FILE_NOT_SAVED);
+    return false;
+  }
+  env.backups.remember(today);
+  home.toast.show(COPY_SAVED);
+  return true;
+}
+
+/** The share sheet; without one, the text and link on the clipboard. */
+async function share(env: DeviceEnv, toast: Toast): Promise<void> {
+  if ((await env.share(SHARE)) !== 'unavailable') return;
+  toast.show((await env.copyText(`${SHARE.text} → ${SHARE.url}`)) ? LINK_COPIED : NOT_SHARED);
+}
+
 /** 'search' is the history with the search panel open. */
-export type Page = 'menu' | 'whats-new' | 'how-to-use' | 'history' | 'search';
+export type Page = 'menu' | 'whats-new' | 'how-to-use' | 'history' | 'search' | 'settings';
 
 export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): void } {
   let pages: Page[] = [];
+  let settings: SettingsPage | null = null;
   const say = (message: ToastMessage) => () => home.toast.show(message);
 
   function open(page: Page): void {
@@ -129,7 +156,28 @@ export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): v
     'how-to-use': helpPage(showHowToUse),
     history: () => history(false),
     search: () => history(true),
+    // the menu creates the page before opening it
+    settings: () => settings!.draw(),
   };
+
+  function openSettings(): void {
+    settings = settingsPage(env, {
+      ...home,
+      backupLine: () => backupLine(env.backups.last(), home.today()),
+      saveCopy,
+      close: () => leaveAll(() => {}),
+      restart: (next, message) => leaveAll(() => home.restart(next, message)),
+      erase: (message) => leaveAll(() => home.erase(message)),
+    });
+    open('settings');
+  }
+
+  /** Settings let go of the screen: `then`, and every screen over home closes. */
+  function leaveAll(then: () => void): void {
+    settings = null;
+    then();
+    backTo(0);
+  }
 
   function draw(): void {
     const page = pages.at(-1);
@@ -137,33 +185,19 @@ export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): v
     else home.showHome(home.date());
   }
 
-  function saveCopy(): void {
-    const today = home.today();
-    try {
-      env.saveFile(copyFileName(today), serializeDiary(home.diary(), env.now()));
-    } catch {
-      home.toast.show(FILE_NOT_SAVED);
-      return;
-    }
-    env.backups.remember(today);
-    draw();
-    home.toast.show(COPY_SAVED);
-  }
-
-  async function share(): Promise<void> {
-    if ((await env.share(SHARE)) !== 'unavailable') return;
-    home.toast.show((await env.copyText(`${SHARE.text} → ${SHARE.url}`)) ? LINK_COPIED : NOT_SHARED);
-  }
+  const saveCopy = () => saveCopyFile(env, home);
 
   const ITEMS: Record<MenuItem, () => void> = {
     history: () => open('history'),
-    settings: say(SETTINGS_SOON),
+    settings: openSettings,
     search: () => open('search'),
     feedback: say(FEEDBACK_SOON),
-    backup: saveCopy,
+    backup: () => {
+      if (saveCopy()) draw();
+    },
     'whats-new': () => open('whats-new'),
     'how-to-use': () => open('how-to-use'),
-    share: () => void share(),
+    share: () => void share(env, home.toast),
   };
 
   function switchTheme(): void {
@@ -192,8 +226,18 @@ export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): v
     });
   }
 
+  /** The phone's «назад» over settings with changes: back on the page until the person decides. */
+  async function leaveSettings(depth: number): Promise<void> {
+    env.history.push(pages.length);
+    const page = settings!;
+    if (!(await page.mayLeave())) return;
+    settings = null;
+    backTo(depth);
+  }
+
   env.history.listen((depth) => {
     if (depth >= pages.length) return;
+    if (settings && pages.indexOf('settings') >= depth) return void leaveSettings(depth);
     pages = pages.slice(0, depth);
     draw();
   });

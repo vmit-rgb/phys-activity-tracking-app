@@ -264,7 +264,7 @@ function pulseEnd(host: HTMLElement, state: HomeState, controls: SectionControls
     const run = state.session.pulse;
     if (run?.phase !== 'counting') return;
     state.session.pulse = { ...run, phase: 'beats' };
-    endSignal();
+    endSignal(state.settings.accessibility);
     controls.render();
     host.querySelector<HTMLElement>('[data-input="beats"]')?.focus({ preventScroll: true });
   };

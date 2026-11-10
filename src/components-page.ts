@@ -128,6 +128,8 @@ const read = (): Appearance => ({
   theme: sheet.querySelector<HTMLSelectElement>('#theme')!.value as Theme,
   largerText: sheet.querySelector<HTMLInputElement>('#text')!.checked,
   largerTargets: sheet.querySelector<HTMLInputElement>('#targets')!.checked,
+  noMotion: false,
+  mirrored: false,
 });
 sheet.querySelector<HTMLSelectElement>('#accent')!.value = DEFAULT_APPEARANCE.accent;
 const root = document.documentElement;

@@ -50,3 +50,14 @@ export function part<T extends Element>(host: ParentNode, selector: string): T {
   if (!element) throw new Error(`screen part missing: ${selector}`);
   return element;
 }
+
+/** «відновити з копії» (`[data-restore]`) opens the phone's file picker (`[data-restore-file]`); the chosen file goes to `restore`. */
+export function wireRestore(host: ParentNode, restore: (file: File) => void): void {
+  const file = part<HTMLInputElement>(host, '[data-restore-file]');
+  part(host, '[data-restore]').addEventListener('click', () => file.click());
+  file.addEventListener('change', () => {
+    const picked = file.files?.[0];
+    file.value = '';
+    if (picked) restore(picked);
+  });
+}

@@ -1,0 +1,293 @@
+/*
+ * «налаштування» (Figma screen/edit-profile 186:3278): parts as
+ * accordion/trigger (group) + group/section-body on the accent surface,
+ * the bar navigation `edit-profile` (💾 ✕), dialog/confirm (250:6304)
+ * and overlay/text-edit (250:6286). Also the «доступність» switches that
+ * act on the whole app: no motion, the mirrored bar.
+ */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-section);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: max(var(--pad-screen-top), env(safe-area-inset-top)) 0 calc(var(--pad-bottom-bar) + 24px + env(safe-area-inset-bottom));
+}
+.settings p,
+.settings h2,
+.settings h3 {
+  margin: 0;
+}
+.settings__intro {
+  padding: 0 var(--pad-screen-x) 16px;
+}
+.settings__parts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+
+/* one part: the trigger edge to edge, the body 16 px in, on the accent surface */
+.st-part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  background: var(--surface);
+}
+.st-part__heading .accordion {
+  padding: 0 16px 4px;
+}
+.st-part__body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--gap-group);
+  padding: 0 16px 8px;
+}
+.st-part__body[hidden] {
+  display: none;
+}
+
+/* the goal: what to count, indented, and the days */
+.st-indent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+  padding-left: 16px;
+}
+.st-days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.st-days__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 32px;
+}
+.st-days__value {
+  color: var(--muted);
+}
+
+/* a phrase: the text is a button (tap to change), × next to it */
+.st-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-items);
+}
+.st-text {
+  --weight-0: 420;
+  --weight-hover: 600;
+  flex: 1;
+  justify-content: flex-start;
+  min-height: var(--tap);
+  color: var(--ink);
+  text-align: left;
+}
+.st-end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* the accent row scrolls sideways (Figma settings/accent-color) */
+.swatches {
+  display: flex;
+  gap: var(--gap-micro);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.swatch {
+  flex: none;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--radius-pill);
+}
+.swatch__dot {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: var(--sw);
+}
+.swatch[aria-pressed='true'] .swatch__dot {
+  box-shadow: inset 0 0 0 var(--stroke-1) var(--ink);
+}
+:root[data-theme='dark'] {
+  --sw-gray: rgb(193 187 197);
+  --sw-orange: rgb(255 130 42);
+  --sw-pink: rgb(255 113 157);
+  --sw-magenta: rgb(255 78 248);
+  --sw-purple: rgb(209 124 255);
+  --sw-violet: rgb(167 149 254);
+  --sw-blue: rgb(118 167 254);
+  --sw-cyan: rgb(21 235 230);
+  --sw-mint: rgb(33 239 194);
+}
+:root[data-theme='light'] {
+  --sw-gray: rgb(102 97 106);
+  --sw-orange: rgb(181 85 4);
+  --sw-pink: rgb(194 57 106);
+  --sw-magenta: rgb(190 3 185);
+  --sw-purple: rgb(155 70 198);
+  --sw-violet: rgb(117 97 197);
+  --sw-blue: rgb(65 111 193);
+  --sw-cyan: rgb(9 125 123);
+  --sw-mint: rgb(6 128 102);
+}
+.swatch[data-swatch='gray'] { --sw: var(--sw-gray); }
+.swatch[data-swatch='orange'] { --sw: var(--sw-orange); }
+.swatch[data-swatch='pink'] { --sw: var(--sw-pink); }
+.swatch[data-swatch='magenta'] { --sw: var(--sw-magenta); }
+.swatch[data-swatch='purple'] { --sw: var(--sw-purple); }
+.swatch[data-swatch='violet'] { --sw: var(--sw-violet); }
+.swatch[data-swatch='blue'] { --sw: var(--sw-blue); }
+.swatch[data-swatch='cyan'] { --sw: var(--sw-cyan); }
+.swatch[data-swatch='mint'] { --sw: var(--sw-mint); }
+
+/* the pulse timer under its question */
+.st-timer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-items);
+}
+.st-lengths {
+  box-shadow: none;
+}
+
+/* copy, export, deleting */
+.st-backup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+}
+.st-wide {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: var(--tap);
+}
+.st-warning {
+  color: var(--warn);
+}
+
+/* the bar: 💾 left, ✕ right (navigation edit-profile) */
+.bar--edit {
+  align-items: center;
+}
+
+/* ---- dialog/confirm over overlay/scrim ---- */
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--pad-screen-x);
+}
+.dialog__scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim, rgb(0 0 0 / 60%));
+}
+.dialog__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(380px, 100%);
+  padding: 16px;
+  border-block: var(--stroke-4) solid var(--line);
+  background: var(--bg);
+}
+.dialog__panel p {
+  margin: 0;
+}
+.dialog__extra {
+  align-self: flex-start;
+}
+.dialog__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-items);
+}
+.dialog__actions .btn {
+  flex: 1 1 0;
+  min-height: var(--tap);
+  justify-content: center;
+}
+
+/* ---- overlay/text-edit: the value big in the middle, the phone's keyboard below ---- */
+.text-edit {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  /* Figma draws 85 %; on a busy page the text behind showed through next to the label */
+  background: rgb(0 0 0 / 95%);
+}
+.text-edit__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(8px, env(safe-area-inset-top)) 16px 0;
+}
+.text-edit__actions .btn--secondary {
+  color: #e9e9e9;
+}
+.text-edit__field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 24px;
+}
+.text-edit__input {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: #e9e9e9;
+  caret-color: var(--accent);
+  font: inherit;
+  font-size: calc(24px * var(--text-scale));
+  font-weight: 500;
+  font-stretch: 90%;
+  line-height: 1.3;
+  text-align: center;
+  outline: none;
+  resize: none;
+}
+
+/* ---- «доступність», for the whole app ---- */
+
+/* «віддзеркалити нижню панель»: ≡ on the right, the date on the left; «вгору» moves across */
+:root[data-mirrored] .bar {
+  flex-direction: row-reverse;
+}
+:root[data-mirrored] .bar__right {
+  align-items: flex-start;
+}
+:root[data-mirrored] .bar__goal {
+  padding-right: 40px;
+  padding-left: 0;
+}
+:root[data-mirrored] .to-top {
+  right: auto;
+  left: max(var(--pad-screen-x), (100% - var(--content-max)) / 2 + var(--pad-screen-x));
+}
+
+/* «вимкнути всі анімації»: as the phone's «reduce motion»; the timer's flash stays as a still layer */
+:root[data-no-motion] *,
+:root[data-no-motion] ::before,
+:root[data-no-motion] ::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+:root[data-no-motion] .flash {
+  opacity: 0.6;
+}

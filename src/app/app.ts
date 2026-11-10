@@ -1,5 +1,5 @@
 import type { DayKey } from '../domain/dates';
-import { parseDiary, type Diary } from '../domain/diary';
+import { readCopy, type Diary } from '../domain/diary';
 import { EXAMPLE_DIARY } from '../domain/examples';
 import { readSettings } from '../domain/settings';
 import { homeSession } from '../home/session';
@@ -37,6 +37,24 @@ const NOT_A_COPY: ToastMessage = { message: 'цей файл не схожий �
 const RESTORED: ToastMessage = { message: 'відновлено з файлу', emoticon: ':)', showIcon: true };
 const NOT_SAVED: ToastMessage = { message: 'не вдалося зберегти: схоже, на телефоні забракло місця', emoticon: '>_<' };
 
+/** Stores the diary; false and the «no space» toast when the phone refuses. */
+function saved(store: DiaryStore, next: Diary, toast: Toast): boolean {
+  try {
+    store.save(next);
+    return true;
+  } catch {
+    toast.show(NOT_SAVED);
+    return false;
+  }
+}
+
+/** «відновити з копії»: a copy goes to `keep`, anything else gets the «not a copy» toast. */
+async function restoreFrom(file: File, keep: (diary: Diary, done: ToastMessage) => void, toast: Toast): Promise<void> {
+  const restored = await readCopy(file);
+  if (restored) keep(restored, RESTORED);
+  else toast.show(NOT_A_COPY);
+}
+
 /** install-first shows Android's steps unless the phone is an iPhone. */
 const phoneOf = (platform: Platform): Phone => (platform === 'iphone' ? 'iphone' : 'android');
 
@@ -54,11 +72,23 @@ export function startApp(env: AppEnv): void {
     today: env.today,
     diary: () => diary!,
     date: () => date,
-    showHome: (day) => showDay(diary!, day),
+    // after «стерти все» there is no diary, and `show` gives the first screen instead
+    showHome(day) {
+      date = day;
+      show('home');
+    },
     replace(draw) {
       leave();
       leave = draw();
       document.documentElement.scrollTop = 0;
+    },
+    keep: (next) => persist(next),
+    restart: (next, message) => keep(next, message),
+    erase(message) {
+      store.clear();
+      diary = null;
+      show('first-launch');
+      toast.show(message);
     },
   });
 
@@ -99,15 +129,16 @@ export function startApp(env: AppEnv): void {
     document.documentElement.scrollTop = 0;
   }
 
-  function keep(next: Diary, done?: ToastMessage): void {
-    try {
-      store.save(next);
-    } catch {
-      toast.show(NOT_SAVED);
-      return;
-    }
+  /** Stores the diary and makes it the one shown; false (and a toast) when the phone refuses. */
+  function persist(next: Diary): boolean {
+    if (!saved(store, next, toast)) return false;
     diary = next;
     env.onDiary(next);
+    return true;
+  }
+
+  function keep(next: Diary, done?: ToastMessage): void {
+    if (!persist(next)) return;
     show('home');
     if (done) toast.show(done);
   }
@@ -120,11 +151,7 @@ export function startApp(env: AppEnv): void {
   const applySettings = () => toast.show(PASTE_SOON);
   const startWithoutAi = () => keep(EXAMPLE_DIARY);
   function restore(file: File): void {
-    void file.text().then((text) => {
-      const restored = parseDiary(text);
-      if (restored) keep(restored, RESTORED);
-      else toast.show(NOT_A_COPY);
-    }, () => toast.show(NOT_A_COPY));
+    void restoreFrom(file, keep, toast);
   }
 
   env.whenHidden(() => {
