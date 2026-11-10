@@ -4,7 +4,6 @@ import type { Diary } from '../domain/diary';
 import type { Edit } from '../domain/log';
 import type { Settings } from '../domain/settings';
 import { flushDrafts, wireSections, type SectionControls } from '../home/controls';
-import { barShown, toTopShown } from '../home/gestures';
 import { HERO_STYLES, heroStyle, type HeroStyle } from '../home/hero-fit';
 import { heroFor, homeSections, type SectionId, type SectionSpec } from '../home/home-view';
 import {
@@ -15,9 +14,8 @@ import { calendarMarkup, type CalendarView } from '../home/calendar';
 import { endSignal } from '../home/signal';
 import { monthOf, shiftMonth } from '../domain/stats';
 import { wireAccordions } from '../ui/accordion';
-import { iconSvg } from '../ui/icons';
 import type { ToastMessage } from '../ui/toast';
-import { barMarkup, fillBar, wireDateNav } from './bar';
+import { barMarkup, fillBar, TO_TOP, wireDateNav, wireScroll } from './bar';
 import { FOOTER, part } from './parts';
 
 /*
@@ -73,9 +71,6 @@ function sectionMarkup({ id, title, description }: SectionSpec, open: boolean, c
       </div>
     </section>`;
 }
-
-const TO_TOP = `
-  <button type="button" class="ctl icon-btn icon-btn--primary to-top" aria-label="вгору" hidden>${iconSvg('arrow-up')}</button>`;
 
 function markup(state: HomeState, actions: HomeActions): string {
   const ctx: SectionContext = { settings: state.settings, day: dayOf(state), days: state.days, session: state.session };
@@ -194,25 +189,6 @@ function wireCalendar(host: HTMLElement, state: HomeState, go: (date: DayKey) =>
     },
     closeSheet,
   };
-}
-
-/** The bar hides on scroll down; «вгору» shows once scrolled. */
-function wireScroll(host: HTMLElement, signal: AbortSignal): void {
-  const bar = part<HTMLElement>(host, '.bar');
-  const toTop = part<HTMLButtonElement>(host, '.to-top');
-  toTop.addEventListener('click', () => scrollTo({ top: 0, behavior: 'smooth' }));
-  let lastY = scrollY;
-  addEventListener('scroll', () => {
-    const y = scrollY;
-    const shown = barShown({
-      y, lastY, maxY: document.documentElement.scrollHeight - innerHeight,
-      barFocused: bar.contains(document.activeElement), barShown: !bar.classList.contains('bar--hidden'),
-    });
-    bar.classList.toggle('bar--hidden', !shown);
-    toTop.hidden = !toTopShown(y, shown);
-    if (Math.abs(y - lastY) > 6) lastY = y;
-  }, { passive: true, signal });
-  bar.addEventListener('focusin', () => bar.classList.remove('bar--hidden'), { signal });
 }
 
 const FOCUSABLE = '[data-act], input, textarea, button.accordion';

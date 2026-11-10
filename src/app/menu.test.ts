@@ -101,12 +101,8 @@ describe('the menu (Figma screen/menu 183:3210)', () => {
   });
 
   it('says what is not there yet', () => {
-    tap('історія');
-    expect(toastText()).toBe('історію ще робимо, скоро буде :)');
     tap('налаштування');
     expect(toastText()).toBe('налаштування ще робимо, скоро будуть :)');
-    tap('пошук у нотатках');
-    expect(toastText()).toBe('пошук ще робимо, скоро буде :)');
     tap('додати фідбек');
     expect(toastText()).toBe('форму для фідбеку ще робимо, скоро буде :)');
     expect(heading()).toBe('меню');

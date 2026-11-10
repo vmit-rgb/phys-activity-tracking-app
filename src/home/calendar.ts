@@ -2,7 +2,7 @@ import { formatLong, type DayKey } from '../domain/dates';
 import type { Day } from '../domain/day';
 import { formatNumber } from '../domain/numbers';
 import {
-  averages, dayMarks, lastSevenDays, monthCells, monthName, monthOf, weekStats, type DayMarks, type MonthKey, type WeekStat,
+  averages, dayMarks, lastSevenDays, monthCells, monthName, monthOf, weekStats, type Average, type DayMarks, type MonthKey, type WeekStat,
 } from '../domain/stats';
 import type { Settings } from '../domain/settings';
 import { esc } from '../ui/html';
@@ -38,12 +38,17 @@ function statCard({ label, done, target }: WeekStat): string {
     </li>`;
 }
 
+/** «біль · зранку 2,7», one row each; also the history's «середнє за період». */
+export function averagesList(rows: readonly Average[]): string {
+  return `<ul class="avgs" role="list">${rows.map((row) => `
+      <li class="avg"><span class="avg__label t-3rd-semibold">${esc(row.label)}</span> <b class="t-1st-bold">${formatNumber(row.value)}</b></li>`).join('')}</ul>`;
+}
+
 function summary(view: CalendarView): string {
   const stats = weekStats(view.date, view.today, view.dayAt, view.settings);
   const rows = averages(lastSevenDays(view.date, view.today), view.dayAt, view.settings);
   const week = stats.length ? `<h3 class="t-h5">цей тиждень</h3><ul class="stats" role="list">${stats.map(statCard).join('')}</ul>` : '';
-  const average = rows.length ? `<h3 class="t-h5">середнє за 7 днів</h3><ul class="avgs" role="list">${rows.map((row) => `
-      <li class="avg"><span class="avg__label t-3rd-semibold">${esc(row.label)}</span> <b class="t-1st-bold">${formatNumber(row.value)}</b></li>`).join('')}</ul>` : '';
+  const average = rows.length ? `<h3 class="t-h5">середнє за 7 днів</h3>${averagesList(rows)}` : '';
   return week + average;
 }
 
