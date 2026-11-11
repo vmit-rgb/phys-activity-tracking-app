@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import main from '../main.ts?raw';
+import calendar from './calendar.css?raw';
 import components from './components.css?raw';
+import history from './history.css?raw';
+import settings from './settings.css?raw';
 import home from './home.css?raw';
 import sections from './sections.css?raw';
 import tokens from './tokens.css?raw';
 import typography from './typography.css?raw';
 
 // The cascade can't be seen in jsdom, so these read the stylesheets as text (comments stripped).
-const FILES: Record<string, string> = { '../main.ts': main, './components.css': components, './home.css': home, './sections.css': sections, './tokens.css': tokens, './typography.css': typography };
+const FILES: Record<string, string> = { '../main.ts': main, './calendar.css': calendar, './components.css': components, './history.css': history, './settings.css': settings, './home.css': home, './sections.css': sections, './tokens.css': tokens, './typography.css': typography };
 const read = (file: string) => FILES[file]!.replace(/\/\*[\s\S]*?\*\//g, '');
 const block = (css: string, selector: string) => {
   const at = css.indexOf(`${selector} {`);
@@ -68,6 +71,17 @@ describe('stylesheets', () => {
     expect(block(css, '.checkbox')).toMatch(/--fg-hover: var\(--accent\);[^}]*--weight-hover: 720;/);
     expect(css).not.toContain('.checkbox__input:focus-visible + .checkbox__box');
     expect(block(css, '.checkbox:has(.checkbox__input:focus-visible)')).toMatch(/--fg-0: var\(--accent\);[^}]*--weight-0: 900;/);
+  });
+
+  it('make every control at least --tap wide and high (Н9, ACCESSIBILITY.md rule 1)', () => {
+    expect(block(read('./components.css'), '.ctl')).toMatch(/min-width: var\(--tap\);[^}]*min-height: var\(--tap\);/);
+    // no smaller fixed sizes on a tap target
+    expect(block(read('./settings.css'), '.st-text--link')).not.toMatch(/min-height/);
+    expect(read('./history.css')).not.toMatch(/min-(height|width): (32|44)px/);
+    expect(block(read('./history.css'), '.search__input')).toContain('min-height: var(--tap);');
+    // the day of the month is a target too
+    expect(block(read('./calendar.css'), '.cal-day')).toContain('min-height: var(--tap);');
+    expect(read('./calendar.css')).toMatch(/grid-template-columns: repeat\(7, minmax\(var\(--tap\), 1fr\)\);/);
   });
 
   it('draw × for removing in the accent colour, not the error colour (Н4)', () => {

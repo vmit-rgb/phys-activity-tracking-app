@@ -20,6 +20,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--gap-items);
+  min-width: var(--tap);
   min-height: var(--tap);
   margin: 0;
   border: 0;

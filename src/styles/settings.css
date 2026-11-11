@@ -190,7 +190,6 @@
 }
 .st-text--link {
   flex: none;
-  min-height: 32px;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -283,6 +282,7 @@
 .st-actions {
   position: absolute;
   width: 1px;
+  min-width: 0;
   height: 1px;
   overflow: hidden;
   clip-path: inset(50%);

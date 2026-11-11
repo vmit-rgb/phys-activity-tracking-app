@@ -154,7 +154,7 @@
   flex: none;
   align-items: center;
   gap: var(--gap-items);
-  min-height: 44px;
+  min-height: var(--tap);
   padding-left: var(--gap-items);
   border: var(--stroke-2) solid var(--accent);
   background: var(--sunk);
@@ -168,7 +168,8 @@
 .search__input {
   flex: 1;
   min-width: 0;
-  padding: 8px 0;
+  min-height: var(--tap);
+  padding: 0;
   border: 0;
   background: none;
   color: var(--ink);
@@ -192,8 +193,8 @@
 }
 .search__clear {
   flex: none;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--tap);
+  min-height: var(--tap);
 }
 .search__clear[hidden] {
   display: none;
