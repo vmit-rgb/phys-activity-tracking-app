@@ -69,6 +69,26 @@ describe('answers already given', () => {
   it('names a field without a unit by the question alone', () => {
     expect(box.querySelector('.number__input')!.getAttribute('aria-label')).toBe('пульс');
   });
+
+  it('draws two numbers as one field [ ] / [ ] with one unit (input/base number-pair, VISUAL-AUDIT п. 17)', () => {
+    const pairs = box.querySelectorAll<HTMLElement>('.number--pair');
+    expect(pairs).toHaveLength(1);
+    const pair = pairs[0]!;
+    expect(pair.querySelectorAll('.number__input')).toHaveLength(2);
+    expect(texts(pair, '.number__slash')).toEqual(['/']);
+    expect(texts(pair, '.number__unit')).toEqual(['мм']);
+    expect([...pair.querySelectorAll('.number__input')].map((input) => input.getAttribute('aria-label'))).toEqual(['тиск, перше число, мм', 'тиск, друге число, мм']);
+  });
+
+  it('names both units when the two numbers differ', () => {
+    const mixed = [{ id: 'q', name: 'вага', kind: 'numbers', units: ['кг', 'г'], ask: ['morning'] }];
+    expect(texts(render(checkInBody(ctx({ trackers: mixed }, day), 'morning')), '.number__unit')).toEqual(['кг / г']);
+  });
+
+  it('tells the line how many letters are typed, so it starts after them (input/base filled)', () => {
+    const lengths = [...box.querySelectorAll<HTMLInputElement>('.number__input')].map((input) => input.style.getPropertyValue('--len'));
+    expect(lengths).toEqual(['2', '3', '0']);
+  });
 });
 
 describe('exercises, links and how-to', () => {

@@ -42,6 +42,34 @@ describe('stylesheets', () => {
     expect(home).toContain('bottom: calc(var(--bar-h) + 16px + env(safe-area-inset-bottom));');
   });
 
+  it('show each field’s own Figma focus after a tap as after a key (Olesia, 2026-11-11, Н3)', () => {
+    const css = read('./components.css');
+    expect(css).not.toContain('data-modality');
+    // number: accent brackets, line 2 px and unit at 900, no frame
+    expect(block(css, '.number:focus-within')).toMatch(/--part: var\(--accent\);[^}]*--part-weight: 900;[^}]*--num-line: var\(--accent\);[^}]*--num-line-w: var\(--stroke-focus\);[^}]*--unit: var\(--accent\);[^}]*--unit-weight: 900;/);
+    expect(block(css, '.number:focus-within')).not.toContain('box-shadow');
+    // text: the ring
+    expect(block(css, '.field:focus')).toContain('box-shadow: var(--focus-ring);');
+  });
+
+  it('draw the number field as input/base: line after the digits, unit inside, hover and error as Figma (п. 5)', () => {
+    const css = read('./components.css');
+    expect(block(css, '.number__input')).toMatch(/background-position: calc\(var\(--len, 0\) \* 1ch\) 100%;/);
+    expect(block(css, '.number__input')).toMatch(/width: calc\(max\(var\(--chars\), var\(--len, 0\) \+ 1\) \* 1ch\);/);
+    expect(block(css, '.number')).not.toMatch(/\bwidth: 180px/);
+    expect(css).toMatch(/\.number:hover \{[^}]*--part: var\(--accent\);[^}]*--part-weight: 700;[^}]*--unit-weight: 700;/);
+    expect(css).not.toMatch(/\.number:hover \{[^}]*--num-line: var\(--accent\)/);
+    // an error keeps the unit muted
+    expect(block(css, ".number:has([aria-invalid='true'])")).not.toContain('--unit');
+  });
+
+  it('give the checkbox Figma’s hover and focus: accent 720 / 900, no frame (п. 5а)', () => {
+    const css = read('./components.css');
+    expect(block(css, '.checkbox')).toMatch(/--fg-hover: var\(--accent\);[^}]*--weight-hover: 720;/);
+    expect(css).not.toContain('.checkbox__input:focus-visible + .checkbox__box');
+    expect(block(css, '.checkbox:has(.checkbox__input:focus-visible)')).toMatch(/--fg-0: var\(--accent\);[^}]*--weight-0: 900;/);
+  });
+
   it('draw × for removing in the accent colour, not the error colour (Н4)', () => {
     const css = read('./sections.css');
     expect(block(css, '.rm')).toBeUndefined();
