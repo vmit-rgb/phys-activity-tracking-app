@@ -1,13 +1,16 @@
 /*
  * Text styles from Figma (typography/specimens, 89:1163): size × the
  * «збільшити розмір тексту» scale, weight and width (wdth) as drawn.
+ * Loaded after every other stylesheet (main.ts), so a t-* class wins over
+ * a component's own font rule. On a control (.ctl) the weight goes through
+ * --weight-0, so hover and pressed can still change it.
  */
-.t-h1 { font-size: calc(50px * var(--text-scale)); font-weight: 660; font-stretch: 62.5%; line-height: 1.2; letter-spacing: 1px; }
-.t-h2 { font-size: calc(42px * var(--text-scale)); font-weight: 620; font-stretch: 63%; line-height: 1.2; }
-.t-h3 { font-size: calc(35px * var(--text-scale)); font-weight: 580; font-stretch: 70%; line-height: 1.2; }
-.t-h4 { font-size: calc(29px * var(--text-scale)); font-weight: 700; font-stretch: 80%; line-height: 1.3; }
-.t-h5 { font-size: calc(24px * var(--text-scale)); font-weight: 500; font-stretch: 90%; line-height: 1.3; }
-.t-h6 { font-size: calc(20px * var(--text-scale)); font-weight: 460; font-stretch: 90%; line-height: 1.3; }
+.t-h1 { font-size: calc(50px * var(--text-scale)); font-weight: 660; --weight-0: 660; font-stretch: 62.5%; line-height: 1.2; letter-spacing: 1px; }
+.t-h2 { font-size: calc(42px * var(--text-scale)); font-weight: 620; --weight-0: 620; font-stretch: 63%; line-height: 1.2; }
+.t-h3 { font-size: calc(35px * var(--text-scale)); font-weight: 580; --weight-0: 580; font-stretch: 70%; line-height: 1.2; }
+.t-h4 { font-size: calc(29px * var(--text-scale)); font-weight: 700; --weight-0: 700; font-stretch: 80%; line-height: 1.3; }
+.t-h5 { font-size: calc(24px * var(--text-scale)); font-weight: 500; --weight-0: 500; font-stretch: 90%; line-height: 1.3; }
+.t-h6 { font-size: calc(20px * var(--text-scale)); font-weight: 460; --weight-0: 460; font-stretch: 90%; line-height: 1.3; }
 
 .t-1st-regular,
 .t-1st-semibold,
@@ -19,8 +22,12 @@
 .t-3rd-semibold,
 .t-3rd-bold { font-size: calc(12px * var(--text-scale)); font-stretch: 100%; line-height: 1.3; }
 
-.t-1st-regular, .t-2nd-regular, .t-3rd-regular { font-weight: 420; }
-.t-1st-semibold, .t-2nd-semibold, .t-3rd-semibold { font-weight: 600; }
-.t-1st-bold, .t-2nd-bold, .t-3rd-bold { font-weight: 720; }
+.t-1st-regular, .t-2nd-regular, .t-3rd-regular { font-weight: 420; --weight-0: 420; }
+.t-1st-semibold, .t-2nd-semibold, .t-3rd-semibold { font-weight: 600; --weight-0: 600; }
+.t-1st-bold, .t-2nd-bold, .t-3rd-bold { font-weight: 720; --weight-0: 720; }
 
-.t-h1, .t-h2, .t-h3, .t-h4, .t-h5, .t-h6 { margin: 0; }
+/* a control's weight follows its state (--weight is set from --weight-0 by .ctl) */
+.ctl:is(.t-h1, .t-h2, .t-h3, .t-h4, .t-h5, .t-h6, .t-1st-regular, .t-1st-semibold, .t-1st-bold, .t-2nd-regular, .t-2nd-semibold, .t-2nd-bold, .t-3rd-regular, .t-3rd-semibold, .t-3rd-bold) { font-weight: var(--weight); }
+
+/* weaker than any class, so a component's own margin still applies */
+:where(.t-h1, .t-h2, .t-h3, .t-h4, .t-h5, .t-h6) { margin: 0; }

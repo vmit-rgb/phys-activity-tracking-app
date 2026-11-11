@@ -12,7 +12,7 @@ import { readSettings, type ActivityKind, type Settings } from '../domain/settin
 import { showSettings, type PartId, type SettingsAct } from '../screens/settings';
 import { SectionsEditor } from './sections-page';
 import { confirmDialog, editText } from '../ui/dialog';
-import type { Toast, ToastMessage } from '../ui/toast';
+import { undo, type Toast, type ToastMessage } from '../ui/toast';
 
 /*
  * The settings page's working copy (Figma screen/edit-profile; «бета 0.81»
@@ -62,8 +62,8 @@ export interface SettingsPage {
 }
 
 /* COPY.md, Toasts and Settings; Нитка's drafts marked. */
-const SAVED: ToastMessage = { message: 'збережено', emoticon: ':)' };
-const COPIED: ToastMessage = { message: 'скопійовано — встав у чат зі своїм ШІ' };
+const SAVED: ToastMessage = { message: 'збережено', emoticon: ':)', showIcon: true };
+const COPIED: ToastMessage = { message: 'скопійовано — встав у чат зі своїм ШІ', showIcon: true };
 const NOT_COPIED: ToastMessage = { message: 'не вдалося скопіювати', emoticon: '>_<' }; // draft
 const FILE_SAVED: ToastMessage = { message: 'збережено', showIcon: true };
 const FILE_NOT_SAVED: ToastMessage = { message: 'не вдалося зберегти файл', emoticon: '>_<' };
@@ -167,7 +167,7 @@ class Draft implements SettingsPage {
   save(): void {
     const before = this.saved;
     if (!this.keepProfile(cleanForSave(this.draft))) return;
-    this.say({ ...SAVED, action: { label: 'скасувати', run: () => void this.keepProfile(before) } });
+    this.say({ ...SAVED, action: undo(() => this.keepProfile(before)) });
   }
 
   mayLeave = async (): Promise<boolean> => {
@@ -277,7 +277,7 @@ class Draft implements SettingsPage {
     if (answer !== 'confirm') return;
     const before = this.home.diary();
     if (!this.home.keep({ ...before, days: {} })) return;
-    this.say({ message: 'записи видалено', action: { label: 'скасувати', run: () => void this.home.keep({ ...this.home.diary(), days: before.days }) } });
+    this.say({ message: 'записи видалено', showIcon: true, action: undo(() => this.home.keep({ ...this.home.diary(), days: before.days })) });
   }
 
   async deleteAll(): Promise<void> {
@@ -292,7 +292,7 @@ class Draft implements SettingsPage {
     if (answer !== 'confirm') return;
     const before = this.home.diary();
     this.forget();
-    this.home.erase({ message: 'усе видалено', action: { label: 'скасувати', run: () => this.home.restart(before) } });
+    this.home.erase({ message: 'усе видалено', showIcon: true, action: undo(() => this.home.restart(before)) });
   }
 
   /* ---- the goal and the pulse timer ---- */

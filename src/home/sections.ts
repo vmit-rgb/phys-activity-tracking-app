@@ -78,17 +78,31 @@ function howAccordion(ctx: SectionContext, memo: string, body: string, title = '
 
 /* ---- wellbeing questions (Figma tracker/field, tracker/yes-no, input/labeled) ---- */
 
-interface Field { readonly key: string; readonly label: string; readonly value: string; readonly unit: string; readonly data: string; readonly wide?: boolean }
+interface Field { readonly key: string; readonly label: string; readonly value: string; readonly unit: string; readonly data: string }
+
+/* Figma input/base number: [ 0000____ ] одиниці; --len tells the line where the digits end (ui/number-fill). */
+function numberInput(field: Field): string {
+  return `<span class="number__bracket" aria-hidden="true">[</span>
+      <input class="number__input" inputmode="decimal" autocomplete="off" enterkeyhint="done" aria-label="${esc(field.label)}"
+        value="${esc(field.value)}" style="--len: ${field.value.length}" ${keyed(field.key)} ${field.data} />
+      <span class="number__bracket" aria-hidden="true">]</span>`;
+}
 
 function numberField(field: Field): string {
   return `
-    <label class="number${field.wide ? ' number--wide' : ''}">
-      <span class="number__bracket" aria-hidden="true">[</span>
-      <input class="number__input" inputmode="decimal" autocomplete="off" enterkeyhint="done" aria-label="${esc(field.label)}"
-        value="${esc(field.value)}" ${keyed(field.key)} ${field.data} />
-      <span class="number__bracket" aria-hidden="true">]</span>
-      <span class="number__unit">${esc(field.unit)}</span>
-    </label>`;
+    <label class="number">${numberInput(field)}<span class="number__unit">${esc(field.unit)}</span></label>`;
+}
+
+/** input/base number-pair: [ ] / [ ] and one unit (both, when they differ). */
+function numberPair(first: Field, second: Field): string {
+  const unit = first.unit === second.unit ? first.unit : `${first.unit} / ${second.unit}`;
+  return `
+    <div class="number number--pair">
+      <label class="number__half">${numberInput(first)}</label>
+      <span class="number__slash" aria-hidden="true">/</span>
+      <label class="number__half">${numberInput(second)}</label>
+      <span class="number__unit">${esc(unit)}</span>
+    </div>`;
 }
 
 function trackerData(moment: Moment, tracker: Tracker): string {
@@ -164,13 +178,14 @@ function numbersTracker(ctx: SectionContext, moment: Moment, tracker: Tracker & 
   const values = Array.isArray(saved) ? saved : [typeof saved === 'number' ? saved : null];
   const units = tracker.kind === 'numbers' ? tracker.units : [tracker.unit];
   const name = tracker.name || 'без назви';
-  const fields = units.map((unit, i) => numberField({
+  const parts = units.map((unit, i): Field => ({
     key: dayKey(ctx, `num|${moment}|${tracker.id}|${i}`),
     label: numberLabel(name, units.length, i, unit),
     value: formatNumber(values[i] ?? null),
     unit,
     data: `data-input="number" ${trackerData(moment, tracker)} data-i="${i}" data-n="${units.length}"`,
   }));
+  const fields = parts.length === 2 ? [numberPair(parts[0]!, parts[1]!)] : parts.map(numberField);
   return `
     <div class="tracker"${extra.attrs}>
       <div class="labeled"><span class="t-1st-semibold labeled__name">${esc(name)}</span><div class="labeled__fields">${fields.join('')}${extra.after}</div></div>${hint(tracker)}
@@ -468,7 +483,6 @@ function lapRow(ctx: SectionContext, kind: MovementKind, i: number, n: number): 
       value: formatNumber(lap?.[key] ?? null),
       unit,
       data: `data-input="lap" data-kind="${esc(kind.id)}" data-i="${i}" data-f="${key}"`,
-      wide: kind.fields.length === 1,
     });
   });
   const remove = i > 0 ? removeButton(ctx, `lap|${kind.id}|${i}`, `видалити коло ${i + 1}`) : '<span class="rm-space" aria-hidden="true"></span>';

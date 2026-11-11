@@ -1,12 +1,12 @@
 import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/base.css';
-import './styles/typography.css';
 import './styles/components.css';
+import './styles/typography.css'; // last, as in main.ts
 import { ACCENTS, parseAccent } from './domain/accents';
 import { wireAccordions } from './ui/accordion';
 import { DEFAULT_APPEARANCE, startAppearance, type Appearance, type Theme } from './ui/appearance';
-import { trackInputModality } from './ui/modality';
+import { trackNumberFill } from './ui/number-fill';
 import { ICON_NAMES, iconSvg } from './ui/icons';
 import { mountToast, undo } from './ui/toast';
 
@@ -49,10 +49,10 @@ const checkboxes = `
   <label class="ctl checkbox"><input class="checkbox__input" type="checkbox" checked /><span class="checkbox__box" aria-hidden="true"></span><span class="checkbox__label">присідання</span></label>
   <label class="ctl checkbox" aria-disabled="true"><input class="checkbox__input" type="checkbox" disabled /><span class="checkbox__box" aria-hidden="true"></span><span class="checkbox__label">недоступно</span></label>`;
 
-const number = (id: string, attrs = '') => `
+const number = (id: string, attrs = '', len = 0) => `
   <label class="number" for="${id}">
     <span class="number__bracket" aria-hidden="true">[</span>
-    <input class="number__input" id="${id}" inputmode="decimal" autocomplete="off" ${attrs} />
+    <input class="number__input" id="${id}" inputmode="decimal" autocomplete="off" style="--len: ${len}" ${attrs} />
     <span class="number__bracket" aria-hidden="true">]</span>
     <span class="number__unit">хв</span>
   </label>`;
@@ -61,7 +61,7 @@ const fields = `
   <textarea class="field" rows="3" aria-label="нотатка" placeholder="як минув день? пиши як є"></textarea>
   <textarea class="field" rows="3" aria-label="нотатка з помилкою" aria-invalid="true">не вдалося зберегти</textarea>
   <textarea class="field" rows="3" aria-label="недоступна нотатка" disabled>...</textarea>
-  ${number('n1')}${number('n2', 'value="25"')}${number('n3', 'value="abc" aria-invalid="true"')}${number('n4', 'disabled')}`;
+  ${number('n1')}${number('n2', 'value="25"', 2)}${number('n3', 'value="abc" aria-invalid="true"', 3)}${number('n4', 'disabled')}`;
 
 const accordions = `
   <button type="button" class="ctl accordion accordion--section" aria-expanded="false" aria-controls="p1"><span class="accordion__title">тренування</span></button>
@@ -134,5 +134,5 @@ const read = (): Appearance => ({
 sheet.querySelector<HTMLSelectElement>('#accent')!.value = DEFAULT_APPEARANCE.accent;
 const root = document.documentElement;
 const apply = startAppearance(root, matchMedia('(prefers-color-scheme: light)'), DEFAULT_APPEARANCE);
-trackInputModality(root);
+trackNumberFill(root);
 sheet.addEventListener('change', () => apply(read()));

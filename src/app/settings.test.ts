@@ -43,7 +43,12 @@ function start(diary: Diary = WITH_A_DAY, reduced = false): void {
 const stored = (): Diary => parseDiary(localStorage.getItem(DIARY_KEY) ?? '')!;
 const storedProfile = (): JsonObject => stored().profile;
 const heading = () => host.querySelector('h1')?.textContent;
-const toastText = () => document.querySelector<HTMLElement>('.toast:not([hidden]) .toast__message')?.textContent;
+const toastSays = () => {
+  const shown = document.querySelector<HTMLElement>('.toast:not([hidden])');
+  if (!shown) return undefined;
+  const check = shown.querySelector('.toast__check:not([hidden])') ? '✓ ' : '';
+  return check + shown.querySelector('.toast__message')!.textContent;
+};
 const named = (b: HTMLElement) => (b.getAttribute('aria-label') ?? (b.querySelector('.accordion__title') ?? b).textContent!.trim());
 const button = (name: string, root: ParentNode = document) =>
   [...root.querySelectorAll<HTMLButtonElement>('button')].find((b) => named(b) === name)!;
@@ -123,8 +128,9 @@ describe('settings: saving and leaving', () => {
     expect((storedProfile().goal as JsonObject).enabled).toBe(true);
     await tap('зберегти налаштування');
     expect((storedProfile().goal as JsonObject).enabled).toBe(false);
-    expect(toastText()).toBe('збережено :)');
+    expect(toastSays()).toBe('✓ збережено :)');
     await tap('скасувати');
+    expect(toastSays()).toBe('✓ скасовано');
     expect((storedProfile().goal as JsonObject).enabled).toBe(true);
     expect(checkbox('рахувати тижневу ціль').checked).toBe(true);
   });
@@ -346,19 +352,19 @@ describe('settings: «налаштування через ШІ»', () => {
     await Promise.resolve();
     expect(JSON.parse(device.copied[0]!)).toEqual(EXAMPLE_DIARY.profile);
     expect(device.copied[0]!.startsWith('{\n "format": "phys-activity-profile",')).toBe(true);
-    expect(toastText()).toBe('скопійовано — встав у чат зі своїм ШІ');
+    expect(toastSays()).toBe('✓ скопійовано — встав у чат зі своїм ШІ');
   });
 
   it('says the prompt and the paste come soon; «застосувати» waits for text', async () => {
     await tap('скопіювати промпт');
-    expect(toastText()).toBe('промпт ще пишемо, скоро буде :)');
+    expect(toastSays()).toBe('промпт ще пишемо, скоро буде :)');
     expect(button('застосувати').disabled).toBe(true);
     const field = host.querySelector<HTMLTextAreaElement>('textarea')!;
     field.value = '{ }';
     field.dispatchEvent(new Event('input', { bubbles: true }));
     expect(button('застосувати').disabled).toBe(false);
     await tap('застосувати');
-    expect(toastText()).toBe('вставку налаштувань від ШІ ще робимо, скоро буде :)');
+    expect(toastSays()).toBe('вставку налаштувань від ШІ ще робимо, скоро буде :)');
   });
 
   it('restores from a copy after asking, and goes home', async () => {
@@ -372,7 +378,7 @@ describe('settings: «налаштування через ШІ»', () => {
     await tap('відновити');
     expect(heading()).toBe('головна');
     expect(Object.keys(stored().days)).toEqual(['2026-11-01']);
-    expect(toastText()).toBe('відновлено з файлу :)');
+    expect(toastSays()).toBe('✓ відновлено з файлу :)');
   });
 
   it('says so when the file is not a copy', async () => {
@@ -381,7 +387,7 @@ describe('settings: «налаштування через ШІ»', () => {
     input.dispatchEvent(new Event('change'));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(dialog()).toBeNull();
-    expect(toastText()).toBe('цей файл не схожий на копію з трекера >_<');
+    expect(toastSays()).toBe('цей файл не схожий на копію з трекера >_<');
   });
 });
 
@@ -429,7 +435,7 @@ describe('settings: copy and export', () => {
     expect(device.saved[0]!.name).toBe('trekr-zapysy-2026-11-09.pdf');
     expect(device.saved[0]!.text.startsWith('%PDF-1.4\n')).toBe(true);
     expect(device.saved[0]!.text).toContain('/Count 1');
-    expect(toastText()).toBe('збережено');
+    expect(toastSays()).toBe('✓ збережено');
     await tap('вправи');
     await tap('зберегти PDF');
     await vi.waitFor(() => expect(device.saved).toHaveLength(2));
@@ -439,20 +445,20 @@ describe('settings: copy and export', () => {
   it('says so when the PDF cannot be made', async () => {
     device.fontsWork = false;
     await tap('зберегти PDF');
-    await vi.waitFor(() => expect(toastText()).toBe('не вдалося зібрати PDF >_<'));
+    await vi.waitFor(() => expect(toastSays()).toBe('не вдалося зібрати PDF >_<'));
     expect(device.saved).toEqual([]);
   });
 
   it('says so when the phone refuses the PDF', async () => {
     device.saveWorks = false;
     await tap('зберегти PDF');
-    await vi.waitFor(() => expect(toastText()).toBe('не вдалося зберегти файл >_<'));
+    await vi.waitFor(() => expect(toastSays()).toBe('не вдалося зберегти файл >_<'));
   });
 
   it('says so when the phone refuses the file', async () => {
     device.saveWorks = false;
     await tap('зберегти JSON');
-    expect(toastText()).toBe('не вдалося зберегти файл >_<');
+    expect(toastSays()).toBe('не вдалося зберегти файл >_<');
   });
 });
 
@@ -472,8 +478,9 @@ describe('settings: deleting', () => {
     await tap('видалити');
     expect(stored().days).toEqual({});
     expect(storedProfile()).toEqual(EXAMPLE_DIARY.profile);
-    expect(toastText()).toBe('записи видалено');
+    expect(toastSays()).toBe('✓ записи видалено');
     await tap('скасувати');
+    expect(toastSays()).toBe('✓ скасовано');
     expect(Object.keys(stored().days)).toEqual(['2026-11-08']);
   });
 
@@ -489,8 +496,9 @@ describe('settings: deleting', () => {
     await tap('стерти все');
     expect(localStorage.getItem(DIARY_KEY)).toBeNull();
     expect(host.textContent).toContain('почати без ШІ');
-    expect(toastText()).toBe('усе видалено');
+    expect(toastSays()).toBe('✓ усе видалено');
     await tap('скасувати');
+    expect(toastSays()).toBe('✓ скасовано');
     expect(heading()).toBe('головна');
     expect(Object.keys(stored().days)).toEqual(['2026-11-08']);
   });
@@ -555,7 +563,7 @@ describe('settings: less common paths', () => {
     await tick('рахувати тижневу ціль');
     failWrites();
     await tap('зберегти налаштування');
-    expect(toastText()).toBe(NOT_SAVED);
+    expect(toastSays()).toBe(NOT_SAVED);
     expect(checkbox('рахувати тижневу ціль').checked).toBe(false);
   });
 
@@ -578,7 +586,7 @@ describe('settings: less common paths', () => {
     await tap('видалити');
     vi.restoreAllMocks();
     expect(Object.keys(stored().days)).toHaveLength(1);
-    expect(toastText()).toBe(NOT_SAVED);
+    expect(toastSays()).toBe(NOT_SAVED);
   });
 
   it('says so when copying fails', async () => {
@@ -586,7 +594,7 @@ describe('settings: less common paths', () => {
     await openPart('налаштування через ШІ');
     device.copyWorks = false;
     await tap('скопіювати мої налаштування для ШІ');
-    expect(toastText()).toBe('не вдалося скопіювати >_<');
+    expect(toastSays()).toBe('не вдалося скопіювати >_<');
   });
 
   it('changes nothing when restoring or erasing is cancelled', async () => {
@@ -605,7 +613,7 @@ describe('settings: less common paths', () => {
     await openSettings();
     await openPart('налаштування через ШІ');
     await pick({ text: () => Promise.reject(new Error('unreadable')) });
-    expect(toastText()).toBe('цей файл не схожий на копію з трекера >_<');
+    expect(toastSays()).toBe('цей файл не схожий на копію з трекера >_<');
   });
 
   it('has no timer when no question takes a number', async () => {

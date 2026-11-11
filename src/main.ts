@@ -1,7 +1,6 @@
 import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/base.css';
-import './styles/typography.css';
 import './styles/components.css';
 import './styles/screens.css';
 import './styles/home.css';
@@ -10,12 +9,14 @@ import './styles/calendar.css';
 import './styles/menu.css';
 import './styles/history.css';
 import './styles/settings.css';
+// last: a text style class (t-*) wins over any earlier font rule of the same weight (VISUAL-AUDIT Н2)
+import './styles/typography.css';
 import { startApp } from './app/app';
 import { detectPlatform, isInstalled } from './app/start';
 import { dayKeyOf } from './domain/dates';
 import { backupMemory, browserChoice, diaryStore, sectionMemory, storageFor, themeMemory } from './storage/store';
 import { DEFAULT_APPEARANCE, lookOf, startAppearance, type Appearance } from './ui/appearance';
-import { trackInputModality } from './ui/modality';
+import { trackNumberFill } from './ui/number-fill';
 import { watchForUpdates } from './pwa/updates';
 import { mountToast } from './ui/toast';
 import { copyWith, saveFile, screenHistory, shareWith } from './ui/device';
@@ -29,7 +30,7 @@ const themes = themeMemory(storage);
 let look: Omit<Appearance, 'theme'> = DEFAULT_APPEARANCE;
 const appearance = (): Appearance => ({ ...look, theme: themes.chosen() ?? 'system' });
 const applyAppearance = startAppearance(root, matchMedia('(prefers-color-scheme: light)'), appearance());
-trackInputModality(root);
+trackNumberFill(root);
 
 const toast = mountToast(document.body);
 startApp({

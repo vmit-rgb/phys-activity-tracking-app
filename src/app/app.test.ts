@@ -39,6 +39,12 @@ function start(over: Partial<AppEnv> = {}, storage: KeyValue = localStorage): vo
 
 const heading = () => host.querySelector('h1')!.textContent;
 const toastText = () => document.querySelector<HTMLElement>('.toast:not([hidden]) .toast__message')?.textContent;
+const toastSays = () => {
+  const shown = document.querySelector<HTMLElement>('.toast:not([hidden])');
+  if (!shown) return undefined;
+  const check = shown.querySelector('.toast__check:not([hidden])') ? '✓ ' : '';
+  return check + shown.querySelector('.toast__message')!.textContent;
+};
 const click = (selector: string) => host.querySelector<HTMLElement>(selector)!.click();
 const stored = () => diaryStore(localStorage, () => new Date()).load();
 
@@ -88,12 +94,12 @@ describe('first launch in the installed app', () => {
 
   it('says the prompt and the paste are coming soon, and keeps nothing', () => {
     click('[data-copy-prompt]');
-    expect(toastText()).toBe('промпт ще пишемо, скоро буде :)');
+    expect(toastSays()).toBe('промпт ще пишемо, скоро буде :)');
     const field = host.querySelector<HTMLTextAreaElement>('[data-paste-field]')!;
     field.value = '{}';
     field.dispatchEvent(new Event('input'));
     click('[data-apply]');
-    expect(toastText()).toBe('вставку налаштувань від ШІ ще робимо, скоро буде :)');
+    expect(toastSays()).toBe('вставку налаштувань від ШІ ще робимо, скоро буде :)');
     expect(stored()).toBeNull();
   });
 
@@ -107,7 +113,7 @@ describe('first launch in the installed app', () => {
 
   it('restores a copy from «бета 0.81» with its days', async () => {
     await restoreFile(COPY_081);
-    expect(toastText()).toBe('відновлено з файлу :)');
+    expect(toastSays()).toBe('✓ відновлено з файлу :)');
     expect(Object.keys(stored()!.days)).toEqual(['2026-11-07']);
     expect(heading()).toBe('головна');
     expect(onDiary).toHaveBeenCalledTimes(1);
@@ -115,7 +121,7 @@ describe('first launch in the installed app', () => {
 
   it('refuses a file that is not a copy and stays on the first screen', async () => {
     await restoreFile('{"format":"something-else"}');
-    expect(toastText()).toBe('цей файл не схожий на копію з трекера >_<');
+    expect(toastSays()).toBe('цей файл не схожий на копію з трекера >_<');
     expect(stored()).toBeNull();
     expect(heading()).toBe('привіт! почнімо з налаштувань :)');
   });
@@ -124,7 +130,7 @@ describe('first launch in the installed app', () => {
     const unreadable = new File([''], 'trekr-kopiya.json');
     unreadable.text = () => Promise.reject(new Error('NotReadableError'));
     await restoreFile('', unreadable);
-    expect(toastText()).toBe('цей файл не схожий на копію з трекера >_<');
+    expect(toastSays()).toBe('цей файл не схожий на копію з трекера >_<');
     expect(stored()).toBeNull();
   });
 
@@ -199,7 +205,7 @@ describe('when the phone refuses to store', () => {
   it('says so and stays on the first screen', () => {
     start({}, { getItem: () => null, setItem: () => { throw new Error('QuotaExceededError'); }, removeItem: () => {} });
     click('[data-start-without-ai]');
-    expect(toastText()).toBe('не вдалося зберегти: схоже, на телефоні забракло місця >_<');
+    expect(toastSays()).toBe('не вдалося зберегти: схоже, на телефоні забракло місця >_<');
     expect(heading()).toBe('привіт! почнімо з налаштувань :)');
     expect(onDiary).not.toHaveBeenCalled();
   });

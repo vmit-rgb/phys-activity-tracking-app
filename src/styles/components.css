@@ -121,8 +121,9 @@
   pointer-events: none;
 }
 @media (hover: hover) {
-  .btn--tertiary:not(:disabled, [aria-disabled='true']):hover::after,
-  .btn--destructive:not(:disabled, [aria-disabled='true']):hover::after {
+  /* pressed: no pill, as Figma's pressed state (VISUAL-AUDIT Н12) */
+  .btn--tertiary:not(:disabled, [aria-disabled='true'], :active):hover::after,
+  .btn--destructive:not(:disabled, [aria-disabled='true'], :active):hover::after {
     box-shadow: inset 0 0 0 3px var(--accent);
   }
 }
@@ -181,17 +182,23 @@
   --fg-disabled: var(--disabled-on);
 }
 
-/* ---- checkbox (73:3051): [ ] and [x], the row around it is the tap target ---- */
+/* ---- checkbox (73:3051): [ ] and [x], the row around it is the tap target.
+   hover: accent 720 · keyboard focus: accent 900, no frame (as Figma) ---- */
 .checkbox {
   --fg-0: var(--muted);
-  --fg-hover: var(--muted);
+  --fg-hover: var(--accent);
   --ring-w-hover: 0px;
   --weight-0: 420;
+  --weight-hover: 720;
   --fg-alpha-pressed: 100%;
   justify-content: flex-start;
   font-size: calc(17px * var(--text-scale));
   font-stretch: 94%;
   line-height: 1.3;
+}
+.checkbox:has(.checkbox__input:focus-visible) {
+  --fg-0: var(--accent);
+  --weight-0: 900;
 }
 .checkbox__input {
   position: absolute;
@@ -205,17 +212,13 @@
 .checkbox__input:checked + .checkbox__box::before {
   content: '[x]';
 }
-/* focus/ring 7 px around the brackets */
-.checkbox__input:focus-visible + .checkbox__box {
-  box-shadow: 0 0 0 3px var(--bg), 0 0 0 7px var(--accent);
-}
 .checkbox__label {
   color: var(--ink);
   font-weight: 420;
 }
 
 /* ---- input/base, text (73:3457): three rows, grows by dragging.
-   hover: accent frame · editing («selected»): muted frame · keyboard: focus/ring ---- */
+   hover: accent frame · focus, after a tap too: focus/ring (Olesia, 2026-11-11) ---- */
 .field {
   display: block;
   width: 100%;
@@ -247,9 +250,6 @@
 }
 .field:focus {
   outline: none;
-  box-shadow: inset 0 0 0 var(--stroke-1) var(--muted);
-}
-[data-modality='keyboard'] .field:focus {
   box-shadow: var(--focus-ring);
 }
 .field[aria-invalid='true'] {
@@ -262,45 +262,66 @@
   color: var(--disabled);
 }
 
-/* ---- input/base, number: [ 0000 ] одиниці. The input fills the brackets,
-   so the caret lands where the finger taps (ACCESSIBILITY.md, text fields). ---- */
+/* ---- input/base, number: [ 0000____ ] одиниці, and number-pair [ ] / [ ] одиниці.
+   As wide as its content; the line sits under the empty part, after the digits
+   (--len from ui/number-fill). The input fills the brackets, so the caret lands
+   where the finger taps (ACCESSIBILITY.md, text fields). ---- */
 .number {
+  --chars: 8;
   --part: var(--muted);
   --part-weight: 500;
+  --unit: var(--muted);
+  --unit-weight: 420;
   --num-line: var(--muted);
   --num-line-w: var(--stroke-3);
   display: inline-flex;
   align-items: center;
   gap: var(--gap-micro);
-  width: 180px;
-  min-width: 150px;
-  max-width: 400px;
+  max-width: 100%;
   min-height: var(--tap);
   background: var(--surface);
   cursor: text;
 }
-.number__bracket {
+.number--pair {
+  --chars: 3;
+}
+.number__half {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-micro);
+  min-height: var(--tap);
+  cursor: text;
+}
+.number__bracket,
+.number__slash {
   color: var(--part);
   font-size: calc(20px * var(--text-scale));
   font-weight: var(--part-weight);
   font-stretch: 90%;
   line-height: 1.3;
 }
+.number__slash {
+  color: var(--disabled);
+  font-weight: 460;
+}
 .number__input {
-  flex: 1;
-  min-width: 2ch;
-  align-self: stretch;
+  width: calc(max(var(--chars), var(--len, 0) + 1) * 1ch);
+  min-width: 0;
+  max-width: 100%;
+  height: 1.3em;
   margin: 0;
   padding: 0;
   border: 0;
-  border-bottom: var(--num-line-w) solid var(--num-line);
   border-radius: 0;
-  background: none;
+  background: linear-gradient(var(--num-line), var(--num-line)) no-repeat;
+  background-position: calc(var(--len, 0) * 1ch) 100%;
+  background-size: 100% var(--num-line-w);
   color: var(--ink);
   font: inherit;
   font-size: calc(17px * var(--text-scale));
   font-weight: 420;
   font-stretch: 94%;
+  line-height: 1.3;
   -webkit-user-select: text;
   user-select: text;
 }
@@ -308,9 +329,9 @@
   outline: none;
 }
 .number__unit {
-  color: var(--part);
+  color: var(--unit);
   font-size: calc(12px * var(--text-scale));
-  font-weight: 420;
+  font-weight: var(--unit-weight);
   font-stretch: 100%;
   white-space: nowrap;
 }
@@ -318,18 +339,26 @@
   .number:hover {
     --part: var(--accent);
     --part-weight: 700;
-    --num-line: var(--accent);
+    --unit-weight: 700;
   }
 }
+/* focus, after a tap too (Olesia, 2026-11-11): accent brackets, line 2 px and unit, 900, no frame */
 .number:focus-within {
-  --part: var(--muted);
-  --part-weight: 700;
-  --num-line: var(--muted);
+  --part: var(--accent);
+  --part-weight: 900;
+  --num-line: var(--accent);
   --num-line-w: var(--stroke-focus);
+  --unit: var(--accent);
+  --unit-weight: 900;
 }
-[data-modality='keyboard'] .number:focus-within {
-  box-shadow: var(--focus-ring);
+/* in a pair only the half being typed in lights up; the unit lights up for either */
+.number--pair:focus-within .number__half:not(:focus-within) {
+  --part: var(--muted);
+  --part-weight: 500;
+  --num-line: var(--muted);
+  --num-line-w: var(--stroke-3);
 }
+/* an error colours brackets, digits and line; the unit stays muted */
 .number:has([aria-invalid='true']) {
   --part: var(--err);
   --num-line: var(--err);
@@ -339,6 +368,7 @@
 }
 .number:has(:disabled) {
   --part: var(--disabled);
+  --unit: var(--disabled);
   --num-line: var(--disabled);
   cursor: default;
 }
@@ -474,7 +504,7 @@
 }
 /* Sits on top of the bottom bar while it is shown (bar: 8 + 75 + max(8, safe area)). */
 body:has(.bar:not(.bar--hidden)) .toast {
-  bottom: calc(83px + max(8px, env(safe-area-inset-bottom)));
+  bottom: calc(var(--bar-h) + max(8px, env(safe-area-inset-bottom)));
 }
 .toast__inner {
   display: flex;

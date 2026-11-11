@@ -327,8 +327,7 @@
   gap: var(--gap-items);
 }
 .set-row__fields .number {
-  width: 132px;
-  min-width: 112px;
+  --chars: 3;
 }
 .set-row__x {
   color: var(--muted);
@@ -338,22 +337,12 @@
   flex-wrap: wrap;
 }
 .lap .number {
-  width: 132px;
-  min-width: 112px;
-}
-.lap .number--wide {
-  width: 100%;
+  --chars: 4;
 }
 .rm-space {
   width: var(--tap);
 }
-.rm {
-  --fg-0: var(--err);
-  --fg-hover: var(--err);
-}
-.rm--armed {
-  --fg-0: var(--err);
-}
+/* × and its ✓ use the accent, as Figma binds them (VISUAL-AUDIT Н4); only text «видалити» is red */
 
 /* ---- stopwatch (157:2903): ▶ 00.00.00 · ■ running · ✓ saved · ↻ «знову» ---- */
 .sw {
