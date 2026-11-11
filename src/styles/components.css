@@ -374,6 +374,14 @@
   cursor: default;
 }
 
+/* a unit after a number in a sum, small and muted (ui/units) */
+.unit {
+  color: var(--muted);
+  font-size: calc(12px * var(--text-scale));
+  font-weight: 420;
+  font-stretch: 100%;
+}
+
 /* ---- divider (172:6055) ---- */
 .divider {
   height: 0;

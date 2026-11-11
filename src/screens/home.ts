@@ -65,6 +65,7 @@ function sectionMarkup({ id, title, description }: SectionSpec, open: boolean, c
         <button type="button" class="ctl accordion accordion--section" id="sec-${id}-title" data-section="${id}"
           aria-expanded="${open}" aria-controls="sec-${id}"><span class="accordion__title">${title}</span></button>
       </h2>
+      <p class="home-section__hint t-3rd-regular" aria-hidden="true">${description}</p>
       <div class="home-section__body" id="sec-${id}"${open ? '' : ' hidden'}>
         <p class="t-1st-regular">${description}</p>
         ${BODIES[id](ctx)}
@@ -105,6 +106,11 @@ function fillHero(host: HTMLElement, state: HomeState): () => void {
   const hero = heroFor(state.date, state.today, state.settings);
   text.textContent = hero.text;
   if (hero.kind === 'past') {
+    // the date in bold, as example/home-past-day; built from text nodes, never HTML
+    const [before, after] = hero.text.split(hero.bold) as [string, string];
+    const date = document.createElement('b');
+    date.textContent = hero.bold;
+    text.replaceChildren(before, date, after);
     text.className = 'hero__text hero__text--past t-h6';
     return () => {};
   }

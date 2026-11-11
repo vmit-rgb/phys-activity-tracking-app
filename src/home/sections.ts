@@ -3,13 +3,14 @@ import type { Day, MovementLog } from '../domain/day';
 import { formatLaps, formatSets, lastLaps, lastSets } from '../domain/history';
 import { exerciseName as nameOf, MOMENT_TITLES, sessionName } from '../domain/journal';
 import { lapRows, roundRows, setRows } from '../domain/log';
-import { formatNumber } from '../domain/numbers';
+import { countLabel, formatNumber } from '../domain/numbers';
 import { levelDone } from '../domain/progress';
 import type {
   DaytimeGroup, Exercise, Level, Moment, MovementField, MovementKind, Settings, Source, Tracker, WarmupItem, WorkoutEntry, WorkoutItem,
 } from '../domain/settings';
 import { esc } from '../ui/html';
 import { iconSvg } from '../ui/icons';
+import { smallUnits } from '../ui/units';
 import { beatsLine } from '../domain/stats';
 import { formatCountdown, formatStopwatch, stopwatchState, type HomeSession, type PulseRun } from './session';
 
@@ -90,7 +91,7 @@ function numberInput(field: Field): string {
 
 function numberField(field: Field): string {
   return `
-    <label class="number">${numberInput(field)}<span class="number__unit">${esc(field.unit)}</span></label>`;
+    <label class="number">${numberInput(field)}${field.unit ? `<span class="number__unit">${esc(field.unit)}</span>` : ''}</label>`;
 }
 
 /** input/base number-pair: [ ] / [ ] and one unit (both, when they differ). */
@@ -165,30 +166,36 @@ function timedTracker(ctx: SectionContext, moment: Moment, tracker: Tracker & { 
   const run = ctx.session.pulse;
   if (run?.key === pulseKey(ctx, moment, tracker)) return pulseRun(ctx, moment, tracker, run);
   const data = trackerData(moment, tracker);
-  return numbersTracker(ctx, moment, tracker, {
-    attrs: ` data-pulse ${data}`,
-    after: `<button type="button" class="ctl btn btn--tertiary" data-act="pulse-start" ${data}>таймер · ${seconds} с</button>`,
-  });
+  const [field] = trackerFields(ctx, moment, tracker);
+  // tracker/pulse-timer idle: «пульс» … «уд/хв» on one line, the field and «таймер» under it
+  return `
+    <div class="tracker" data-pulse ${data}>
+      <div class="pulse__head"><span class="t-1st-bold">${esc(tracker.name || 'без назви')}</span><span class="t-3rd-regular muted">${esc(tracker.unit)}</span></div>
+      <div class="pulse__row">${numberField({ ...field!, unit: '' })}
+        <button type="button" class="ctl btn btn--tertiary" data-act="pulse-start" ${data}>таймер · ${seconds} с</button></div>${hint(tracker)}
+    </div>`;
 }
 
-interface Extra { readonly attrs: string; readonly after: string }
-
-function numbersTracker(ctx: SectionContext, moment: Moment, tracker: Tracker & { kind: 'number' | 'numbers' }, extra: Extra = { attrs: '', after: '' }): string {
+function trackerFields(ctx: SectionContext, moment: Moment, tracker: Tracker & { kind: 'number' | 'numbers' }): Field[] {
   const saved = ctx.day.t[moment]?.[tracker.id];
   const values = Array.isArray(saved) ? saved : [typeof saved === 'number' ? saved : null];
   const units = tracker.kind === 'numbers' ? tracker.units : [tracker.unit];
   const name = tracker.name || 'без назви';
-  const parts = units.map((unit, i): Field => ({
+  return units.map((unit, i): Field => ({
     key: dayKey(ctx, `num|${moment}|${tracker.id}|${i}`),
     label: numberLabel(name, units.length, i, unit),
     value: formatNumber(values[i] ?? null),
     unit,
     data: `data-input="number" ${trackerData(moment, tracker)} data-i="${i}" data-n="${units.length}"`,
   }));
+}
+
+function numbersTracker(ctx: SectionContext, moment: Moment, tracker: Tracker & { kind: 'number' | 'numbers' }): string {
+  const parts = trackerFields(ctx, moment, tracker);
   const fields = parts.length === 2 ? [numberPair(parts[0]!, parts[1]!)] : parts.map(numberField);
   return `
-    <div class="tracker"${extra.attrs}>
-      <div class="labeled"><span class="t-1st-semibold labeled__name">${esc(name)}</span><div class="labeled__fields">${fields.join('')}${extra.after}</div></div>${hint(tracker)}
+    <div class="tracker">
+      <div class="labeled"><span class="t-1st-semibold labeled__name">${esc(tracker.name || 'без назви')}</span><div class="labeled__fields">${fields.join('')}</div></div>${hint(tracker)}
     </div>`;
 }
 
@@ -197,7 +204,7 @@ function numbersTracker(ctx: SectionContext, moment: Moment, tracker: Tracker & 
 export const pulseKey = (ctx: SectionContext, moment: Moment, tracker: Tracker) => dayKey(ctx, `pulse|${moment}|${tracker.id}`);
 
 function pulseRun(ctx: SectionContext, moment: Moment, tracker: Tracker & { kind: 'number' }, run: PulseRun): string {
-  const name = `<span class="t-1st-semibold">${esc(tracker.name || 'без назви')}</span>`;
+  const name = `<span class="t-1st-bold">${esc(tracker.name || 'без назви')}</span>`;
   const data = trackerData(moment, tracker);
   return `<div class="tracker pulse" data-pulse ${data}>${PULSE_PHASES[run.phase]({ ctx, moment, tracker, run, name, data })}</div>`;
 }
@@ -226,7 +233,7 @@ const PULSE_PHASES: Record<PulseRun['phase'], (part: PulsePart) => string> = {
   done: ({ ctx, moment, tracker, run, name, data }) => {
     const saved = ctx.day.t[moment]?.[tracker.id];
     return `
-    <div class="pulse__head">${name}<span class="pulse__result t-1st-bold">${formatNumber(typeof saved === 'number' ? saved : null)} ${esc(tracker.unit)}</span></div>
+    <div class="pulse__head">${name}<span class="pulse__result t-2nd-bold">${formatNumber(typeof saved === 'number' ? saved : null)} ${esc(tracker.unit)}</span></div>
     <p class="t-3rd-regular muted">${beatsLine(run.beats ?? 0, run.seconds)}</p>
     <button type="button" class="ctl btn btn--tertiary" data-act="pulse-start" ${data}>порахувати ще раз</button>`;
   },
@@ -274,10 +281,14 @@ function checkInSub(ctx: SectionContext, moment: Moment): string {
 
 /* ---- remove × → ✓, stopwatch ---- */
 
+const NO_REMOVE = '<span class="rm-space" aria-hidden="true"></span>';
+
+/** `idle`: the only timer without a time has nothing to reset, so its × waits hidden (Olesia, 2026-11-11). */
 function removeButton(ctx: SectionContext, target: string, label: string, idle = false): string {
+  if (idle) return NO_REMOVE;
   const armed = ctx.session.armed === dayKey(ctx, target);
   return `<button type="button" class="ctl icon-btn icon-btn--secondary rm${armed ? ' rm--armed' : ''}" data-act="rm" data-rm="${esc(target)}"
-    aria-label="${armed ? `точно ${label}` : label}"${idle ? ' disabled' : ''}>${iconSvg(armed ? 'check' : 'close')}</button>`;
+    aria-label="${armed ? `точно ${label}` : label}">${iconSvg(armed ? 'check' : 'close')}</button>`;
 }
 
 /** The only timer that never ran has nothing to reset (0.81). */
@@ -309,7 +320,7 @@ function stopwatch(ctx: SectionContext, target: string, saved: number | null, n:
 /* ---- morning warm-up (Figma accordion/subsection checklist, checklist/exercise) ---- */
 
 function repsLabel(item: WarmupItem): string {
-  return item.seconds === null ? item.reps : `${formatNumber(item.seconds)} с`;
+  return item.seconds === null ? countLabel(item.reps) : `${formatNumber(item.seconds)} с`;
 }
 
 function timerRounds(ctx: SectionContext, item: WarmupItem): string {
@@ -318,22 +329,41 @@ function timerRounds(ctx: SectionContext, item: WarmupItem): string {
   const rows = Array.from({ length: n }, (_, i) => {
     const target = `round|${item.exercise}|${i}`;
     const label = n > 1 ? `видалити таймер ${i + 1}` : 'скинути таймер до нуля';
-    return `<div class="set-row"><span class="set-row__n t-2nd-regular">${i + 1}</span>${stopwatch(ctx, target, times[i] ?? null, i + 1)}${removeButton(ctx, target, label, idleTimer(ctx, target, n, times[i] ?? null))}</div>`;
+    // one round has no number (stopwatch 157:2903)
+    return `<div class="set-row"><span class="set-row__n t-2nd-regular">${n > 1 ? i + 1 : ''}</span>${stopwatch(ctx, target, times[i] ?? null, i + 1)}${removeButton(ctx, target, label, idleTimer(ctx, target, n, times[i] ?? null))}</div>`;
   });
-  return `<div class="sets">${rows.join('')}</div>
-    <button type="button" class="ctl btn btn--tertiary" data-act="more-rounds" data-ex="${esc(item.exercise)}">ще раз</button>`;
+  // checklist/exercise: the rows on the right, «ще раз» under them
+  return `<div class="sw-block"><div class="sets">${rows.join('')}</div>
+    <button type="button" class="ctl btn btn--tertiary" data-act="more-rounds" data-ex="${esc(item.exercise)}">ще раз</button></div>`;
+}
+
+/** + on the right of the row opens the stopwatch (open from the start), how-to and link (checklist/exercise expanded). */
+function exerciseDetails(ctx: SectionContext, item: WarmupItem, name: string): { readonly more: string; readonly details: string } {
+  const body = `${item.seconds === null ? '' : timerRounds(ctx, item)}${howTo(exerciseById(ctx, item.exercise))}`;
+  if (!body) return { more: '', details: '' };
+  const memo = `how|${item.exercise}`;
+  const open = remembered(ctx, memo, item.seconds !== null);
+  const id = nextId();
+  return {
+    more: `<button type="button" class="ctl icon-btn icon-btn--secondary accordion ex-check__more" aria-label="як робити: ${esc(name)}"
+      aria-expanded="${open}" aria-controls="${id}" data-memo="${esc(dayKey(ctx, memo))}"></button>`,
+    details: `<div class="ex-check__details" id="${id}"${open ? '' : ' hidden'}>${body}</div>`,
+  };
 }
 
 function warmupItem(ctx: SectionContext, item: WarmupItem): string {
   const name = exerciseName(ctx, item.exercise);
   const ticked = ctx.day.mw.ticks.includes(item.exercise);
+  const { more, details } = exerciseDetails(ctx, item, name);
   return `
     <li class="ex-check">
-      <label class="ctl checkbox ex-check__row"><input class="checkbox__input" type="checkbox" data-input="tick" data-ex="${esc(item.exercise)}"
-        ${keyed(dayKey(ctx, `tick|${item.exercise}`))}${ticked ? ' checked' : ''} /><span class="checkbox__box" aria-hidden="true"></span>
-        <span class="checkbox__label t-1st-semibold">${esc(name)}</span><span class="ex-check__reps t-3rd-semibold">${esc(repsLabel(item))}</span></label>
-      ${item.seconds === null ? '' : timerRounds(ctx, item)}
-      ${howAccordion(ctx, `how|${item.exercise}`, howTo(exerciseById(ctx, item.exercise)))}
+      <div class="ex-check__head">
+        <label class="ctl checkbox ex-check__row"><input class="checkbox__input" type="checkbox" data-input="tick" data-ex="${esc(item.exercise)}"
+          ${keyed(dayKey(ctx, `tick|${item.exercise}`))}${ticked ? ' checked' : ''} /><span class="checkbox__box" aria-hidden="true"></span>
+          <span class="ex-check__name"><span class="checkbox__label t-1st-semibold">${esc(name)}</span> <span class="ex-check__reps t-3rd-semibold">${esc(repsLabel(item))}</span></span></label>
+        ${more}
+      </div>
+      ${details}
     </li>`;
 }
 
@@ -343,7 +373,8 @@ function levelMarkup(ctx: SectionContext, level: Level, index: number): string {
   const meta = [level.duration, done ? 'готово' : `${ticked} з ${level.items.length}`].filter(Boolean).map(esc).join(' · ');
   const markAll = `<button type="button" class="ctl btn btn--tertiary" data-act="level" data-level="${esc(level.id)}" data-done="${!done}">${
     done ? 'зняти позначки з рівня' : 'позначити весь рівень'}</button>`;
-  const body = `<ul class="ex-list">${level.items.map((item) => warmupItem(ctx, item)).join('')}</ul>${markAll}`;
+  // accordion/subsection: the button under the «5 хв · 1 з 2» line, on the left
+  const body = `${markAll}<ul class="ex-list">${level.items.map((item) => warmupItem(ctx, item)).join('')}</ul>`;
   const open = remembered(ctx, `level|${level.id}`, !done);
   return `<div class="sub${done ? ' sub--done' : ''}">${accordion('group', esc(level.name || `рівень ${index + 1}`), dayKey(ctx, `level|${level.id}`), open, body, meta)}${
     done && !open ? markAll : ''}</div>`;
@@ -412,7 +443,7 @@ function setRow(ctx: SectionContext, item: WorkoutItem, i: number, n: number): s
 
 /** × from the second set; a timer has × always, and the only timer's × resets it. */
 function setRemove(ctx: SectionContext, target: string, timed: boolean, i: number, n: number, seconds: number | null): string {
-  if (!timed && i === 0) return '<span class="rm-space" aria-hidden="true"></span>';
+  if (!timed && i === 0) return NO_REMOVE;
   if (!timed || n > 1) return removeButton(ctx, target, `видалити підхід ${i + 1}`);
   return removeButton(ctx, target, 'скинути таймер до нуля', idleTimer(ctx, target, n, seconds));
 }
@@ -425,7 +456,7 @@ function workoutExercise(ctx: SectionContext, item: WorkoutItem): string {
   return `
     <li class="wo-ex">
       <div class="wo-ex__head"><span class="t-1st-semibold">${esc(exerciseName(ctx, item.exercise))}</span><span class="t-3rd-semibold muted">${esc(prescription(item))}</span></div>
-      <div class="wo-ex__sub">${cue ? `<p class="t-2nd-regular">${esc(cue)}</p>` : ''}${last ? `<p class="t-2nd-regular"><b>минулого разу:</b> ${esc(formatSets(last))}</p>` : ''}</div>
+      <div class="wo-ex__sub">${cue ? `<p class="t-2nd-regular">${esc(cue)}</p>` : ''}${last ? `<p class="t-2nd-regular"><b>минулого разу:</b> ${smallUnits(esc(formatSets(last)))}</p>` : ''}</div>
       <div class="sets">${Array.from({ length: n }, (_, i) => setRow(ctx, item, i, n)).join('')}</div>
       <div class="wo-ex__actions">${howAccordion(ctx, `how|${item.exercise}`, howTo(exercise)) || '<span></span>'}
         <button type="button" class="ctl btn btn--tertiary" data-act="more-sets" data-ex="${esc(item.exercise)}">додати підхід</button></div>
@@ -444,7 +475,8 @@ function pickedWorkout(ctx: SectionContext, sessionId: string): string {
   if (!session) return muted('цього тренування вже немає в налаштуваннях. записи збережено.');
   const how = session.how ? `<div class="how-acc">${accordion('paragraph', 'як проходить тренування', dayKey(ctx, 'how|session'),
     remembered(ctx, 'how|session', false), `<p class="how t-2nd-regular">${esc(session.how)}</p>`)}</div>` : '';
-  return `${how}<h3 class="t-h6 wo-title">${esc(sessionName(session.name))}</h3>${muted(ctx.settings.workout.hint)}
+  const rules = ctx.settings.workout.hint ? `<p class="wo-rules t-1st-regular">${esc(ctx.settings.workout.hint)}</p>` : '';
+  return `${how}<h3 class="t-h5 wo-title">${esc(sessionName(session.name))}</h3>${rules}
     <ol class="ex-list">${session.items.map((entry) => workoutEntry(ctx, entry)).join('')}</ol>`;
 }
 
@@ -485,7 +517,7 @@ function lapRow(ctx: SectionContext, kind: MovementKind, i: number, n: number): 
       data: `data-input="lap" data-kind="${esc(kind.id)}" data-i="${i}" data-f="${key}"`,
     });
   });
-  const remove = i > 0 ? removeButton(ctx, `lap|${kind.id}|${i}`, `видалити коло ${i + 1}`) : '<span class="rm-space" aria-hidden="true"></span>';
+  const remove = i > 0 ? removeButton(ctx, `lap|${kind.id}|${i}`, `видалити коло ${i + 1}`) : NO_REMOVE;
   return `<div class="set-row"><span class="set-row__n t-2nd-regular">${n > 1 ? i + 1 : ''}</span><div class="set-row__main lap">${fields.join('')}</div>${remove}</div>`;
 }
 

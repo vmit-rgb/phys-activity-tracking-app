@@ -21,3 +21,13 @@ export function plural(n: number, [one, few, many]: readonly [string, string, st
   if (last === 1) return one;
   return last >= 2 && last <= 4 ? few : many;
 }
+
+const TIMES = ['раз', 'рази', 'разів'] as const;
+
+/** A warm-up count as Figma's «n разів»: «10 разів», «8–12 разів»; other text as it was written. */
+export function countLabel(reps: string): string {
+  const range = /^\d+(?:\s*[–-]\s*(\d+))?$/.exec(reps.trim());
+  if (!range) return reps;
+  const last = Number(range[1] ?? reps.trim());
+  return `${reps.trim()} ${plural(last, TIMES)}`;
+}

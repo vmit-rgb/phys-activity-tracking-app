@@ -84,6 +84,20 @@ describe('stylesheets', () => {
     expect(read('./calendar.css')).toMatch(/grid-template-columns: repeat\(7, minmax\(var\(--tap\), 1fr\)\);/);
   });
 
+  it('draw home as Figma: stat cards, sheet, saved slider, past-day date, left buttons (п. 14, 19–22, Н6)', () => {
+    const calendar = read('./calendar.css');
+    // 4 cards go 2 × 2 (Olesia, 2026-11-11); number and «з N днів» on one line
+    expect(calendar).toMatch(/\.stats:has\(> :nth-child\(4\)\) \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+    expect(block(calendar, '.stat__value')).toContain('align-items: baseline;');
+    expect(block(calendar, '.cal-sheet__panel')).not.toContain('border-top');
+    const sections = read('./sections.css');
+    expect(sections).toMatch(/\.slider:disabled::-webkit-slider-thumb \{[^}]*width: 8px;[^}]*background: var\(--disabled\);/);
+    expect(sections).toMatch(/\[data-act='drop'\][^{]*\{[^}]*align-self: flex-start;/);
+    expect(sections).toMatch(/\.acc-body--group > \.btn--tertiary \{[^}]*align-self: flex-start;/);
+    expect(read('./home.css')).toMatch(/\.hero__text--past b \{[^}]*font-weight: 700;/);
+    expect(block(read('./components.css'), '.unit')).toMatch(/color: var\(--muted\);[^}]*font-size: calc\(12px \* var\(--text-scale\)\);/);
+  });
+
   it('draw × for removing in the accent colour, not the error colour (Н4)', () => {
     const css = read('./sections.css');
     expect(block(css, '.rm')).toBeUndefined();

@@ -36,7 +36,7 @@ export function homeSections(settings: Settings): SectionSpec[] {
 
 export type Hero =
   | { readonly kind: 'phrase'; readonly text: string }
-  | { readonly kind: 'past'; readonly text: string };
+  | { readonly kind: 'past'; readonly text: string; readonly bold: string };
 
 const DAY_MS = 86_400_000;
 
@@ -49,7 +49,10 @@ export function phraseFor(date: DayKey, phrases: readonly string[]): string {
 
 /** A past day says whose record it is instead of the phrase (Figma `example/home-past-day`). */
 export function heroFor(date: DayKey, today: DayKey, settings: Settings): Hero {
-  if (date < today) return { kind: 'past', text: `це запис за ${formatShort(date)}.\nзміни збережуться в цей день.` };
+  if (date < today) {
+    const shown = formatShort(date);
+    return { kind: 'past', text: `це запис за ${shown}.\nзміни збережуться в цей день.`, bold: shown };
+  }
   return { kind: 'phrase', text: phraseFor(date, settings.encouragement) };
 }
 
