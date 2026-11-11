@@ -398,6 +398,12 @@ describe('тренування', () => {
     await tap('створити групу');
     expect(host.textContent).toContain('вибери 2–3 вправи для групи');
     expect(button('зібрати групу').disabled).toBe(true);
+    // example/settings-create-group: ✓ before ×; an exercise shows its name, «n разів» and how-to (п. 30)
+    expect([...host.querySelectorAll('.st-picking .icon-btn')].map((b) => b.getAttribute('aria-label'))).toEqual(['зібрати групу', 'скасувати групу']);
+    const pick = button('вправа 6');
+    expect(pick.querySelector('.st-pick__name')!.textContent).toBe('вправа 6');
+    expect(pick.querySelector('.st-pick__rx')).not.toBeNull();
+    expect(pick.querySelector('.st-pick__how')).not.toBeNull();
     await tap('вправа 6');
     await tap('вправа 8');
     expect(button('вправа 8').getAttribute('aria-pressed')).toBe('true');
@@ -416,6 +422,15 @@ describe('тренування', () => {
     await save();
     expect((at(S) as JsonObject[]).map((x) => (x.set ? (x.set as JsonObject[]).map((y) => y.exercise) : x.exercise)))
       .toEqual(['exercise-6', ['exercise-7', 'exercise-8']]);
+  });
+
+  it('shows «n разів» for an exercise without a count, and keeps a chosen one tappable to unpick', async () => {
+    await tap('створити групу');
+    expect(button('вправа 8').querySelector('.st-pick__rx')!.textContent).toBe('n разів');
+    for (const name of ['вправа 6', 'вправа 7', 'вправа 8']) await tap(name);
+    expect(buttons('вправа 6').every((b) => !b.disabled)).toBe(true);
+    await tap('вправа 8');
+    expect(button('вправа 8').disabled).toBe(false);
   });
 
   it('leaves «створити групу» without changes', async () => {

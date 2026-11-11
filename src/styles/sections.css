@@ -136,6 +136,13 @@
   align-items: center;
   gap: var(--gap-items);
 }
+/* 0–7 under the track, between − and + (settings/weekly-goal, п. 28) */
+.st-days__ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 calc(var(--tap) + var(--gap-items));
+  color: var(--muted);
+}
 
 /* slider (126:2027): 12 px pill track, ring thumb; never set = faint thumb; saved = locked */
 .slider {

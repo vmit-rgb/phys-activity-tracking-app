@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DayKey } from '../domain/dates';
 import { emptyDay, readDay, type Day } from '../domain/day';
 import { readSettings } from '../domain/settings';
-import { checkInBody, daytimeBody, morningBody, movementBody, workoutBody, type SectionContext } from './sections';
+import { checkInBody, daytimeBody, morningBody, movementBody, noteBody, workoutBody, type SectionContext } from './sections';
 import { homeSession } from './session';
 
 /* What a section shows for unusual settings. Invented data only. */
@@ -24,7 +24,7 @@ describe('names and hints that are missing', () => {
   it('a question without a name says «без назви», every kind', () => {
     const trackers = ['scale', 'yesno', 'number', 'note'].map((kind) => ({ id: kind, kind, ask: ['morning'] }));
     const box = render(checkInBody(ctx({ trackers }), 'morning'));
-    expect(texts(box, '.tracker__name, .checkbox__label, .labeled__name, .tracker__note > span')).toEqual(['без назви', 'без назви', 'без назви', 'без назви']);
+    expect(texts(box, '.tracker__name, .checkbox__label, .labeled__name, .tracker__note > .t-1st-semibold')).toEqual(['без назви', 'без назви', 'без назви', 'без назви']);
     expect(box.querySelectorAll('.muted')).toHaveLength(0);
   });
 
@@ -222,5 +222,13 @@ describe('numbers and × on rows (killing mutants)', () => {
   it('names a pulse question without a name', () => {
     const trackers = [{ id: 'p', kind: 'number', units: ['уд/хв'], ask: ['morning'], timer: { enabled: true, seconds: 30 } }];
     expect(texts(render(checkInBody(ctx({ trackers }), 'morning')), '.pulse__head .t-1st-bold')).toEqual(['без назви']);
+  });
+});
+
+describe('text fields with the resize grip (п. 18)', () => {
+  it('gives the note and a note question the grip', () => {
+    const trackers = [{ id: 'n', name: 'нотатка', kind: 'note', ask: ['morning'] }];
+    expect(render(checkInBody(ctx({ trackers }), 'morning')).querySelector('.field-wrap > textarea.field + .field-grip')).not.toBeNull();
+    expect(render(noteBody(ctx({}))).querySelector('.field-wrap > textarea.note-field + .field-grip')).not.toBeNull();
   });
 });

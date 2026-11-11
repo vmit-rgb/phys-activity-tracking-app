@@ -23,6 +23,7 @@
   min-width: var(--tap);
   min-height: var(--tap);
   margin: 0;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: var(--fill);
@@ -51,7 +52,7 @@
   --fill: var(--fill-pressed, var(--fill-0, transparent));
   --fg: var(--fg-pressed, var(--muted));
   --ring: var(--ring-pressed, var(--ring-0, transparent));
-  --ring-w: var(--ring-w-0, 0px);
+  --ring-w: var(--ring-w-pressed, var(--ring-w-0, 0px));
   --weight: var(--weight-0, 600);
 }
 /* pressed text is 70 % in Figma; phones without color-mix() show it at 100 % */
@@ -161,7 +162,7 @@
   height: 16px;
 }
 
-/* ---- tab (179:3176): underlined in every state, as drawn ---- */
+/* ---- tab (179:3176): underlined while it can be chosen ---- */
 .tab {
   --fg-alpha-pressed: 100%;
   --weight-hover: 600;
@@ -173,7 +174,9 @@
   text-decoration: underline;
   text-underline-position: from-font;
 }
+/* the chosen one has no underline; the one you can switch to has (Olesia, VISUAL-AUDIT В 35) */
 .tab:is([aria-selected='true'], [aria-pressed='true']) {
+  text-decoration: none;
   --fill-0: var(--accent);
   --fg-0: var(--on-accent);
   --fill-hover: var(--accent-mid);
@@ -261,6 +264,25 @@
 .field:disabled {
   box-shadow: inset 0 0 0 var(--stroke-2) var(--disabled);
   color: var(--disabled);
+}
+/* icon/resize-grip (73:3444) in the corner, in the muted colour; the field's own handle does the work */
+.field-wrap {
+  position: relative;
+  display: block;
+}
+.field-grip {
+  position: absolute;
+  right: 4px;
+  bottom: 6px;
+  width: 12px;
+  height: 12px;
+  background: var(--muted);
+  pointer-events: none;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 9L9 2M6 9L9 6' stroke='black' stroke-width='0.4' stroke-linecap='square'/%3E%3C/svg%3E") center / 12px 12px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 9L9 2M6 9L9 6' stroke='black' stroke-width='0.4' stroke-linecap='square'/%3E%3C/svg%3E") center / 12px 12px no-repeat;
+}
+.field::-webkit-resizer {
+  background: transparent;
 }
 
 /* ---- input/base, number: [ 0000____ ] одиниці, and number-pair [ ] / [ ] одиниці.
@@ -441,6 +463,7 @@
   --ring-0: var(--accent);
   --ring-w-0: var(--stroke-5);
   --ring-pressed: var(--muted);
+  --ring-w-pressed: var(--stroke-3);
   --ring-disabled: var(--disabled);
   --weight-0: 500;
   --weight-hover: 700;

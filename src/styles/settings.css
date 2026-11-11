@@ -242,6 +242,10 @@
   user-select: none;
   -webkit-touch-callout: none;
 }
+/* .st-item comes later and would take the box's sides away (п. 27) */
+.st-item.st-box {
+  padding: 4px 8px 8px;
+}
 .st-box__body .st-list > .st-item:not(.st-box) {
   padding-left: 16px;
 }
@@ -269,9 +273,9 @@
 }
 
 /* a group of exercises (Figma settings/exercise-set): one block, label «група вправ» */
+/* a plate without a frame, «група вправ» on top, the exercises open inside (settings/exercise-group, п. 29) */
 .st-group {
   padding: 8px;
-  border: var(--stroke-1) solid var(--line);
   background: var(--sunk);
 }
 .st-group--off {
@@ -315,17 +319,27 @@
 .st-picking {
   align-items: center;
 }
+/* name … n разів, how-to under it; the chosen one gets an accent frame only (п. 30) */
 .st-pick {
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--gap-micro) var(--gap-items);
+  width: 100%;
   min-height: var(--tap);
-  padding: 0 12px;
-  border: var(--stroke-1) solid var(--line);
+  padding: 8px 4px;
+  border: var(--stroke-1) solid transparent;
   color: var(--ink);
   text-align: left;
 }
+.st-pick__rx {
+  color: var(--muted);
+}
+.st-pick__how {
+  grid-column: 1 / -1;
+}
 .st-pick[aria-pressed='true'] {
   border-color: var(--accent);
-  background: var(--accent-quiet);
 }
 .st-pick:disabled {
   color: var(--disabled);
@@ -396,9 +410,6 @@
 .dialog__panel p {
   margin: 0;
 }
-.dialog__extra {
-  align-self: flex-start;
-}
 .dialog__actions {
   display: flex;
   align-items: center;
@@ -417,8 +428,8 @@
   z-index: 60;
   display: flex;
   flex-direction: column;
-  /* Figma draws 85 %; on a busy page the text behind showed through next to the label */
-  background: rgb(0 0 0 / 95%);
+  /* opaque: nothing of the page shows through (VISUAL-AUDIT п. 6; Figma draws 85 % black) */
+  background: var(--bg);
 }
 .text-edit__actions {
   display: flex;

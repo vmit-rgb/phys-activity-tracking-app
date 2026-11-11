@@ -32,10 +32,18 @@
 }
 
 /* ---- history/day-card: edge to edge between accent lines ---- */
+/* one thin line between cards, no gap (history/day-card, п. 23) */
 .history__days {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-items);
+  gap: 0;
+}
+.day-card + .day-card {
+  border-top: 0;
+}
+/* «середнє за період»: one column (history/period-averages, п. 24) */
+.avgs--column {
+  grid-template-columns: minmax(0, 1fr);
 }
 .history__empty {
   margin: 0;
@@ -99,23 +107,17 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-/* data/value-row: label · value unit, on the baseline */
+/* data/value-row: label · value unit as one flowing line, so «вправа 6 · 3 × 12 повт. · 10 кг» doesn't break after «·» (Н10) */
 .value-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--gap-micro);
+  display: block;
   min-width: 0;
   font-variant-numeric: tabular-nums;
 }
+.value-row > * + * {
+  margin-left: var(--gap-micro);
+}
 .value-row__value {
   overflow-wrap: anywhere;
-}
-.value-row--text {
-  display: block;
-}
-.value-row--text > * + * {
-  margin-left: var(--gap-micro);
 }
 /* checklist/single-line, read only: [x] and the name */
 .day-check {
@@ -138,13 +140,13 @@
 .search {
   position: fixed;
   right: 0;
-  bottom: calc(91px + env(safe-area-inset-bottom));
+  bottom: calc(var(--bar-h) + 8px + env(safe-area-inset-bottom));
   left: 0;
   z-index: 40;
   display: flex;
   flex-direction: column;
   max-width: var(--content-max);
-  max-height: calc(100dvh - 91px - 24px - env(safe-area-inset-bottom));
+  max-height: calc(100dvh - var(--bar-h) - 32px - env(safe-area-inset-bottom));
   margin: 0 auto;
   background: var(--bg);
   box-shadow: 0 -1px 1px rgb(0 0 0 / 30%), 0 -2px 3px rgb(0 0 0 / 15%);
@@ -243,8 +245,7 @@
   color: var(--ink);
   font-weight: 720;
 }
-/* 🔍 while the panel is open */
+/* 🔍 while the panel is open: faint, no fill (search/panel, п. 26) */
 .bar__search[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--on-accent);
+  color: var(--muted);
 }

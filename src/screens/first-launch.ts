@@ -1,5 +1,6 @@
 import type { Phone, Platform } from '../app/start';
 import { FOOTER, LANGUAGE_SWITCH, part, PHONE_NAMES, platformToggles, wirePlatformToggles, wireRestore } from './parts';
+import { withGrip } from '../ui/grip';
 
 export interface FirstLaunchActions {
   copyPrompt(): void;
@@ -56,7 +57,7 @@ const MARKUP = `
       ${platformToggles('маю ')}
       <div class="paste" data-paste hidden>
         <p class="t-1st-regular" data-paste-how></p>
-        <textarea class="field paste__field" rows="3" aria-label="відповідь ШІ" placeholder="встав сюди відповідь ШІ" data-paste-field></textarea>
+        ${withGrip('<textarea class="field paste__field" rows="3" aria-label="відповідь ШІ" placeholder="встав сюди відповідь ШІ" data-paste-field></textarea>')}
         <button type="button" class="ctl btn btn--primary btn--wide" data-apply disabled>застосувати</button>
         <p class="t-3rd-regular muted">кнопка стане активною, щойно встав текст.</p>
       </div>

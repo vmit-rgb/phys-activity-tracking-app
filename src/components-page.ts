@@ -99,7 +99,7 @@ sheet.innerHTML = `
   ${block('divider', '<hr class="divider" style="width: 100%" />')}
   ${block('accordion/trigger', `<div class="sheet__column">${accordions}</div>`)}
   ${block('toast/saved', toasts)}
-  <div class="noise" aria-hidden="true"></div>`;
+  <div class="noise" aria-hidden="true"></div><div class="noise noise--dark" aria-hidden="true"></div>`;
 
 const style = document.createElement('style');
 style.textContent = `

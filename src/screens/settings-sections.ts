@@ -256,7 +256,7 @@ function workoutFields(item: WorkoutItem, path: string): string {
 function workoutItem(ctx: Ctx, slot: Slot, item: WorkoutItem): string {
   const path = `${slot.list}.${slot.index}`;
   const exercise = exerciseHead(ctx, item.exercise);
-  if (ctx.view.picking) return pickRow(ctx, slot, exercise.name);
+  if (ctx.view.picking) return pickRow(ctx, slot, exercise, prescription(item));
   const inner = `
         <div class="st-row">${ed(`ex:${item.exercise}.name`, exercise.name, 'вправа', 'назва вправи', 'text')}${
   ed(`${path}.@rx`, prescription(item), 'n разів', 'підходи × повторення (наприклад, 3 × 10–12)', 'rx', 't-3rd-regular st-value')}${removeButton(slot, exercise.name)}</div>
@@ -266,14 +266,19 @@ function workoutItem(ctx: Ctx, slot: Slot, item: WorkoutItem): string {
   return entry(ctx, 'wo-ex', slot, exercise.name, inner);
 }
 
-/** In «створити групу»: an exercise is a toggle; another workout's are off once one is chosen. */
-function pickRow(ctx: Ctx, slot: Slot, name: string): string {
+/**
+ * In «створити групу»: an exercise is a toggle with its name, «n разів» and how-to
+ * (example/settings-create-group); another workout's are off once one is chosen.
+ */
+function pickRow(ctx: Ctx, slot: Slot, exercise: { name: string; how: string }, rx: string): string {
+  const name = exercise.name;
   const picking = ctx.view.picking!;
   const chosen = picking.list === slot.list && picking.chosen.includes(slot.index);
   const other = picking.list !== null && picking.list !== slot.list;
   const full = !chosen && picking.chosen.length >= 3;
-  return `<button type="button" class="ctl st-pick t-1st-regular" ${act('pick', slotData(slot))} aria-pressed="${chosen}"${other || full ? ' disabled' : ''}>${
-    esc(shown(name))}</button>`;
+  const how = exercise.how ? `<span class="st-pick__how t-3rd-regular">${esc(exercise.how)}</span>` : '<span class="st-pick__how"></span>';
+  return `<button type="button" class="ctl st-pick" ${act('pick', slotData(slot))} aria-label="${esc(shown(name))}" aria-pressed="${chosen}"${other || full ? ' disabled' : ''}>
+    <span class="st-pick__name t-1st-regular">${esc(shown(name))}</span><span class="st-pick__rx t-3rd-regular">${esc(rx || 'n разів')}</span>${how}</button>`;
 }
 
 function groupMarkup(ctx: Ctx, slot: Slot, set: readonly WorkoutItem[]): string {
@@ -356,8 +361,8 @@ function groupHint(ctx: Ctx): string {
   const n = picking.chosen.length;
   return `<div class="st-row st-picking">
           <p class="t-2nd-bold st-grow" aria-live="polite">вибери 2–3 вправи для групи</p>
-          ${iconButton('close', 'скасувати групу', act('pick-cancel'))}
           ${iconButton('check', 'зібрати групу', act('pick-done'), n < 2 || n > 3)}
+          ${iconButton('close', 'скасувати групу', act('pick-cancel'))}
         </div>`;
 }
 

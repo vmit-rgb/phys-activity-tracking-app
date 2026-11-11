@@ -11,6 +11,7 @@ import type {
 import { esc } from '../ui/html';
 import { iconSvg } from '../ui/icons';
 import { smallUnits } from '../ui/units';
+import { withGrip } from '../ui/grip';
 import { beatsLine } from '../domain/stats';
 import { formatCountdown, formatStopwatch, stopwatchState, type HomeSession, type PulseRun } from './session';
 
@@ -250,8 +251,8 @@ function noteTracker(ctx: SectionContext, moment: Moment, tracker: Tracker): str
   return `
     <div class="tracker">
       <label class="tracker__note"><span class="t-1st-semibold">${esc(tracker.name || 'без назви')}</span>
-        <textarea class="field" rows="3" placeholder="як минув день? пиши як є" data-input="tracker-note" ${trackerData(moment, tracker)}
-          ${keyed(dayKey(ctx, `tnote|${moment}|${tracker.id}`))}>${esc(typeof saved === 'string' ? saved : '')}</textarea></label>${hint(tracker)}
+        ${withGrip(`<textarea class="field" rows="3" placeholder="як минув день? пиши як є" data-input="tracker-note" ${trackerData(moment, tracker)}
+          ${keyed(dayKey(ctx, `tnote|${moment}|${tracker.id}`))}>${esc(typeof saved === 'string' ? saved : '')}</textarea>`)}</label>${hint(tracker)}
     </div>`;
 }
 
@@ -542,6 +543,6 @@ export function movementBody(ctx: SectionContext): string {
 /* ---- note ---- */
 
 export function noteBody(ctx: SectionContext): string {
-  return `<textarea class="field note-field" rows="3" aria-label="нотатка" placeholder="як минув день? пиши як є" data-input="note"
-    ${keyed(dayKey(ctx, 'note'))}>${esc(ctx.day.note)}</textarea><p class="t-3rd-regular muted">зберігається, поки пишеш</p>`;
+  return `${withGrip(`<textarea class="field note-field" rows="3" aria-label="нотатка" placeholder="як минув день? пиши як є" data-input="note"
+    ${keyed(dayKey(ctx, 'note'))}>${esc(ctx.day.note)}</textarea>`)}<p class="t-3rd-regular muted">зберігається, поки пишеш</p>`;
 }

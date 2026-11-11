@@ -98,6 +98,9 @@ describe('«історія» (Figma screen/log-history 165:2758)', () => {
     expect(averages.textContent).toContain('за місяць, який відкрито в календарі');
     expect([...averages.querySelectorAll('.avg')].map((row) => row.textContent!.replace(/\s+/g, ' ').trim()))
       .toEqual(['енергія · зранку 5', 'втома · ввечері 3']);
+    // history/period-averages: one column, «назва · 2,7» at 14 px (VISUAL-AUDIT п. 24)
+    expect(averages.querySelector('.avgs')!.classList).toContain('avgs--column');
+    expect([...averages.querySelector('.avg')!.children].map((part) => part.className)).toEqual(['avg__label t-2nd-regular', 'avg__value t-2nd-bold']);
   });
 
   it('has 🔍 as a switch that is off', () => {
@@ -128,6 +131,8 @@ describe('«історія» (Figma screen/log-history 165:2758)', () => {
     second.querySelector<HTMLButtonElement>('button.accordion')!.click();
     expect(isOpen(cards()[1]!)).toBe(true);
     expect(cards()[1]!.textContent).toContain('2 × 10 повт. · 5 кг');
+    // units small and muted, the row one flowing line (history/day-block, п. 25, Н10)
+    expect([...cards()[1]!.querySelectorAll('.value-row__value')].find((v) => v.textContent!.includes('повт'))!.innerHTML).toBe('2 × 10 <span class="unit">повт.</span> · 5 <span class="unit">кг</span>');
     cards()[1]!.querySelector<HTMLButtonElement>('button.accordion')!.click();
     expect(isOpen(cards()[1]!)).toBe(false);
   });

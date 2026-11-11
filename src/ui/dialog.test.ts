@@ -37,6 +37,8 @@ describe('confirmDialog (dialog/confirm 250:6304)', () => {
     expect(await beside).toBe('cancel');
 
     const extra = confirmDialog({ title: 'стерти все?', confirm: 'стерти все', cancel: 'скасувати', extra: 'зберегти копію' });
+    // the main filled button across the panel (example/settings-delete-all-confirm, п. 31)
+    expect(document.querySelector('.dialog__extra')!.className).toBe('ctl btn btn--primary btn--wide dialog__extra');
     document.querySelector<HTMLElement>('.dialog__panel')!.click();
     expect(document.querySelector('.dialog')).not.toBeNull();
     click('зберегти копію');
