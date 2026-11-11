@@ -74,3 +74,6 @@ export function fakeDevice() {
   };
   return { device, env };
 }
+
+/** Home sections that are all open (they start closed since 2026-11-11), for tests that log inside them. */
+export const openSections = { open: () => true, remember: () => {} };

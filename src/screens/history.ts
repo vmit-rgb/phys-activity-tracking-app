@@ -10,6 +10,7 @@ import { goalLine } from '../home/home-view';
 import { wireAccordions } from '../ui/accordion';
 import { esc } from '../ui/html';
 import { iconSvg } from '../ui/icons';
+import { smallUnits } from '../ui/units';
 import type { ToastMessage } from '../ui/toast';
 import { pagesBarMarkup, TO_TOP, wirePagesBar, wireScroll } from './bar';
 import { FOOTER, part } from './parts';
@@ -49,7 +50,7 @@ const NO_RECORDS: ToastMessage = { message: 'за цей день записів
 function valueRow({ label, value, unit, text }: ValueRow): string {
   return `
       <li class="value-row${text ? ' value-row--text' : ''}"><span class="value-row__label t-2nd-regular">${esc(label)}</span><span class="muted" aria-hidden="true">·</span>${
-  text ? `<span class="value-row__text t-2nd-regular">${esc(value)}</span>` : `<b class="value-row__value t-1st-bold">${esc(value)}</b>`
+  text ? `<span class="value-row__text t-2nd-regular">${esc(value)}</span>` : `<b class="value-row__value t-1st-bold">${smallUnits(esc(value))}</b>`
 }${unit ? `<span class="value-row__unit t-3rd-regular muted">${esc(unit)}</span>` : ''}</li>`;
 }
 
@@ -116,7 +117,7 @@ function content(state: HistoryState, view: View): string {
     <section class="screen__section history__averages" aria-labelledby="history-averages">
       <h2 class="t-h4" id="history-averages">середнє за період</h2>
       <p class="t-3rd-regular muted">за місяць, який відкрито в календарі</p>
-      ${rows.length ? averagesList(rows) : '<p class="t-2nd-regular muted">ще немає значень за цей місяць</p>'}
+      ${rows.length ? averagesList(rows, true) : '<p class="t-2nd-regular muted">ще немає значень за цей місяць</p>'}
     </section>
     <section class="history__days" aria-label="дні">
       ${keys.length

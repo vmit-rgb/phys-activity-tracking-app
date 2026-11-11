@@ -34,26 +34,37 @@
 }
 
 /* ---- «цей тиждень» ---- */
+/* calendar/stat-card 131:1661: 1–3 in a row, 4 as 2 × 2 (Olesia, 2026-11-11) */
 .stats {
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
   gap: var(--gap-micro);
 }
+.stats:has(> :nth-child(4)) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: row;
+}
 .stat {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: var(--gap-items);
   min-width: 0;
   padding: var(--gap-items);
   background: var(--surface);
+}
+.stat__label {
+  padding-bottom: var(--gap-items);
 }
 .stat__label {
   color: var(--muted);
   overflow-wrap: anywhere;
 }
 .stat__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
   font-variant-numeric: tabular-nums;
 }
 /* «з 5 днів» moves to the next line as a whole, never word by word */
@@ -76,22 +87,24 @@
   color: var(--muted);
 }
 
-/* ---- the month ---- */
+/* ---- the month ----
+   Every day is a tap target of at least --tap (48, 56 with «більші зони»;
+   ACCESSIBILITY.md rule 1, Olesia 2026-11-11), so the grid takes the whole
+   width and the legend goes under it in one row. The cells touch; a
+   transparent 2 px border draws the 4 px gap without leaving dead space. */
 .cal {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   gap: var(--gap-items);
   min-width: 0;
 }
-/* the legend keeps its width; the grid takes the rest, up to 300 px */
 .cal__info {
-  flex: 1 0 auto;
-  padding-bottom: 56px;
+  order: 2;
 }
 .legend {
   display: flex;
-  flex-direction: column;
-  gap: var(--gap-micro);
+  flex-wrap: wrap;
+  gap: var(--gap-micro) var(--gap-items);
   color: var(--muted);
 }
 .legend li {
@@ -125,16 +138,16 @@
 
 .cal__body {
   display: flex;
-  flex: 0 1 300px;
   flex-direction: column;
   gap: var(--gap-micro);
+  width: 100%;
+  max-width: calc(7 * (var(--tap) + 8px));
   min-width: 0;
 }
 .cal__weekdays,
 .cal__grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: var(--gap-micro);
+  grid-template-columns: repeat(7, minmax(var(--tap), 1fr));
 }
 .cal__weekdays {
   color: var(--muted);
@@ -147,22 +160,20 @@
   display: grid;
   place-items: center;
   width: 100%;
-  min-height: 0;
+  min-height: var(--tap);
   aspect-ratio: 1 / 1;
   padding: 0;
-  background: var(--sunk);
+  border: 2px solid transparent;
+  background: var(--sunk) padding-box;
   color: var(--ink);
   font-size: calc(12px * var(--text-scale));
   font-variant-numeric: tabular-nums;
-  font-weight: 420;
   line-height: 1;
 }
-/* the look stays 36 px; the tap area grows to 44 (TODO note in Figma) */
-button.cal-day::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
+span.cal-day {
+  font-weight: 420;
 }
+/* the weight goes through .ctl, so «сьогодні» can be 720 (calendar/day today, Н5) */
 button.cal-day {
   --fg-0: var(--ink);
   --fg-hover: var(--ink);
@@ -174,7 +185,7 @@ button.cal-day {
   color: var(--disabled);
 }
 .cal-day--future {
-  border: var(--stroke-4) solid var(--disabled);
+  box-shadow: inset 0 0 0 var(--stroke-4) var(--disabled);
   color: var(--disabled);
 }
 /* levels after the plain cell, so their fill wins (Olesia, 2026-10-31: 30 / 50 / 70 %, no outline) */
@@ -194,7 +205,7 @@ button.cal-day {
 .cal-day--movement {
   background-image: radial-gradient(circle at 5.5px calc(100% - 5.5px), transparent 2.2px, var(--ink) 2.3px, var(--ink) 3.5px, transparent 3.6px);
 }
-.cal-day--today {
+button.cal-day--today {
   --weight-0: 720;
   --weight-hover: 720;
   box-shadow: inset 0 0 0 var(--stroke-1) var(--accent);
@@ -204,10 +215,8 @@ button.cal-day {
   box-shadow: inset 0 0 0 var(--stroke-1) var(--ink);
 }
 .cal-day--shown {
-  box-shadow: 0 0 0 1px var(--bg), 0 0 0 3px var(--ink);
-}
-.cal-day--today.cal-day--shown {
-  box-shadow: inset 0 0 0 var(--stroke-1) var(--accent), 0 0 0 1px var(--bg), 0 0 0 3px var(--ink);
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
 }
 .cal__nav {
   display: flex;
@@ -215,6 +224,13 @@ button.cal-day {
 }
 .cal__nav .ctl:disabled {
   opacity: 0.35;
+}
+/* «більші зони» on a phone: 7 × 56 needs 392 px, so the block's sides shrink to 8 */
+@media (max-width: 440px) {
+  :root[data-larger-targets] .cal-block,
+  :root[data-larger-targets] .cal-sheet__panel .cal-block {
+    padding-inline: 8px;
+  }
 }
 
 /* ---- the sheet from the date: scrim + sheet above the bar ---- */
@@ -237,7 +253,6 @@ button.cal-day {
   padding-bottom: calc(var(--pad-bottom-bar) + 24px + env(safe-area-inset-bottom));
   overflow: auto;
   overscroll-behavior: contain;
-  border-top: var(--stroke-4) solid var(--accent);
   background: var(--bg);
   box-shadow: 0 -2px 12px rgb(0 0 0 / 25%);
 }
@@ -287,6 +302,16 @@ button.cal-day {
 }
 .pulse__result {
   color: var(--accent);
+}
+/* idle (tracker/pulse-timer): «пульс» … «уд/хв», then the field with «таймер» beside it */
+.tracker > .pulse__head {
+  align-items: center;
+}
+.pulse__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-items);
 }
 .pulse .labeled__fields {
   flex-direction: row;

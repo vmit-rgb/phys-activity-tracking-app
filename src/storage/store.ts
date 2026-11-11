@@ -48,10 +48,13 @@ export function browserChoice(storage: KeyValue): { chosen(): boolean; choose():
   };
 }
 
-/** Which home sections the person closed; a section is open until then. Kept on this phone only, not in the copy. */
+/**
+ * Which home sections the person opened; a section is closed until then (Olesia, 2026-11-11, as Figma's home).
+ * Stored as «closed?» = yes / no. Kept on this phone only, not in the copy.
+ */
 export function sectionMemory(storage: KeyValue): { open(id: string): boolean; remember(id: string, open: boolean): void } {
   return {
-    open: (id) => storage.getItem(SECTION_KEY + id) !== 'yes',
+    open: (id) => storage.getItem(SECTION_KEY + id) === 'no',
     remember: (id, open) => setQuietly(storage, SECTION_KEY + id, open ? 'no' : 'yes'),
   };
 }

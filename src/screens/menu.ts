@@ -41,7 +41,8 @@ const item = (look: string, name: MenuItem, label: string) =>
 const LINK = 'btn--primary menu__link';
 const HELP = 'btn--secondary menu__help';
 
-const REMINDER = '<p class="t-2nd-regular" data-backup-reminder>давненько не було копії. збережи, поки все на місці :)</p>';
+// menu/backup warning: one bold line in place of the status (Olesia, 2026-11-11)
+const REMINDER = '<p class="t-2nd-bold" data-backup-reminder>давненько не було копії. збережи, поки все на місці :)</p>';
 
 function markup(state: MenuState): string {
   return `
@@ -55,8 +56,7 @@ function markup(state: MenuState): string {
           ${item(LINK, 'search', 'пошук у нотатках')}
         </nav>
         <section class="menu__backup" aria-label="копія">
-          <p class="t-3rd-regular muted" data-backup-line>${state.backupLine}</p>
-          ${state.remind ? REMINDER : ''}
+          ${state.remind ? REMINDER : `<p class="t-3rd-regular muted" data-backup-line>${state.backupLine}</p>`}
           <button type="button" class="ctl btn btn--tertiary" data-menu="backup">зберегти копію</button>
         </section>
         <nav class="menu__group menu__group--help" aria-label="допомога">

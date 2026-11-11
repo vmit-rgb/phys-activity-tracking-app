@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fakeDevice } from '../app/test-env';
+import { fakeDevice, openSections } from '../app/test-env';
 import { SAVE_DELAY_MS, startApp } from '../app/app';
 import type { DayKey } from '../domain/dates';
 import { readDay } from '../domain/day';
 import type { Diary } from '../domain/diary';
 import { EXAMPLE_DIARY } from '../domain/examples';
-import { diaryStore, sectionMemory, type DiaryStore } from '../storage/store';
+import { diaryStore, type DiaryStore } from '../storage/store';
 import { mountToast } from '../ui/toast';
 
 /*
@@ -55,7 +55,7 @@ function start(days: Diary['days'] = DAYS, settings: Diary['profile'] = profile)
     installed: true,
     toast: mountToast(document.body),
     today: () => TODAY,
-    sections: sectionMemory(localStorage),
+    sections: openSections,
     ...fakeDevice().env,
     onDiary: () => {},
     whenHidden: () => {},

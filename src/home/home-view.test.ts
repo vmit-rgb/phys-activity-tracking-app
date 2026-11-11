@@ -57,7 +57,7 @@ describe('heroFor', () => {
   });
   it('says whose record a past day is', () => {
     expect(heroFor(key('2026-10-26'), key('2026-11-09'), settings)).toEqual({
-      kind: 'past', text: 'це запис за пн, 26.10.2026.\nзміни збережуться в цей день.',
+      kind: 'past', text: 'це запис за пн, 26.10.2026.\nзміни збережуться в цей день.', bold: 'пн, 26.10.2026',
     });
   });
 });

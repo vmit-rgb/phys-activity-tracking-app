@@ -7,6 +7,7 @@ import {
 } from '../domain/settings';
 import { esc } from '../ui/html';
 import { iconSvg } from '../ui/icons';
+import { withGrip } from '../ui/grip';
 import { wireDrag, type DropTarget } from './drag';
 import { FOOTER, part, wireRestore } from './parts';
 import { act, checkbox, daysSlider, destructive, secondary, tertiary } from './settings-bits';
@@ -133,7 +134,7 @@ function goalBody({ goal, ...settings }: Settings): string {
       <div class="st-indent">
         <p class="t-2nd-bold">що треба виконати, щоб день був «зроблено»</p>
         ${on.map((kind) => checkbox(KIND_NAMES[kind], goal.done.includes(kind), `${act('goal-kind')} data-kind="${kind}"`)).join('')}
-        ${daysSlider({ label: 'днів на тиждень', value: goal.days, name: 'goal-days', spoken: 'днів на тиждень' })}
+        ${daysSlider({ label: 'ціль: днів на тиждень', value: goal.days, name: 'goal-days', spoken: 'днів на тиждень' })}
       </div>`;
   return `${checkbox('рахувати тижневу ціль', goal.enabled, act('goal-on'))}${goal.enabled ? details : ''}`;
 }
@@ -169,7 +170,7 @@ function aiBody(state: SettingsState): string {
       ${secondary('скопіювати промпт', act('copy-prompt'))}
       ${secondary('скопіювати мої налаштування для ШІ', act('copy-settings'))}
       <div class="paste">
-        <textarea class="field paste__field" rows="3" aria-label="відповідь ШІ" placeholder="встав сюди відповідь ШІ" data-input="paste">${esc(state.pasted)}</textarea>
+        ${withGrip(`<textarea class="field paste__field" rows="3" aria-label="відповідь ШІ" placeholder="встав сюди відповідь ШІ" data-input="paste">${esc(state.pasted)}</textarea>`)}
         <button type="button" class="ctl btn btn--primary btn--wide" ${act('apply')}${state.pasted.trim() ? '' : ' disabled'}>застосувати</button>
       </div>
       <div>${tertiary('відновити з копії', 'data-restore')}</div>

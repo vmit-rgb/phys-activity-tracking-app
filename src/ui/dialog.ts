@@ -43,7 +43,7 @@ export function confirmDialog(spec: ConfirmSpec): Promise<ConfirmAnswer> {
       <div class="dialog__panel">
         <p class="t-1st-bold" id="dialog-title">${esc(spec.title)}</p>
         ${spec.body ? `<p class="t-2nd-regular muted" id="dialog-body">${esc(spec.body)}</p>` : ''}
-        ${spec.extra ? `<button type="button" class="ctl btn btn--tertiary dialog__extra" data-answer="extra">${esc(spec.extra)}</button>` : ''}
+        ${spec.extra ? `<button type="button" class="ctl btn btn--primary btn--wide dialog__extra" data-answer="extra">${esc(spec.extra)}</button>` : ''}
         <div class="dialog__actions">
           <button type="button" class="ctl btn btn--secondary" data-answer="cancel">${esc(spec.cancel)}</button>
           <button type="button" class="ctl btn btn--destructive" data-answer="confirm">${esc(spec.confirm)}</button>

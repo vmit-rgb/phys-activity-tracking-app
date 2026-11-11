@@ -59,14 +59,14 @@ describe('browserChoice («подивитися тут, без встановл�
 describe('sectionMemory (closed home sections)', () => {
   beforeEach(() => localStorage.clear());
 
-  it('keeps a section open until it is closed, and remembers both', () => {
+  it('keeps a section closed until it is opened, and remembers both (Olesia, 2026-11-11: closed by default)', () => {
     const memory = sectionMemory(localStorage);
-    expect(memory.open('mw')).toBe(true);
-    memory.remember('mw', false);
-    expect(sectionMemory(localStorage).open('mw')).toBe(false);
-    expect(sectionMemory(localStorage).open('wo')).toBe(true);
+    expect(memory.open('mw')).toBe(false);
     memory.remember('mw', true);
     expect(sectionMemory(localStorage).open('mw')).toBe(true);
+    expect(sectionMemory(localStorage).open('wo')).toBe(false);
+    memory.remember('mw', false);
+    expect(sectionMemory(localStorage).open('mw')).toBe(false);
   });
 
   it('only forgets when the phone is full', () => {

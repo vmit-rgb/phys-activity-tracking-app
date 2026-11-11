@@ -30,6 +30,9 @@
   letter-spacing: 0;
   white-space: pre-line;
 }
+.hero__text--past b {
+  font-weight: 700;
+}
 
 .home__sections {
   display: flex;
@@ -53,6 +56,15 @@
   background: var(--panel);
 }
 .home-section__body[hidden] {
+  display: none;
+}
+/* closed: the hint in a strip under the title (activity/section collapsed 143:3998) */
+.home-section__hint {
+  margin: 0;
+  padding: 8px var(--pad-screen-x);
+  background: var(--panel);
+}
+.home-section:has(> .home-section__heading [aria-expanded='true']) > .home-section__hint {
   display: none;
 }
 

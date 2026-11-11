@@ -114,11 +114,13 @@ describe('the menu (Figma screen/menu 183:3210)', () => {
 });
 
 describe('«зберегти копію»', () => {
-  it('reminds when there are records and no copy yet', () => {
+  it('reminds when there are records and no copy yet: one bold line instead of the status (menu/backup warning, Olesia П3)', () => {
     start();
     openMenu();
-    expect(host.querySelector('[data-backup-line]')!.textContent).toBe('копії ще немає');
-    expect(host.querySelector('[data-backup-reminder]')!.textContent).toBe('давненько не було копії. збережи, поки все на місці :)');
+    expect(host.querySelector('[data-backup-line]')).toBeNull();
+    const reminder = host.querySelector('[data-backup-reminder]')!;
+    expect(reminder.textContent).toBe('давненько не було копії. збережи, поки все на місці :)');
+    expect(reminder.className).toBe('t-2nd-bold');
   });
 
   it('does not remind with no records', () => {
@@ -155,7 +157,7 @@ describe('«зберегти копію»', () => {
     openMenu();
     tap('зберегти копію');
     expect(toastSays()).toBe('не вдалося зберегти файл >_<');
-    expect(host.querySelector('[data-backup-line]')!.textContent).toBe('копії ще немає');
+    expect(host.querySelector('[data-backup-reminder]')).not.toBeNull();
   });
 });
 

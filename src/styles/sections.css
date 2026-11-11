@@ -34,12 +34,21 @@
 .acc-body--group {
   padding: 0 var(--gap-items) var(--gap-items);
 }
+/* «позначити весь рівень» under the time line, on the left (accordion/subsection, п. 14) */
+.acc-body--group > .btn--tertiary {
+  align-self: flex-start;
+}
+/* «прибрати з цього дня» on the left (workout-active, п. 19) */
+.home-section__body > [data-act='drop'],
+.home-section__body > [data-act='drop'] + p {
+  align-self: flex-start;
+}
 .acc-body--paragraph,
 .acc-body--mini {
   padding: var(--gap-items) 0 0 var(--gap-section);
 }
+/* accordion/paragraph: the whole width, + at the right edge (п. 13) */
 .how-acc .accordion {
-  width: auto;
   min-width: 0;
 }
 .how {
@@ -60,26 +69,47 @@
   flex-direction: column;
   gap: var(--gap-micro);
 }
+/* the row: [ ] name «n разів» … + (checklist/exercise 73:3146) */
+.ex-check__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+}
 .ex-check__row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: start;
+  flex: 1;
+  align-items: flex-start;
   column-gap: var(--gap-group);
-  width: 100%;
+  min-width: 0;
   padding: 12px 0;
 }
-.ex-check__row .checkbox__label {
+.ex-check__name {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 .ex-check__reps {
-  padding-top: 3px;
   color: var(--muted);
   white-space: nowrap;
 }
-.ex-check > .btn--tertiary {
-  align-self: flex-start;
-  margin-left: 40px;
+.ex-check__more.accordion {
+  flex: none;
+  width: auto;
+  min-width: var(--tap);
+  padding: 0;
+}
+.ex-check__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+  padding-left: 40px;
+}
+.ex-check__details[hidden] {
+  display: none;
+}
+/* stopwatch rows on the right, «ще раз» under them (п. 15) */
+.sw-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 /* ---- wellbeing questions ---- */
@@ -105,6 +135,13 @@
   display: flex;
   align-items: center;
   gap: var(--gap-items);
+}
+/* 0–7 under the track, between − and + (settings/weekly-goal, п. 28) */
+.st-days__ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 calc(var(--tap) + var(--gap-items));
+  color: var(--muted);
 }
 
 /* slider (126:2027): 12 px pill track, ring thumb; never set = faint thumb; saved = locked */
@@ -156,18 +193,19 @@
 .slider:disabled {
   cursor: default;
 }
+/* saved: an 8 px dot in the disabled colour (slider blocked-summary, Н6) */
 .slider:disabled::-webkit-slider-thumb {
-  width: 9px;
-  height: 9px;
-  margin-top: 1.5px;
+  width: 8px;
+  height: 8px;
+  margin-top: 2px;
   border: 0;
-  background: var(--muted);
+  background: var(--disabled);
 }
 .slider:disabled::-moz-range-thumb {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border: 0;
-  background: var(--muted);
+  background: var(--disabled);
 }
 .slider:focus-visible {
   outline: none;
@@ -280,11 +318,15 @@
 .wo-ex__sub b {
   font-weight: 600;
 }
+/* «додати підхід» under the sets, then «як робити» across the whole width (п. 13) */
 .wo-ex__actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-items);
+  flex-direction: column;
+  gap: var(--gap-micro);
+}
+.wo-ex__actions > .btn {
+  order: -1;
+  align-self: flex-start;
 }
 .wo-ex__actions .acc-body {
   position: relative;

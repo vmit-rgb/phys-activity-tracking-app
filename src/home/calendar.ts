@@ -38,10 +38,14 @@ function statCard({ label, done, target }: WeekStat): string {
     </li>`;
 }
 
-/** «біль · зранку 2,7», one row each; also the history's «середнє за період». */
-export function averagesList(rows: readonly Average[]): string {
-  return `<ul class="avgs" role="list">${rows.map((row) => `
-      <li class="avg"><span class="avg__label t-3rd-semibold">${esc(row.label)}</span> <b class="t-1st-bold">${formatNumber(row.value)}</b></li>`).join('')}</ul>`;
+/**
+ * «біль · зранку 2,7», one row each. On home two columns (calendar/month); the
+ * history's «середнє за період» is one column at 14 px (history/period-averages 234:4881).
+ */
+export function averagesList(rows: readonly Average[], column = false): string {
+  const [label, value, list] = column ? ['t-2nd-regular', 't-2nd-bold', 'avgs avgs--column'] : ['t-3rd-semibold', 't-1st-bold', 'avgs'];
+  return `<ul class="${list}" role="list">${rows.map((row) => `
+      <li class="avg"><span class="avg__label ${label}">${esc(row.label)}</span> <b class="avg__value ${value}">${formatNumber(row.value)}</b></li>`).join('')}</ul>`;
 }
 
 function summary(view: CalendarView): string {

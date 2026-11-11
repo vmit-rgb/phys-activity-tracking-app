@@ -72,6 +72,14 @@ describe('home', () => {
     expect(text('#sec-dw')).toContain('слухай тіло. якщо щось не так — зупинись <3');
   });
 
+  it('keeps the section’s hint in a strip under the title, shown while closed (activity/section collapsed, п. 10)', () => {
+    const hint = host.querySelector<HTMLElement>('#sec-dw-title')!.closest('.home-section')!.querySelector<HTMLElement>('.home-section__hint')!;
+    expect(hint.textContent).toBe('слухай тіло. якщо щось не так — зупинись <3');
+    expect(hint.className).toBe('home-section__hint t-3rd-regular');
+    // the open body keeps its own copy at full size, so the strip is a visual summary only
+    expect(hint.getAttribute('aria-hidden')).toBe('true');
+  });
+
   it('remembers a closed section', () => {
     host.querySelector<HTMLButtonElement>('[data-section="dw"]')!.click();
     expect(host.querySelector<HTMLElement>('#sec-dw')!.hidden).toBe(true);
@@ -130,6 +138,8 @@ describe('bottom bar', () => {
   it('on a past day goes forward and says whose record it is', () => {
     show({ date: key('2026-11-09') });
     expect(text('.hero__text')).toBe('це запис за пн, 09.11.2026.\nзміни збережуться в цей день.');
+    // the date in bold (example/home-past-day, VISUAL-AUDIT п. 21)
+    expect(text('.hero__text b')).toBe('пн, 09.11.2026');
     expect(nextDay().disabled).toBe(false);
     nextDay().click();
     expect(actions.goTo).toHaveBeenCalledWith('2026-11-10');

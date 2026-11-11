@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fakeDevice } from '../app/test-env';
+import { fakeDevice, openSections } from '../app/test-env';
 import { SAVE_DELAY_MS, startApp } from '../app/app';
 import type { DayKey } from '../domain/dates';
 import { emptyDay, readDay } from '../domain/day';
 import type { Diary } from '../domain/diary';
-import { diaryStore, sectionMemory, type DiaryStore } from '../storage/store';
+import { diaryStore, type DiaryStore } from '../storage/store';
 import { mountToast } from '../ui/toast';
 import { AUTOSAVE_MS } from './controls';
 
@@ -62,7 +62,7 @@ function start(days: Diary['days'] = {}, settings: Diary['profile'] = profile): 
     installed: true,
     toast: mountToast(document.body),
     today: () => TODAY,
-    sections: sectionMemory(localStorage),
+    sections: openSections,
     ...fakeDevice().env,
     onDiary: () => {},
     whenHidden: (save) => {
@@ -150,8 +150,9 @@ describe('morning warm-up', () => {
     expect(toastText()).toBe('таймер видалено');
   });
 
-  it('× on the only timer has nothing to reset before it runs', () => {
-    expect(byLabel('скинути таймер до нуля').disabled).toBe(true);
+  it('× on the only timer is hidden until there is a time to reset (Olesia, 2026-11-11), then shows in the accent', () => {
+    expect(host.querySelector('[aria-label="скинути таймер до нуля"]')).toBeNull();
+    expect(host.querySelector('.ex-check .set-row .rm-space')).not.toBeNull();
     byLabel('запустити секундомір, 1').click();
     expect(byLabel('скинути таймер до нуля').disabled).toBe(false);
   });
@@ -400,7 +401,7 @@ describe('saving', () => {
       installed: true,
       toast: mountToast(document.body),
       today: () => TODAY,
-      sections: sectionMemory(localStorage),
+      sections: openSections,
       ...fakeDevice().env,
       onDiary: () => {},
       whenHidden: (save) => {

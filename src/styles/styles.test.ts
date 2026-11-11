@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import main from '../main.ts?raw';
+import calendar from './calendar.css?raw';
+import base from './base.css?raw';
 import components from './components.css?raw';
+import index from '../../index.html?raw';
+import history from './history.css?raw';
+import settings from './settings.css?raw';
 import home from './home.css?raw';
 import sections from './sections.css?raw';
 import tokens from './tokens.css?raw';
 import typography from './typography.css?raw';
 
 // The cascade can't be seen in jsdom, so these read the stylesheets as text (comments stripped).
-const FILES: Record<string, string> = { '../main.ts': main, './components.css': components, './home.css': home, './sections.css': sections, './tokens.css': tokens, './typography.css': typography };
+const FILES: Record<string, string> = { './base.css': base, '../main.ts': main, './calendar.css': calendar, './components.css': components, './history.css': history, './settings.css': settings, './home.css': home, './sections.css': sections, './tokens.css': tokens, './typography.css': typography };
 const read = (file: string) => FILES[file]!.replace(/\/\*[\s\S]*?\*\//g, '');
 const block = (css: string, selector: string) => {
   const at = css.indexOf(`${selector} {`);
@@ -68,6 +73,60 @@ describe('stylesheets', () => {
     expect(block(css, '.checkbox')).toMatch(/--fg-hover: var\(--accent\);[^}]*--weight-hover: 720;/);
     expect(css).not.toContain('.checkbox__input:focus-visible + .checkbox__box');
     expect(block(css, '.checkbox:has(.checkbox__input:focus-visible)')).toMatch(/--fg-0: var\(--accent\);[^}]*--weight-0: 900;/);
+  });
+
+  it('make every control at least --tap wide and high (Н9, ACCESSIBILITY.md rule 1)', () => {
+    expect(block(read('./components.css'), '.ctl')).toMatch(/min-width: var\(--tap\);[^}]*min-height: var\(--tap\);/);
+    // no smaller fixed sizes on a tap target
+    expect(block(read('./settings.css'), '.st-text--link')).not.toMatch(/min-height/);
+    expect(read('./history.css')).not.toMatch(/min-(height|width): (32|44)px/);
+    expect(block(read('./history.css'), '.search__input')).toContain('min-height: var(--tap);');
+    // the day of the month is a target too
+    expect(block(read('./calendar.css'), '.cal-day')).toContain('min-height: var(--tap);');
+    expect(read('./calendar.css')).toMatch(/grid-template-columns: repeat\(7, minmax\(var\(--tap\), 1fr\)\);/);
+  });
+
+  it('draw home as Figma: stat cards, sheet, saved slider, past-day date, left buttons (п. 14, 19–22, Н6)', () => {
+    const calendar = read('./calendar.css');
+    // 4 cards go 2 × 2 (Olesia, 2026-11-11); number and «з N днів» on one line
+    expect(calendar).toMatch(/\.stats:has\(> :nth-child\(4\)\) \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+    expect(block(calendar, '.stat__value')).toContain('align-items: baseline;');
+    expect(block(calendar, '.cal-sheet__panel')).not.toContain('border-top');
+    const sections = read('./sections.css');
+    expect(sections).toMatch(/\.slider:disabled::-webkit-slider-thumb \{[^}]*width: 8px;[^}]*background: var\(--disabled\);/);
+    expect(sections).toMatch(/\[data-act='drop'\][^{]*\{[^}]*align-self: flex-start;/);
+    expect(sections).toMatch(/\.acc-body--group > \.btn--tertiary \{[^}]*align-self: flex-start;/);
+    expect(read('./home.css')).toMatch(/\.hero__text--past b \{[^}]*font-weight: 700;/);
+    expect(block(read('./components.css'), '.unit')).toMatch(/color: var\(--muted\);[^}]*font-size: calc\(12px \* var\(--text-scale\)\);/);
+  });
+
+  it('draw the history, search, tabs and the full-screen field as Figma (п. 6, 7, 23, 24, 26, Н10)', () => {
+    const history = read('./history.css');
+    expect(block(history, '.history__days')).toContain('gap: 0;');
+    expect(history).toMatch(/\.day-card \+ \.day-card \{[^}]*border-top: 0;/);
+    expect(block(history, '.avgs--column')).toContain('grid-template-columns: minmax(0, 1fr);');
+    expect(block(history, '.value-row')).toContain('display: block;');
+    expect(block(history, ".bar__search[aria-pressed='true']")).not.toContain('background');
+    expect(block(history, '.search')).toContain('bottom: calc(var(--bar-h) + 8px + env(safe-area-inset-bottom));');
+    const components = read('./components.css');
+    // the tab you can switch to is underlined; the chosen one is not (Olesia, В 35)
+    expect(components).toMatch(/\.tab:is\(\[aria-selected='true'\], \[aria-pressed='true'\]\) \{[^}]*text-decoration: none;/);
+    // a pressed level keeps a 1 px muted frame (accordion/trigger group pressed)
+    expect(block(components, '.accordion--group')).toContain('--ring-w-pressed: var(--stroke-3);');
+    expect(block(components, '.ctl:active')).toContain('--ring-w: var(--ring-w-pressed, var(--ring-w-0, 0px));');
+    expect(block(read('./settings.css'), '.text-edit')).toContain('background: var(--bg);');
+  });
+
+  it('drop the browser’s button padding and keep 8 px inside the settings boxes (п. 27, 32)', () => {
+    expect(block(read('./components.css'), '.ctl')).toContain('padding: 0;');
+    expect(read('./settings.css')).toMatch(/\.st-item\.st-box \{[^}]*padding: 4px 8px 8px;/);
+  });
+
+  it('draw the noise as overlay/noise: light grain SCREEN and dark grain MULTIPLY, 25 % each (Н11)', () => {
+    const base = read('./base.css');
+    expect(block(base, '.noise')).toMatch(/opacity: 0.25;[^}]*mix-blend-mode: screen;/);
+    expect(block(base, '.noise--dark')).toContain('mix-blend-mode: multiply;');
+    expect(index.match(/class="noise[^"]*"/g)).toEqual(['class="noise"', 'class="noise noise--dark"']);
   });
 
   it('draw × for removing in the accent colour, not the error colour (Н4)', () => {

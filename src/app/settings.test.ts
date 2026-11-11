@@ -199,6 +199,12 @@ describe('settings: the weekly goal', () => {
     expect((storedProfile().goal as JsonObject).done).toEqual(['morningWarmup', 'daytimeWarmup']);
   });
 
+  it('names the slider «ціль: днів на тиждень» with 0–7 under it (settings/weekly-goal, п. 28)', () => {
+    const days = host.querySelector('.st-days')!;
+    expect(days.querySelector('.st-days__head .t-1st-semibold')!.textContent).toBe('ціль: днів на тиждень');
+    expect([...days.querySelectorAll('.st-days__ticks span')].map((tick) => tick.textContent)).toEqual(['0', '1', '2', '3', '4', '5', '6', '7']);
+  });
+
   it('changes the days with − and + within 0–7', async () => {
     await tap('більше: днів на тиждень');
     await tap('більше: днів на тиждень');
