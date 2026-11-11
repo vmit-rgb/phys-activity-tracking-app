@@ -66,8 +66,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],
-    // tokens.css is read as text by a test; other CSS stays out of the tests
-    css: { include: [/\/tokens\.css/] },
+    // these stylesheets are read as text by tests; other CSS stays out of the tests
+    css: { include: [/\/(tokens|typography|components|home|sections)\.css/] },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

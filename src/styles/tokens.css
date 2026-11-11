@@ -43,6 +43,8 @@
   --pad-screen-x: 16px;
   --pad-screen-bottom: 40px;
   --pad-bottom-bar: 80px;
+  /* the bottom bar without the safe area: 8 px + ≡ 75 px */
+  --bar-h: 83px;
   --content-max: 560px;
   --radius-pill: 999px;
 
@@ -82,6 +84,13 @@
 }
 :root[data-larger-targets] {
   --tap: 56px;
+}
+/* larger text on a phone: the date row goes under ≡, the bar grows by it (Olesia, 2026-11-11) */
+@media (max-width: 540px) {
+  :root[data-larger-text] {
+    --bar-h: calc(83px + var(--tap));
+    --pad-bottom-bar: calc(80px + var(--tap));
+  }
 }
 
 /* Accents, dark theme: primary (as rgb) · mid · quiet (dark shade) · muted text.

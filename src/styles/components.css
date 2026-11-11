@@ -121,8 +121,9 @@
   pointer-events: none;
 }
 @media (hover: hover) {
-  .btn--tertiary:not(:disabled, [aria-disabled='true']):hover::after,
-  .btn--destructive:not(:disabled, [aria-disabled='true']):hover::after {
+  /* pressed: no pill, as Figma's pressed state (VISUAL-AUDIT Н12) */
+  .btn--tertiary:not(:disabled, [aria-disabled='true'], :active):hover::after,
+  .btn--destructive:not(:disabled, [aria-disabled='true'], :active):hover::after {
     box-shadow: inset 0 0 0 3px var(--accent);
   }
 }
@@ -474,7 +475,7 @@
 }
 /* Sits on top of the bottom bar while it is shown (bar: 8 + 75 + max(8, safe area)). */
 body:has(.bar:not(.bar--hidden)) .toast {
-  bottom: calc(83px + max(8px, env(safe-area-inset-bottom)));
+  bottom: calc(var(--bar-h) + max(8px, env(safe-area-inset-bottom)));
 }
 .toast__inner {
   display: flex;

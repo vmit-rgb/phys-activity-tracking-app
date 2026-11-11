@@ -1,7 +1,6 @@
 import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/base.css';
-import './styles/typography.css';
 import './styles/components.css';
 import './styles/screens.css';
 import './styles/home.css';
@@ -10,6 +9,8 @@ import './styles/calendar.css';
 import './styles/menu.css';
 import './styles/history.css';
 import './styles/settings.css';
+// last: a text style class (t-*) wins over any earlier font rule of the same weight (VISUAL-AUDIT Н2)
+import './styles/typography.css';
 import { startApp } from './app/app';
 import { detectPlatform, isInstalled } from './app/start';
 import { dayKeyOf } from './domain/dates';

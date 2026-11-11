@@ -110,12 +110,48 @@
   margin: 0;
   white-space: nowrap;
 }
+/* larger text on a phone: the date doesn't fit beside ≡, so its row goes under it
+   and the bar grows (--bar-h in tokens.css; Olesia, 2026-11-11) */
+@media (max-width: 540px) {
+  :root[data-larger-text] .bar:has(> .bar__right) {
+    display: grid;
+    grid-template-areas: 'menu goal' 'nav nav';
+    grid-template-columns: auto 1fr;
+    align-items: end;
+  }
+  :root[data-larger-text] .bar__right {
+    display: contents;
+  }
+  :root[data-larger-text] .bar > .bar__menu {
+    grid-area: menu;
+  }
+  :root[data-larger-text] .bar__goal {
+    grid-area: goal;
+    padding: 0 0 8px 8px;
+    text-align: end;
+  }
+  :root[data-larger-text] .date-nav {
+    grid-area: nav;
+    justify-self: end;
+  }
+  :root[data-larger-text][data-mirrored] .bar:has(> .bar__right) {
+    grid-template-areas: 'goal menu' 'nav nav';
+    grid-template-columns: 1fr auto;
+  }
+  :root[data-larger-text][data-mirrored] .bar__goal {
+    padding: 0 8px 8px 0;
+    text-align: start;
+  }
+  :root[data-larger-text][data-mirrored] .date-nav {
+    justify-self: start;
+  }
+}
 
 /* «вгору»: floats bottom right, just above the bar */
 .to-top {
   position: fixed;
   right: max(var(--pad-screen-x), (100% - var(--content-max)) / 2 + var(--pad-screen-x));
-  bottom: calc(99px + env(safe-area-inset-bottom));
+  bottom: calc(var(--bar-h) + 16px + env(safe-area-inset-bottom));
   z-index: 50;
   border-radius: var(--radius-pill);
   background: var(--bg);
