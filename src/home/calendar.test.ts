@@ -142,6 +142,10 @@ describe('calendar block on home', () => {
 
   it('shows the legend for what is switched on, three levels at most', () => {
     expect(texts('.legend li', block())).toEqual(['рівень 1', 'рівень 2', 'тренування', 'рух']);
+    // its own class: the settings' colour «.swatch» made these 48 px circles (VISUAL-AUDIT п. 2)
+    expect([...block().querySelectorAll('.legend .legend__swatch')].map((s) => s.className))
+      .toEqual(['legend__swatch legend__swatch--lv1', 'legend__swatch legend__swatch--lv2']);
+    expect(block().querySelector('.legend .swatch')).toBeNull();
     const fiveLevels = { ...profile, morningWarmup: { enabled: true, levels: [1, 2, 3, 4, 5].map((n) => ({ id: `l${n}`, items: [] })) }, workout: { enabled: false } };
     start({}, fiveLevels);
     expect(texts('.legend li', block())).toEqual(['рівень 1', 'рівень 2', 'рівень 3', 'рух']);

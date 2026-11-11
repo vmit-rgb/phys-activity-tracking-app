@@ -55,7 +55,7 @@ function summary(view: CalendarView): string {
 function legend(settings: Settings): string {
   const levels = settings.morningWarmup.enabled ? Math.min(3, settings.morningWarmup.levels.length) : 0;
   const items = [
-    ...Array.from({ length: levels }, (_, i) => `<li><span class="swatch swatch--lv${i + 1}" aria-hidden="true"></span>рівень ${i + 1}</li>`),
+    ...Array.from({ length: levels }, (_, i) => `<li><span class="legend__swatch legend__swatch--lv${i + 1}" aria-hidden="true"></span>рівень ${i + 1}</li>`),
     ...(settings.workout.enabled ? ['<li><span class="marker marker--workout" aria-hidden="true"></span>тренування</li>'] : []),
     ...(settings.movement.enabled ? ['<li><span class="marker marker--movement" aria-hidden="true"></span>рух</li>'] : []),
   ];
