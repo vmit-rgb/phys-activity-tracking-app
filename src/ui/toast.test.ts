@@ -55,6 +55,7 @@ describe('toast', () => {
   });
 
   it('hides the action for a message without one', () => {
+    expect(action().classList).toContain('ctl');
     toast.show({ message: 'видалено', action: undo(() => {}) });
     toast.show({ message: 'не вдалося зберегти' });
     expect(action().hidden).toBe(true);

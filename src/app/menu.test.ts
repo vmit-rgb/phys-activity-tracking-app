@@ -43,6 +43,12 @@ function start(diary: Diary = WITH_A_DAY): void {
 
 const heading = () => host.querySelector('h1')!.textContent;
 const toastText = () => document.querySelector<HTMLElement>('.toast:not([hidden]) .toast__message')?.textContent;
+const toastSays = () => {
+  const shown = document.querySelector<HTMLElement>('.toast:not([hidden])');
+  if (!shown) return undefined;
+  const check = shown.querySelector('.toast__check:not([hidden])') ? '✓ ' : '';
+  return check + shown.querySelector('.toast__message')!.textContent;
+};
 const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent!.trim()) === name)!;
 const tap = (name: string) => button(name).click();
 const openMenu = () => tap('меню');
@@ -102,7 +108,7 @@ describe('the menu (Figma screen/menu 183:3210)', () => {
 
   it('says what is not there yet', () => {
     tap('додати фідбек');
-    expect(toastText()).toBe('форму для фідбеку ще робимо, скоро буде :)');
+    expect(toastSays()).toBe('форму для фідбеку ще робимо, скоро буде :)');
     expect(heading()).toBe('меню');
   });
 });
@@ -128,7 +134,7 @@ describe('«зберегти копію»', () => {
     expect(device.saved).toHaveLength(1);
     expect(device.saved[0]!.name).toBe('trekr-kopiya-2026-11-09.json');
     expect(parseDiary(device.saved[0]!.text)).toEqual(WITH_A_DAY);
-    expect(toastText()).toBe('копію збережено');
+    expect(toastSays()).toBe('✓ копію збережено');
     expect(host.querySelector('[data-backup-line]')!.textContent).toBe('остання копія — сьогодні');
     expect(host.querySelector('[data-backup-reminder]')).toBeNull();
   });
@@ -148,7 +154,7 @@ describe('«зберегти копію»', () => {
     device.saveWorks = false;
     openMenu();
     tap('зберегти копію');
-    expect(toastText()).toBe('не вдалося зберегти файл >_<');
+    expect(toastSays()).toBe('не вдалося зберегти файл >_<');
     expect(host.querySelector('[data-backup-line]')!.textContent).toBe('копії ще немає');
   });
 });
@@ -181,7 +187,7 @@ describe('«поділитися застосунком»', () => {
   it('copies the link when there is no share sheet', async () => {
     device.shareResult = 'unavailable';
     tap('поділитися застосунком');
-    await vi.waitFor(() => expect(toastText()).toBe('посилання скопійовано — надішли, кому хочеш :)'));
+    await vi.waitFor(() => expect(toastSays()).toBe('✓ посилання скопійовано — надішли, кому хочеш :)'));
     expect(device.copied[0]).toContain('https://vmit-rgb.github.io/phys-activity-tracking-app-landing-page/');
   });
 
@@ -189,7 +195,7 @@ describe('«поділитися застосунком»', () => {
     device.shareResult = 'unavailable';
     device.copyWorks = false;
     tap('поділитися застосунком');
-    await vi.waitFor(() => expect(toastText()).toBe('не вдалося поділитися >_<'));
+    await vi.waitFor(() => expect(toastSays()).toBe('не вдалося поділитися >_<'));
   });
 });
 

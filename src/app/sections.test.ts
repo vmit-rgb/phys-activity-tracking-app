@@ -35,7 +35,12 @@ function start(diary: Diary): void {
 const storedProfile = (): JsonObject => parseDiary(localStorage.getItem(DIARY_KEY) ?? '')!.profile;
 const at = (path: string, profile = storedProfile()): unknown =>
   path.split('.').reduce<unknown>((value, key) => (value as JsonObject | undefined)?.[key], profile);
-const toastText = () => document.querySelector<HTMLElement>('.toast:not([hidden]) .toast__message')?.textContent;
+const toastSays = () => {
+  const shown = document.querySelector<HTMLElement>('.toast:not([hidden])');
+  if (!shown) return undefined;
+  const check = shown.querySelector('.toast__check:not([hidden])') ? '✓ ' : '';
+  return check + shown.querySelector('.toast__message')!.textContent;
+};
 const named = (b: HTMLElement) => (b.getAttribute('aria-label') ?? (b.querySelector('.accordion__title') ?? b).textContent!.trim());
 const buttons = (name: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].filter((b) => named(b) === name);
 const button = (name: string) => buttons(name)[0]!;
@@ -149,7 +154,7 @@ describe('ранкова розминка', () => {
     await tap('розгорнути: рівень 1');
     await tap('30 с');
     await type('довго');
-    expect(toastText()).toBe('тут потрібне число >_<');
+    expect(toastSays()).toBe('тут потрібне число >_<');
     await tap('30 с');
     await type('');
     expect(host.textContent).toContain('30 с');
@@ -197,9 +202,10 @@ describe('ранкова розминка', () => {
     expect(host.textContent).toContain('3 вправи');
     await tap('видалити: рівень 2');
     await tap('видалити');
-    expect(toastText()).toBe('видалено');
+    expect(toastSays()).toBe('✓ видалено');
     expect(host.textContent).not.toContain('3 вправи');
     await tap('скасувати');
+    expect(toastSays()).toBe('✓ скасовано');
     expect(host.textContent).toContain('3 вправи');
   });
 
@@ -242,7 +248,7 @@ describe('денна розминка and рух', () => {
     expect(checked('n кроків')).toBe(false);
     await tick('n км');
     await tick('n хв');
-    expect(toastText()).toBe('хоч одне поле має лишитися >_<');
+    expect(toastSays()).toBe('хоч одне поле має лишитися >_<');
     expect(checked('n хв')).toBe(true);
     await tick('n кроків');
     await tap('посилання');
@@ -339,7 +345,7 @@ describe('самопочуття', () => {
     await tap('дії: втома');
     expect([...host.querySelectorAll('.st-menu button')].map((b) => b.textContent)).toEqual(['вище', 'скасувати']);
     await tap('вище');
-    expect(toastText()).toBe('переміщено');
+    expect(toastSays()).toBe('✓ переміщено');
     await save();
     expect((storedProfile().trackers as JsonObject[]).map((t) => t.id)).toEqual(['tired', 'energy', 'pulse', 'hard']);
   });
@@ -399,8 +405,14 @@ describe('тренування', () => {
     await tap('вправа 7');
     expect(button('зібрати групу').disabled).toBe(false);
     await tap('зібрати групу');
-    expect(toastText()).toBe('групу зібрано :)');
+    expect(toastSays()).toBe('✓ групу зібрано :)');
     expect(host.textContent).toContain('група вправ');
+    await tap('скасувати');
+    expect(toastSays()).toBe('✓ скасовано');
+    expect(host.querySelector('[data-group]')).toBeNull();
+    await tap('створити групу');
+    for (const name of ['вправа 7', 'вправа 8']) await tap(name);
+    await tap('зібрати групу');
     await save();
     expect((at(S) as JsonObject[]).map((x) => (x.set ? (x.set as JsonObject[]).map((y) => y.exercise) : x.exercise)))
       .toEqual(['exercise-6', ['exercise-7', 'exercise-8']]);
@@ -420,10 +432,10 @@ describe('тренування', () => {
       .toEqual(['об’єднати в групу з…', 'вище', 'скасувати']);
     await tap('об’єднати в групу з…');
     await choose('вправа 6');
-    expect(toastText()).toBe('групу зібрано :)');
+    expect(toastSays()).toBe('✓ групу зібрано :)');
     await tap('дії: вправа 8');
     await tap('вийти з групи');
-    expect(toastText()).toBe('вправу винесено з групи');
+    expect(toastSays()).toBe('✓ вправу винесено з групи');
     await tap('дії: вправа 6');
     await tap('нижче');
     await save();
@@ -440,7 +452,7 @@ describe('тренування', () => {
     await tap('дії: вправа 7');
     await tap('перемістити в…');
     await choose('тренування Б');
-    expect(toastText()).toBe('переміщено');
+    expect(toastSays()).toBe('✓ переміщено');
     await save();
     expect(at('workout.sessions.1.items.0.exercise')).toBe('exercise-7');
   });
@@ -454,7 +466,7 @@ describe('тренування', () => {
     await tap('дії: четверта');
     await tap('об’єднати в групу з…');
     await choose('група: вправа 6 + вправа 7 + вправа 8');
-    expect(toastText()).toBe('у групі вже 3 вправи — більше не влізе >_<');
+    expect(toastSays()).toBe('у групі вже 3 вправи — більше не влізе >_<');
     expect(buttons('скасувати').filter((b) => b.closest('.toast'))).toHaveLength(0);
   });
 
@@ -495,7 +507,7 @@ describe('dragging on the page', () => {
     expect(document.querySelector('.st-proxy')!.textContent).toBe('вправа 8');
     pointer('pointerup', document, 10, 50);
     vi.useRealTimers();
-    expect(toastText()).toBe('групу зібрано :)');
+    expect(toastSays()).toBe('✓ групу зібрано :)');
     expect(document.querySelector('.st-proxy')).toBeNull();
 
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
@@ -640,12 +652,12 @@ describe('less common paths', () => {
     const item = (list: string, index: number) => host.querySelector<HTMLElement>(`.st-item[data-list="${list}"][data-index="${index}"]`)!;
     const outer = () => host.querySelector(`.st-list[data-list="${S}"]`)!;
     drag(item(S, 1), outer(), 400);
-    expect(toastText()).toBe('переміщено');
+    expect(toastSays()).toBe('✓ переміщено');
     drag(item(`${S}.0.set`, 0), outer(), 400);
-    expect(toastText()).toBe('вправу винесено з групи');
+    expect(toastSays()).toBe('✓ вправу винесено з групи');
     const full = [...host.querySelectorAll<HTMLElement>('.st-group')].find((g) => g.dataset.group === '3')!;
     vi.spyOn(full, 'getBoundingClientRect').mockReturnValue({ top: 0, height: 100, bottom: 100, left: 0, right: 0, width: 0, x: 0, y: 0, toJSON: () => ({}) });
     drag(item(S, 0), full, 50);
-    expect(toastText()).toBe('у групі вже 3 вправи — більше не влізе >_<');
+    expect(toastSays()).toBe('у групі вже 3 вправи — більше не влізе >_<');
   });
 });

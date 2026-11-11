@@ -49,7 +49,12 @@ function start(diary: Diary = DIARY): void {
 }
 
 const heading = () => host.querySelector('h1')!.textContent;
-const toastText = () => document.querySelector<HTMLElement>('.toast:not([hidden]) .toast__message')?.textContent;
+const toastSays = () => {
+  const shown = document.querySelector<HTMLElement>('.toast:not([hidden])');
+  if (!shown) return undefined;
+  const check = shown.querySelector('.toast__check:not([hidden])') ? '✓ ' : '';
+  return check + shown.querySelector('.toast__message')!.textContent;
+};
 const button = (name: string) => [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent!.trim()) === name);
 const tap = (name: string) => {
   const found = button(name);
@@ -150,7 +155,7 @@ describe('«історія» (Figma screen/log-history 165:2758)', () => {
 
   it('says so for a day without records', () => {
     calDay('2026-11-02').click();
-    expect(toastText()).toBe('за цей день записів немає');
+    expect(toastSays()).toBe('за цей день записів немає');
     expect(heading()).toBe('історія');
   });
 

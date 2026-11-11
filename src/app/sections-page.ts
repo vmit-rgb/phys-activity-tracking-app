@@ -11,7 +11,7 @@ import type { DropTarget } from '../screens/drag';
 import type { AddWhat } from '../screens/settings';
 import type { ActionMenu, EditKind, Picking, SectionsView } from '../screens/settings-sections';
 import { confirmDialog, editText } from '../ui/dialog';
-import type { ToastMessage } from '../ui/toast';
+import { undo, type ToastMessage } from '../ui/toast';
 
 /*
  * Stage 6d: what the settings do inside the sections, on the page's draft
@@ -35,10 +35,10 @@ type Obj = Record<string, unknown>;
 const obj = (value: unknown): Obj => (typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Obj : {});
 
 /* COPY.md «Settings», accepted 2026-10-30; the rest Нитка's drafts. */
-const GROUPED: ToastMessage = { message: 'групу зібрано', emoticon: ':)' };
-const LEFT: ToastMessage = { message: 'вправу винесено з групи' };
-const MOVED: ToastMessage = { message: 'переміщено' };
-const REMOVED: ToastMessage = { message: 'видалено' }; // «бета 0.81»
+const GROUPED: ToastMessage = { message: 'групу зібрано', emoticon: ':)', showIcon: true };
+const LEFT: ToastMessage = { message: 'вправу винесено з групи', showIcon: true };
+const MOVED: ToastMessage = { message: 'переміщено', showIcon: true };
+const REMOVED: ToastMessage = { message: 'видалено', showIcon: true }; // «бета 0.81»
 const FULL: ToastMessage = { message: 'у групі вже 3 вправи — більше не влізе', emoticon: '>_<' };
 const NOT_A_NUMBER: ToastMessage = { message: 'тут потрібне число', emoticon: '>_<' }; // draft
 const ONE_FIELD: ToastMessage = { message: 'хоч одне поле має лишитися', emoticon: '>_<' }; // draft
@@ -82,7 +82,7 @@ export class SectionsEditor {
   private undoable(edit: ProfileEdit, message: ToastMessage): void {
     const before = this.draft.profile();
     this.draft.change(edit);
-    this.draft.say({ ...message, action: { label: 'скасувати', run: () => this.draft.replace(before) } });
+    this.draft.say({ ...message, action: undo(() => this.draft.replace(before)) });
   }
 
   private entry(slot: Slot): Obj {
@@ -224,7 +224,7 @@ export class SectionsEditor {
     const joined = joinGroup(before, from, onto);
     if (joined.result === 'full') return this.draft.say(FULL);
     this.draft.replace(joined.profile);
-    this.draft.say({ ...GROUPED, action: { label: 'скасувати', run: () => this.draft.replace(before) } });
+    this.draft.say({ ...GROUPED, action: undo(() => this.draft.replace(before)) });
   }
 
   /** The neighbour up or down; trackers count only those of their own kind. */
