@@ -5,6 +5,8 @@ import type { Edit } from '../domain/log';
 import type { Settings } from '../domain/settings';
 import { flushDrafts, wireSections, type SectionControls } from '../home/controls';
 import { HERO_STYLES, heroStyle, type HeroStyle } from '../home/hero-fit';
+import { dayArrives, popShownDay, reward, sheetIn, sheetOut, swapMonth } from '../home/home-motion';
+import { completed } from '../domain/progress';
 import { heroFor, homeSections, type SectionId, type SectionSpec } from '../home/home-view';
 import {
   checkInBody, daytimeBody, morningBody, movementBody, noteBody, workoutBody, type SectionContext,
@@ -33,6 +35,8 @@ export interface HomeState {
   readonly date: DayKey;
   readonly today: DayKey;
   readonly session: HomeSession;
+  /** The day shown before, when home is drawn for another day: the motion comes from its side. */
+  readonly cameFrom?: DayKey;
 }
 
 export interface HomeActions {
@@ -144,13 +148,16 @@ interface Calendar {
 function wireCalendar(host: HTMLElement, state: HomeState, go: (date: DayKey) => void, signal: AbortSignal): Calendar {
   let current = state;
   const dateButton = part<HTMLButtonElement>(host, '.date-nav__date');
-  const sheet = () => host.querySelector<HTMLElement>('.cal-sheet');
+  // one closing back into the date doesn't count: the date opens a new one
+  const sheet = () => host.querySelector<HTMLElement>('.cal-sheet:not(.cal-sheet--closing)');
 
   function closeSheet(): void {
-    if (!sheet()) return;
-    sheet()!.remove();
+    const closing = sheet();
+    if (!closing) return;
+    closing.classList.add('cal-sheet--closing');
     dateButton.setAttribute('aria-expanded', 'false');
     dateButton.focus({ preventScroll: true });
+    sheetOut(closing, dateButton, () => closing.remove());
   }
 
   /** Days open that day; arrows change the month in place and keep the focus. */
@@ -165,11 +172,14 @@ function wireCalendar(host: HTMLElement, state: HomeState, go: (date: DayKey) =>
     const container = button.closest<HTMLElement>('.cal-block')!;
     const by = String(button.dataset.by);
     state.session.month = shiftMonth(calendarView(current, '').month, Number(by));
-    container.innerHTML = calendarMarkup(calendarView(current, container.dataset.place ?? 'home'));
-    container.querySelector<HTMLElement>(`[data-cal="month"][data-by="${by}"]`)!.focus();
+    swapMonth(container, () => {
+      container.innerHTML = calendarMarkup(calendarView(current, container.dataset.place ?? 'home'));
+      container.querySelector<HTMLElement>(`[data-cal="month"][data-by="${by}"]`)!.focus();
+    });
   }
 
   function openSheet(): void {
+    host.querySelector('.cal-sheet--closing')?.remove();
     host.insertAdjacentHTML('beforeend', `
       <div class="cal-sheet" role="dialog" aria-modal="true" aria-label="календар">
         <div class="cal-sheet__scrim"></div>
@@ -184,6 +194,8 @@ function wireCalendar(host: HTMLElement, state: HomeState, go: (date: DayKey) =>
       if (event.key === 'Escape') closeSheet();
     });
     (opened.querySelector<HTMLElement>('[aria-current="date"]') ?? opened.querySelector<HTMLElement>('button'))!.focus({ preventScroll: true });
+    sheetIn(opened, dateButton);
+    popShownDay(opened);
   }
 
   part(host, '.home .cal-block').addEventListener('click', onTap);
@@ -227,15 +239,23 @@ function sectionControls(host: HTMLElement, state: HomeState, actions: HomeActio
     session: state.session,
     day: () => dayOf(current),
     edit(edit, render) {
+      const before = dayOf(current);
+      let days = current.days;
       if (render) {
-        keepingFocus(() => actions.edit(edit, true));
-        return;
+        keepingFocus(() => {
+          days = actions.edit(edit, true);
+        });
+      } else {
+        days = actions.edit(edit, false);
+        current = { ...current, days };
+        fillBar(host, current);
+        calendar.refresh(current);
       }
-      current = { ...current, days: actions.edit(edit, false) };
-      fillBar(host, current);
-      calendar.refresh(current);
+      const after = days[state.date] ?? emptyDay(state.date);
+      reward(host, state.date, completed(before, after, state.settings), state.settings.accessibility);
     },
     render: () => keepingFocus(() => actions.refresh()),
+    screen: () => host,
     toast: (message) => actions.toast(message),
   };
 }
@@ -247,7 +267,8 @@ function tickStopwatches(host: HTMLElement, state: HomeState, signal: AbortSigna
   const timer = setInterval(() => {
     for (const time of host.querySelectorAll<HTMLElement>('[data-sw-time]')) {
       const started = state.session.running.get(String(time.dataset.swTime));
-      if (started !== undefined) time.textContent = formatStopwatch(performance.now() - started);
+      // not while its old digits dissolve («знову»)
+      if (started !== undefined && time.dataset.busy === undefined) time.textContent = formatStopwatch(performance.now() - started);
     }
   }, 50);
   signal.addEventListener('abort', () => clearInterval(timer));
@@ -307,6 +328,7 @@ export function showHome(host: HTMLElement, state: HomeState, actions: HomeActio
   wireScroll(host, listeners.signal);
 
   fit();
+  if (state.cameFrom) dayArrives(host, state.cameFrom, state.date);
   void document.fonts?.ready.then(fit);
   addEventListener('resize', fit, { signal: listeners.signal });
   return () => listeners.abort();

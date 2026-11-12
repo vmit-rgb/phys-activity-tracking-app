@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fadeShown, glyphs, MS, play, pop, stagger, typeIn, whenDone } from './motion';
+import { decode, fadeShown, GLYPHS, glyphs, MS, play, pop, scrambleTo, stagger, typeIn, whenDone } from './motion';
 import { fakeAnimate } from './test-animate';
 
 describe('motion', () => {
@@ -160,5 +160,151 @@ describe('fading a floating button in and out', () => {
     fadeShown(el, true);
     fake.finishAll();
     expect(el.hidden).toBe(false);
+  });
+});
+
+describe('a text that changed re-forms out of ASCII glyphs (decode)', () => {
+  let el: HTMLElement;
+  const root = document.documentElement;
+  const shown = () => el.querySelector('[aria-hidden="true"]')!.textContent!;
+  const spoken = () => el.querySelector('.visually-hidden')!.textContent;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    el = document.createElement('p');
+    el.textContent = 'пн, 9 лис';
+    document.body.append(el);
+  });
+  afterEach(() => {
+    el.remove();
+    root.removeAttribute('data-no-motion');
+    vi.useRealTimers();
+  });
+
+  it('shows glyphs first, spaces stay spaces, and a screen reader hears only the real text', () => {
+    decode(el, MS.s);
+    expect(spoken()).toBe('пн, 9 лис');
+    expect([...shown()]).toHaveLength(9);
+    expect(shown()[3]).toBe(' ');
+    expect([...shown()].filter((ch) => ch !== ' ').every((ch) => GLYPHS.includes(ch) || 'пн,9лис'.includes(ch))).toBe(true);
+  });
+
+  it('ends as the plain text when its time is up, not a step before', () => {
+    decode(el, MS.s);
+    vi.advanceTimersByTime(MS.s - 40);
+    expect(el.dataset.busy).toBeDefined();
+    vi.advanceTimersByTime(40);
+    expect(el.dataset.busy).toBeUndefined();
+    expect(el.childElementCount).toBe(0);
+    expect(el.textContent).toBe('пн, 9 лис');
+  });
+
+  it('resolves left to right: the first letter is in place before the last', () => {
+    el.textContent = 'abcdefghijklmnopqrst';
+    decode(el, MS.xxl);
+    vi.advanceTimersByTime(MS.xxl * 0.35);
+    expect(shown()[0]).toBe('a');
+    expect(shown().at(-1)).not.toBe('t');
+  });
+
+  it('puts each letter in place at its own moment, the first ones from the start', () => {
+    // no randomness: letter i settles at i / (n - 1) × 0.7 of the time, plus 0.3 × 0.5
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    el.textContent = 'abcdefghijk';
+    decode(el, 400);
+    expect(shown()).toBe(';;;;;;;;;;;');
+    vi.advanceTimersByTime(120);
+    expect(shown()).toBe('abc;;;;;;;;');
+    vi.mocked(Math.random).mockReturnValue(0);
+    el.textContent = 'abc';
+    decode(el, 400);
+    expect(shown()).toBe('a!!');
+    vi.advanceTimersByTime(120);
+    expect(shown()).toBe('a!!');
+    vi.advanceTimersByTime(40);
+    expect(shown()).toBe('ab!');
+    el.textContent = 'x';
+    decode(el, 400);
+    expect(shown()).toBe('x');
+    vi.restoreAllMocks();
+  });
+
+  it('leaves a text with an element inside as it is', () => {
+    el.innerHTML = 'пн <b>9</b>';
+    decode(el, MS.s);
+    expect(el.innerHTML).toBe('пн <b>9</b>');
+    expect(el.dataset.busy).toBeUndefined();
+  });
+
+  it('lets a new decode replace one still going, keeping the newest text', () => {
+    decode(el, MS.s);
+    vi.advanceTimersByTime(80);
+    el.textContent = 'вт, 10 лис';
+    decode(el, MS.s);
+    vi.advanceTimersByTime(MS.s);
+    expect(el.textContent).toBe('вт, 10 лис');
+  });
+
+  it('draws the glyphs in place in a text a screen reader skips anyway', () => {
+    el.setAttribute('aria-hidden', 'true');
+    decode(el, MS.s);
+    expect(el.childElementCount).toBe(0);
+    expect([...el.textContent!]).toHaveLength(9);
+    vi.advanceTimersByTime(MS.s);
+    expect(el.textContent).toBe('пн, 9 лис');
+  });
+
+  it('keeps the text still with «вимкнути всі анімації»', () => {
+    root.setAttribute('data-no-motion', '');
+    decode(el, MS.s);
+    expect(el.childElementCount).toBe(0);
+    expect(el.textContent).toBe('пн, 9 лис');
+  });
+});
+
+describe('digits dissolve into glyphs and give way to the new text (scramble)', () => {
+  let el: HTMLElement;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    el = document.createElement('span');
+    el.textContent = '00.12.40';
+    document.body.append(el);
+  });
+  afterEach(() => {
+    el.remove();
+    document.documentElement.removeAttribute('data-no-motion');
+    vi.useRealTimers();
+  });
+
+  it('runs through glyphs for 240 ms, then shows the new text and calls back', () => {
+    const done = vi.fn();
+    scrambleTo(el, '00.00.00', done);
+    vi.advanceTimersByTime(MS.xs);
+    expect(el.textContent).not.toBe('00.12.40');
+    expect(el.dataset.busy).toBeDefined();
+    expect(done).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(MS.xs);
+    expect(el.textContent).toBe('00.00.00');
+    expect(el.dataset.busy).toBeUndefined();
+    expect(done).toHaveBeenCalledTimes(1);
+  });
+
+  it('blanks more of the digits as the time runs', () => {
+    // a glyph while the dice (0.3) stay above 0.6 of the time gone, a blank after
+    vi.spyOn(Math, 'random').mockReturnValue(0.3);
+    scrambleTo(el, '00.00.00');
+    expect(el.textContent).toBe('********');
+    vi.advanceTimersByTime(120);
+    expect(el.textContent).toBe('********');
+    vi.advanceTimersByTime(40);
+    expect(el.textContent).toBe('        ');
+    vi.restoreAllMocks();
+  });
+
+  it('puts the new text at once with «вимкнути всі анімації»', () => {
+    document.documentElement.setAttribute('data-no-motion', '');
+    const done = vi.fn();
+    scrambleTo(el, '00.00.00', done);
+    expect(el.textContent).toBe('00.00.00');
+    expect(done).toHaveBeenCalled();
   });
 });

@@ -1,5 +1,5 @@
 import { iconSvg } from './icons';
-import { EASE, glyphs, MS, play, stagger, STAGGER_MS, whenDone } from './motion';
+import { EASE, glyphs, moving, MS, play, stagger, STAGGER_MS, whenDone } from './motion';
 
 const TRIGGER = 'button.accordion[aria-controls]';
 /** «як робити» and other small ones drop in instead of growing. */
@@ -89,6 +89,17 @@ function toggle(root: HTMLElement, trigger: HTMLButtonElement): boolean {
   // + turns into − through ASCII frames, like the checkbox
   glyphs(iconOf(trigger), expanded ? ['*', '=', '-'] : ['=', '*', '+']);
   return expanded;
+}
+
+/**
+ * An accordion drawn closed folds before the eyes, as if just closed (a
+ * warm-up level done, MICROINTERACTIONS.md). Nothing to see without motion.
+ */
+export function foldShut(trigger: HTMLButtonElement): void {
+  const panel = document.getElementById(trigger.getAttribute('aria-controls') ?? '');
+  if (!panel || !panel.hidden || trigger.getAttribute('aria-expanded') === 'true' || !moving()) return;
+  panel.hidden = false;
+  close(trigger, panel);
 }
 
 export type OnToggle = (trigger: HTMLButtonElement, expanded: boolean) => void;
