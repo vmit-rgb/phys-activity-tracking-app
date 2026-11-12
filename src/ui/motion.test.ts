@@ -188,9 +188,12 @@ describe('a text that changed re-forms out of ASCII glyphs (decode)', () => {
     expect([...shown()].filter((ch) => ch !== ' ').every((ch) => GLYPHS.includes(ch) || 'пн,9лис'.includes(ch))).toBe(true);
   });
 
-  it('ends as the plain text when its time is up', () => {
+  it('ends as the plain text when its time is up, not a step before', () => {
     decode(el, MS.s);
-    vi.advanceTimersByTime(MS.s);
+    vi.advanceTimersByTime(MS.s - 40);
+    expect(el.dataset.busy).toBeDefined();
+    vi.advanceTimersByTime(40);
+    expect(el.dataset.busy).toBeUndefined();
     expect(el.childElementCount).toBe(0);
     expect(el.textContent).toBe('пн, 9 лис');
   });
@@ -201,6 +204,35 @@ describe('a text that changed re-forms out of ASCII glyphs (decode)', () => {
     vi.advanceTimersByTime(MS.xxl * 0.35);
     expect(shown()[0]).toBe('a');
     expect(shown().at(-1)).not.toBe('t');
+  });
+
+  it('puts each letter in place at its own moment, the first ones from the start', () => {
+    // no randomness: letter i settles at i / (n - 1) × 0.7 of the time, plus 0.3 × 0.5
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    el.textContent = 'abcdefghijk';
+    decode(el, 400);
+    expect(shown()).toBe(';;;;;;;;;;;');
+    vi.advanceTimersByTime(120);
+    expect(shown()).toBe('abc;;;;;;;;');
+    vi.mocked(Math.random).mockReturnValue(0);
+    el.textContent = 'abc';
+    decode(el, 400);
+    expect(shown()).toBe('a!!');
+    vi.advanceTimersByTime(120);
+    expect(shown()).toBe('a!!');
+    vi.advanceTimersByTime(40);
+    expect(shown()).toBe('ab!');
+    el.textContent = 'x';
+    decode(el, 400);
+    expect(shown()).toBe('x');
+    vi.restoreAllMocks();
+  });
+
+  it('leaves a text with an element inside as it is', () => {
+    el.innerHTML = 'пн <b>9</b>';
+    decode(el, MS.s);
+    expect(el.innerHTML).toBe('пн <b>9</b>');
+    expect(el.dataset.busy).toBeUndefined();
   });
 
   it('lets a new decode replace one still going, keeping the newest text', () => {
@@ -254,6 +286,18 @@ describe('digits dissolve into glyphs and give way to the new text (scramble)', 
     expect(el.textContent).toBe('00.00.00');
     expect(el.dataset.busy).toBeUndefined();
     expect(done).toHaveBeenCalledTimes(1);
+  });
+
+  it('blanks more of the digits as the time runs', () => {
+    // a glyph while the dice (0.3) stay above 0.6 of the time gone, a blank after
+    vi.spyOn(Math, 'random').mockReturnValue(0.3);
+    scrambleTo(el, '00.00.00');
+    expect(el.textContent).toBe('********');
+    vi.advanceTimersByTime(120);
+    expect(el.textContent).toBe('********');
+    vi.advanceTimersByTime(40);
+    expect(el.textContent).toBe('        ');
+    vi.restoreAllMocks();
   });
 
   it('puts the new text at once with «вимкнути всі анімації»', () => {

@@ -19,7 +19,8 @@ export function control<T extends HTMLElement = HTMLElement>(screen: ParentNode,
  * (240 ms) where the row was, while the list is already right underneath.
  */
 export function rowLeaving(row: Element | null): () => void {
-  if (!row || !moving()) return () => {};
+  // without motion nothing plays, and the copy leaves the page at once
+  if (!row) return () => {};
   const box = row.getBoundingClientRect();
   const ghost = row.cloneNode(true) as HTMLElement;
   return () => {
@@ -94,21 +95,27 @@ export function stopwatchSeen(button: Element): StopwatchSeen {
   return { state: sw?.dataset.state, time: sw?.querySelector('[data-sw-time]')?.textContent ?? '' };
 }
 
+/** The stopwatch drawn after a tap: its button by frames, its time as the change asks. */
 export function stopwatchMoved(button: HTMLElement | undefined, seen: StopwatchSeen): void {
+  // every tap changes the state (stopwatchState), so the new one always moves
   const sw = button?.closest<HTMLElement>('.sw');
-  const time = sw?.querySelector<HTMLElement>('[data-sw-time]');
-  if (!button || !sw || !time) return;
+  if (!button || !sw) return;
   const state = sw.dataset.state as StopwatchState;
-  if (state === seen.state) return;
   const frames = SW_FRAMES[state];
   if (frames) glyphs(button, frames);
+  timeMoved(sw.querySelector<HTMLElement>('[data-sw-time]'), state, seen);
+}
+
+/** Saved: the time re-forms. Started again after «знову»: the old digits dissolve. */
+function timeMoved(time: HTMLElement | null, state: StopwatchState, seen: StopwatchSeen): void {
   if (state === 'saved') decode(time);
   if (state === 'running' && seen.state === 'retry') timeDissolves(time, seen.time);
 }
 
 /** The time changes by a run of glyphs, from what it was: «знову», or a timer reset to zero. */
 export function timeDissolves(time: HTMLElement | null | undefined, was: string): void {
-  if (!time || !moving()) return;
+  // without motion scrambleTo puts the new time at once
+  if (!time) return;
   const target = time.textContent ?? '';
   time.textContent = was;
   scrambleTo(time, target);

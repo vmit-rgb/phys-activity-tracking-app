@@ -63,6 +63,34 @@ const $ = <T extends HTMLElement = HTMLElement>(selector: string) => {
 };
 const byLabel = (label: string) => $<HTMLButtonElement>(`[aria-label="${label}"]`);
 const byText = (text: string) => [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent!.trim() === text)!;
+/**
+ * Lays the screen out as a phone would (jsdom has no layout): a month grid of
+ * 300 × 200 at the top left with 40 px days, the date at the bottom right, the
+ * sheet's panel under the middle. No jitter in the heap.
+ */
+function layout(dice = 0.5): void {
+  vi.spyOn(Math, 'random').mockReturnValue(dice);
+  const box = (left: number, top: number, width: number, height: number) =>
+    ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top, toJSON: () => ({}) }) as DOMRect;
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+    if (this.matches('.cal__grid')) return box(0, 0, 300, 200);
+    if (this.matches('.cal__grid > *')) return box(0, 0, 40, 40);
+    if (this.matches('.date-nav__date')) return box(300, 850, 80, 40);
+    if (this.matches('.cal-sheet__panel')) return box(6, 400, 400, 500);
+    return box(0, 0, 0, 0);
+  });
+}
+/** Where a heap keyframe sends a day: [x, y] in px and the turn in degrees, rounded to 0.1. */
+const heaped = (keyframe: Keyframe) => {
+  const [, x, y, turn] = /translate\((-?[\d.]+)px, (-?[\d.]+)px\) rotate\((-?[\d.]+)deg\) scale\(\.55\)/.exec(String(keyframe.transform))!;
+  return [x, y, turn].map((n) => Math.round(Number(n) * 10) / 10);
+};
+/** The same, with no jitter and no turn: [x, y]. */
+const towards = (keyframe: Keyframe) => {
+  const [x, y, turn] = heaped(keyframe);
+  expect(turn).toBe(0);
+  return [x, y];
+};
 /** Every animation on `selector` as it is on screen now. */
 const runs = (selector: string) => fake.on(host.querySelector(selector));
 const moved = (selector: string, transform: string) => runs(selector).some((run) => run.keyframes[0]?.transform === transform);
@@ -78,6 +106,7 @@ afterEach(() => {
   fake.restore();
   document.documentElement.removeAttribute('data-no-motion');
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
@@ -85,8 +114,12 @@ describe('another day (arrows, swipe, calendar)', () => {
   it('brings the earlier day in from the left, 32 px in 360 ms', () => {
     byLabel('попередній день').click();
     const [run] = runs('.home__sections');
-    expect(run!.keyframes[0]).toMatchObject({ opacity: 0, transform: 'translateX(-32px)' });
+    expect(run!.keyframes).toEqual([{ opacity: 0, transform: 'translateX(-32px)' }, { opacity: 1, transform: 'none' }]);
     expect(run!.options.duration).toBe(360);
+    expect(runs('.hero')[0]!.keyframes[0]).toMatchObject({ transform: 'translateX(-32px)' });
+    const [calendar] = runs('.home > .cal-block');
+    expect(calendar!.keyframes).toEqual([{ opacity: 0 }, { opacity: 1 }]);
+    expect(calendar!.options.delay).toBe(120);
   });
 
   it('brings the later day in from the right', () => {
@@ -109,6 +142,7 @@ describe('another day (arrows, swipe, calendar)', () => {
     byLabel('попередній день').click();
     const [run] = runs('.home .cal-day--shown');
     expect(run!.keyframes.map((k) => k.transform)).toEqual(['scale(.6)', 'scale(1.15)', 'scale(1)']);
+    expect(run!.keyframes.map((k) => k.opacity)).toEqual([0.3, 1, undefined]);
     expect(run!.options.duration).toBe(420);
   });
 
@@ -147,6 +181,29 @@ describe('another month in the calendar', () => {
     expect(month().textContent).toBe('жовтень');
   });
 
+  it('pulls each cell towards the middle of the month, and the new ones fly back out from there', () => {
+    layout();
+    const old = cells();
+    $<HTMLButtonElement>('.home [data-cal="month"][data-by="-1"]').click();
+    const [pull] = fake.on(old[8]!);
+    expect(pull!.keyframes[0]).toEqual({ transform: 'none', opacity: 1 });
+    expect(towards(pull!.keyframes[1]!)).toEqual([106.6, 65.6]);
+    expect(pull!.keyframes[1]!.opacity).toBe(0.85);
+    fake.on(old.at(-1)!)[0]!.finish();
+    const [out] = fake.on(cells()[8]!);
+    expect(towards(out!.keyframes[0]!)).toEqual([106.6, 65.6]);
+    expect(out!.keyframes.at(-1)).toEqual({ transform: 'none', opacity: 1 });
+    expect(out!.options.delay).toBe(6);
+  });
+
+  it('throws each cell a little off its way and turns it, at random', () => {
+    layout(0);
+    const old = cells();
+    $<HTMLButtonElement>('.home [data-cal="month"][data-by="-1"]').click();
+    // dice 0: 13 px left, 10 px up, turned 35° back
+    expect(heaped(fake.on(old[8]!)[0]!.keyframes[1]!)).toEqual([93.6, 55.6, -35]);
+  });
+
   it('keeps the focus on the arrow', () => {
     $<HTMLButtonElement>('.home [data-cal="month"][data-by="-1"]').click();
     fake.finishAll();
@@ -175,6 +232,20 @@ describe('the calendar sheet from the date', () => {
     expect(fake.on(sheet()!.querySelector('.cal__grid .cal-day'))).toHaveLength(1);
   });
 
+  it('grows from the middle of the date over the whole panel, and its days gather out of nothing', () => {
+    layout();
+    date().click();
+    const [open] = fake.on(sheet()!.querySelector('.cal-sheet__panel'));
+    expect(open!.keyframes[0]!.clipPath).toBe('circle(0px at 334px 470px)');
+    const [, radius] = /^circle\(([\d.]+)px/.exec(String(open!.keyframes[1]!.clipPath))!;
+    expect(Number(radius)).toBeCloseTo(Math.hypot(334, 500) + 20);
+    const [day] = fake.on(sheet()!.querySelectorAll('.cal__grid > *')[8]!);
+    expect(towards(day!.keyframes[0]!)).toEqual([78, 48]);
+    expect(day!.keyframes[0]!.opacity).toBe(0);
+    expect(fake.on(sheet()!.querySelector('.cal-sheet__scrim'))[0]!.keyframes).toEqual([{ opacity: 0 }, { opacity: 1 }]);
+    expect(sheet()!.querySelector<HTMLElement>('.cal__month')!.dataset.busy).toBeUndefined();
+  });
+
   it('closes back into the date in 240 ms and only then leaves the screen', () => {
     date().click();
     $('.cal-sheet__scrim').click();
@@ -182,6 +253,7 @@ describe('the calendar sheet from the date', () => {
     const close = fake.on(sheet()!.querySelector('.cal-sheet__panel')).at(-1)!;
     expect(close.keyframes.at(-1)!.clipPath).toMatch(/^circle\(0px at /);
     expect(close.options.duration).toBe(240);
+    expect(fake.on(sheet()!.querySelector('.cal-sheet__scrim')).at(-1)!.keyframes).toEqual([{ opacity: 1 }, { opacity: 0 }]);
     close.finish();
     expect(sheet()).toBeNull();
   });
@@ -230,13 +302,28 @@ describe('rewards: a warm-up level done, a day counted', () => {
     const goal = runs('.bar__goal').find((run) => run.options.duration === 1200);
     expect(goal!.keyframes.map((k) => k.transform)).toContain('scale(1.12)');
     expect($('.bar__goal .visually-hidden').textContent).toBe('цей тиждень: 1 з 3 днів');
-    expect(runs('.home .cal-day--shown').some((run) => run.options.duration === 1200 && 'boxShadow' in run.keyframes[0]!)).toBe(true);
+    const around = runs('.home .cal-day--shown').find((run) => run.options.duration === 1200);
+    expect(around!.keyframes.map((k) => k.boxShadow)).toEqual([
+      '0 0 0 0 rgb(185 179 189 / 0)', '0 0 14px 8px rgb(185 179 189 / 0.55)', '0 0 26px 18px rgb(185 179 189 / 0)',
+    ]);
     const glow = document.querySelector('.fx-barglow');
+    expect(glow!.getAttribute('aria-hidden')).toBe('true');
     expect(fake.on(glow)[0]!.options.duration).toBe(1200);
+    expect(fake.on(glow)[0]!.keyframes.map((k) => k.opacity)).toEqual([0, 1, 0]);
     fake.on(glow)[0]!.finish();
     expect(document.querySelector('.fx-barglow')).toBeNull();
     vi.advanceTimersByTime(1200);
     expect($('.bar__goal').textContent).toBe('цей тиждень: 1 з 3 днів');
+  });
+
+  it('glows in the accent of the diary', () => {
+    document.documentElement.style.setProperty('--accent-rgb', '12 34 56');
+    tick('a');
+    tick('t');
+    vi.advanceTimersByTime(720);
+    const around = runs('.home .cal-day--shown').find((run) => run.options.duration === 1200);
+    expect(around!.keyframes[1]!.boxShadow).toBe('0 0 14px 8px rgb(12 34 56 / 0.55)');
+    document.documentElement.style.removeProperty('--accent-rgb');
   });
 
   it('shows the same with «вимкнути вібровідгук», without a buzz', () => {
@@ -274,7 +361,12 @@ describe('rewards: a warm-up level done, a day counted', () => {
 describe('rows: added, removed, brought back', () => {
   const pick = () => byText('тренування А').click();
   const lastRow = (selector: string) => [...host.querySelectorAll(`${selector} .sets > .set-row`)].at(-1)!;
-  const cameFromLeft = (row: Element) => fake.on(row).some((run) => run.keyframes[0]?.transform === 'translateX(-24px)' && run.options.duration === 360);
+  const cameFromLeft = (row: Element) => fake.on(row).some((run) => run.options.duration === 360
+    && JSON.stringify(run.keyframes) === JSON.stringify([{ opacity: 0, transform: 'translateX(-24px)' }, { opacity: 1, transform: 'none' }]));
+  const typeIn = (field: HTMLInputElement, value: string) => {
+    field.value = value;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+  };
 
   it('floats a new set in from the left', () => {
     pick();
@@ -294,10 +386,13 @@ describe('rows: added, removed, brought back', () => {
     byLabel('видалити підхід 2').click();
     byLabel('точно видалити підхід 2').click();
     expect(host.querySelectorAll('.wo-ex .sets > .set-row')).toHaveLength(1);
-    const ghost = document.querySelector('.fx-ghost')!;
+    const ghost = document.querySelector<HTMLElement>('.fx-ghost')!;
     expect(ghost.getAttribute('aria-hidden')).toBe('true');
+    expect(ghost.inert).toBe(true);
+    // a still copy of the whole row, × and fields included
+    expect(ghost.querySelectorAll('input')).toHaveLength(2);
     const [out] = fake.on(ghost);
-    expect(out!.keyframes.at(-1)).toMatchObject({ opacity: 0, transform: 'translateX(28px)' });
+    expect(out!.keyframes).toEqual([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(28px)' }]);
     expect(out!.options.duration).toBe(240);
     out!.finish();
     expect(document.querySelector('.fx-ghost')).toBeNull();
@@ -310,6 +405,20 @@ describe('rows: added, removed, brought back', () => {
     document.querySelector<HTMLButtonElement>('.toast:not([hidden]) .toast__action')!.click();
     expect(fake.on(lastRow('.wo-ex')).some((run) => run.keyframes[0]?.transform === 'scale(.94)' && run.options.easing === 'cubic-bezier(.34,1.56,.64,1)')).toBe(true);
     expect(fake.on(host.querySelector('.wo-ex .sets > .set-row')).some((run) => run.keyframes[0]?.transform === 'scale(.94)')).toBe(false);
+  });
+
+  it('brings back the very set removed, not the ones after it', () => {
+    pick();
+    byText('додати підхід').click();
+    const reps = () => [...host.querySelectorAll<HTMLInputElement>('.wo-ex [data-f="r"]')];
+    reps().forEach((field, i) => typeIn(field, String(10 + 2 * i)));
+    byLabel('видалити підхід 2').click();
+    byLabel('точно видалити підхід 2').click();
+    document.querySelector<HTMLButtonElement>('.toast:not([hidden]) .toast__action')!.click();
+    const sprang = [...host.querySelectorAll('.wo-ex .sets > .set-row')].map((row) =>
+      fake.on(row).some((run) => JSON.stringify(run.keyframes) === JSON.stringify([{ opacity: 0, transform: 'scale(.94)' }, { opacity: 1, transform: 'none' }])));
+    expect(reps().map((field) => field.value)).toEqual(['10', '12', '14']);
+    expect(sprang).toEqual([false, true, false]);
   });
 
   it('removes at once, with no ghost, with «вимкнути всі анімації»', () => {
@@ -345,6 +454,8 @@ describe('the stopwatch', () => {
   it('turns ▶ into ■ by glyph frames', () => {
     button().click();
     expect(button().dataset.g).toBe('>');
+    // a first start has no old digits to dissolve
+    expect(time().dataset.busy).toBeUndefined();
     vi.advanceTimersByTime(240);
     expect(button().dataset.g).toBeUndefined();
   });

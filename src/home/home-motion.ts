@@ -78,9 +78,11 @@ export function swapMonth(block: HTMLElement, redraw: () => void): void {
   const runs = cells.map((cell) => play(cell, [{ transform: 'none', opacity: 1 }, { transform: heap(cell, centre, 0.82), opacity: 0.85 }], {
     duration: MS.xs, easing: EASE.in, fill: 'forwards',
   }));
-  if (!runs.at(-1)) return redraw();
+  const last = runs.at(-1);
+  // nothing plays (no motion, or a browser that can't animate): the new month at once, nothing to assemble
+  if (!last) return redraw();
   swapping.add(block);
-  whenDone(runs.at(-1)!, () => {
+  whenDone(last, () => {
     swapping.delete(block);
     redraw();
     assemble(block, true);
@@ -164,8 +166,9 @@ function barGlow(): void {
  */
 function dayCounted(host: HTMLElement, date: DayKey, off: Pick<Accessibility, 'noVibration'>): void {
   buzz([40, 180, 40], off);
+  // a day counts only with the goal on, so its line is always shown
   const goal = host.querySelector<HTMLElement>('.bar__goal');
-  if (goal && !goal.hidden) {
+  if (goal) {
     decode(goal, MS.xxl);
     play(goal, [{ transform: 'scale(1)' }, { transform: 'scale(1.12)', offset: 0.15 }, { transform: 'scale(1.12)', offset: 0.55 }, { transform: 'scale(1)' }], {
       duration: MS.xxl, easing: EASE.out,
