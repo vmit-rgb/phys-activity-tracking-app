@@ -75,3 +75,38 @@
   transform-origin: bottom;
   background: radial-gradient(120% 100% at 50% 100%, rgb(var(--accent-rgb) / 45%), transparent 70%);
 }
+
+/* ---- a removed row leaves where it was (home/control-motion.ts rowLeaving) ---- */
+.fx-ghost {
+  position: fixed;
+  margin: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+/* ---- the stopwatch button by glyph frames: ▶ → ■ → ✓ ---- */
+.sw__btn[data-g] { position: relative; }
+.sw__btn[data-g] .icon { visibility: hidden; }
+.sw__btn[data-g]::before {
+  content: attr(data-g);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ---- the slider: the thumb grows under the finger (1.4); saved, it drops into the grey dot; «скинути» pops it back ---- */
+@keyframes fx-thumb-drop { from { transform: scale(2); } to { transform: scale(1); } }
+@keyframes fx-thumb-back { from { transform: scale(0); } 60% { transform: scale(1.15); } to { transform: scale(1); } }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-no-motion]) .slider::-webkit-slider-thumb { transition: transform 120ms cubic-bezier(.2, .8, .2, 1); }
+  :root:not([data-no-motion]) .slider::-moz-range-thumb { transition: transform 120ms cubic-bezier(.2, .8, .2, 1); }
+  :root:not([data-no-motion]) .slider:not(:disabled):active::-webkit-slider-thumb { transform: scale(1.4); }
+  :root:not([data-no-motion]) .slider:not(:disabled):active::-moz-range-thumb { transform: scale(1.4); }
+  :root:not([data-no-motion]) .slider.fx-lock::-webkit-slider-thumb { animation: fx-thumb-drop 420ms cubic-bezier(.2, .8, .2, 1); }
+  :root:not([data-no-motion]) .slider.fx-lock::-moz-range-thumb { animation: fx-thumb-drop 420ms cubic-bezier(.2, .8, .2, 1); }
+  :root:not([data-no-motion]) .slider.fx-unlock::-webkit-slider-thumb { animation: fx-thumb-back 420ms cubic-bezier(.34, 1.56, .64, 1); }
+  :root:not([data-no-motion]) .slider.fx-unlock::-moz-range-thumb { animation: fx-thumb-back 420ms cubic-bezier(.34, 1.56, .64, 1); }
+}

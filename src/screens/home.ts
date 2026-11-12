@@ -255,6 +255,7 @@ function sectionControls(host: HTMLElement, state: HomeState, actions: HomeActio
       reward(host, state.date, completed(before, after, state.settings), state.settings.accessibility);
     },
     render: () => keepingFocus(() => actions.refresh()),
+    screen: () => host,
     toast: (message) => actions.toast(message),
   };
 }
@@ -266,7 +267,8 @@ function tickStopwatches(host: HTMLElement, state: HomeState, signal: AbortSigna
   const timer = setInterval(() => {
     for (const time of host.querySelectorAll<HTMLElement>('[data-sw-time]')) {
       const started = state.session.running.get(String(time.dataset.swTime));
-      if (started !== undefined) time.textContent = formatStopwatch(performance.now() - started);
+      // not while its old digits dissolve («знову»)
+      if (started !== undefined && time.dataset.busy === undefined) time.textContent = formatStopwatch(performance.now() - started);
     }
   }, 50);
   signal.addEventListener('abort', () => clearInterval(timer));

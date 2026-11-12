@@ -7,6 +7,9 @@ import { parseNumber } from '../domain/numbers';
 import { MOMENTS, type Moment, type Settings, type WorkoutItem } from '../domain/settings';
 import { undo, type ToastMessage } from '../ui/toast';
 import { bpm } from '../domain/stats';
+import {
+  control, rowAdded, rowLeaving, rowsBack, rowsNow, sliderReset, sliderSaved, stopwatchMoved, stopwatchSeen, timeDissolves, workoutAssembles,
+} from './control-motion';
 import type { HomeSession } from './session';
 import { prepareSound } from './signal';
 
@@ -26,6 +29,8 @@ export interface SectionControls {
   edit(edit: Edit, render: boolean): void;
   /** Draws the screen again without changing the day. */
   render(): void;
+  /** The screen as drawn now: a change draws it anew, and the motion plays on the new one. */
+  screen(): HTMLElement;
   toast(message: ToastMessage): void;
 }
 
@@ -51,11 +56,19 @@ const planned = (c: SectionControls, exercise: string) => workoutItem(c, exercis
 function removeWithUndo(c: SectionControls, edit: Edit, message: string): void {
   const before = c.day();
   c.edit(edit, true);
-  c.toast({ message, showIcon: true, action: undo(() => c.edit(() => before, true)) });
+  c.toast({
+    message,
+    showIcon: true,
+    action: undo(() => {
+      const rows = rowsNow(c.screen());
+      c.edit(() => before, true);
+      rowsBack(c.screen(), rows);
+    }),
+  });
 }
 
 /** × → ✓: the first tap arms, the second removes (ACCESSIBILITY.md, deleting). */
-function remove(c: SectionControls, target: string): void {
+function remove(c: SectionControls, target: string, button: HTMLElement): void {
   const key = dayKey(c, target);
   if (c.session.armed !== key) {
     c.session.armed = key;
@@ -66,25 +79,41 @@ function remove(c: SectionControls, target: string): void {
   c.session.running.delete(key);
   c.session.retry.delete(key);
   const [kind = '', id = '', at = '0'] = target.split('|');
-  const [edit, message] = REMOVALS[kind === 'lap' || kind === 'round' ? kind : 'set'](c, id, Number(at));
+  const { edit, message, rowStays } = REMOVALS[kind === 'lap' || kind === 'round' ? kind : 'set'](c, id, Number(at));
+  const row = button.closest('.set-row');
+  const was = row?.querySelector('[data-sw-time]')?.textContent ?? '';
+  const leave = rowStays ? () => {} : rowLeaving(row);
   removeWithUndo(c, edit, message);
+  leave();
+  if (rowStays) timeDissolves([...c.screen().querySelectorAll<HTMLElement>('[data-sw-time]')].find((time) => time.dataset.swTime === key), was);
 }
 
-type Removal = (c: SectionControls, id: string, i: number) => [Edit, string];
+/** What × does: the edit, its toast, and whether the row stays (the only timer is reset to zero, not removed). */
+interface Removal { readonly edit: Edit; readonly message: string; readonly rowStays: boolean }
+
+const removed = (edit: Edit, message: string): Removal => ({ edit, message, rowStays: false });
+const reset = (edit: Edit): Removal => ({ edit, message: 'таймер скинуто', rowStays: true });
 
 /** What × removes: a lap; a round, or the only round's time; a set, or the only timed set's time. */
-const REMOVALS: Record<'lap' | 'round' | 'set', Removal> = {
-  lap: (_c, id, i) => [removeLap(id, i), 'коло видалено'],
-  round: (c, id, i) => (roundRows(c.day(), id) > 1 ? [removeRound(id, i), 'таймер видалено'] : [setRound(id, i, null), 'таймер скинуто']),
+const REMOVALS: Record<'lap' | 'round' | 'set', (c: SectionControls, id: string, i: number) => Removal> = {
+  lap: (_c, id, i) => removed(removeLap(id, i), 'коло видалено'),
+  round: (c, id, i) => (roundRows(c.day(), id) > 1 ? removed(removeRound(id, i), 'таймер видалено') : reset(setRound(id, i, null))),
   set: (c, id, i) => {
     const timed = workoutItem(c, id)?.fields.includes('seconds') ?? false;
-    if (!timed) return [removeSet(id, i, planned(c, id)), 'підхід видалено'];
-    return setRows(c.day(), id, planned(c, id)) === 1 ? [setSet(id, i, 's', null), 'таймер скинуто'] : [removeSet(id, i, planned(c, id)), 'таймер видалено'];
+    if (!timed) return removed(removeSet(id, i, planned(c, id)), 'підхід видалено');
+    return setRows(c.day(), id, planned(c, id)) === 1 ? reset(setSet(id, i, 's', null)) : removed(removeSet(id, i, planned(c, id)), 'таймер видалено');
   },
 };
 
+/** A tap on the stopwatch, and its motion on the stopwatch drawn after it. */
+function stopwatch(c: SectionControls, target: string, button: HTMLElement): void {
+  const seen = stopwatchSeen(button);
+  tapStopwatch(c, target);
+  stopwatchMoved(control(c.screen(), 'sw', 'sw', target), seen);
+}
+
 /** ▶ starts, ■ stops and saves whole seconds, ✓ asks to overwrite, ↻ starts again from zero. */
-function stopwatch(c: SectionControls, target: string): void {
+function tapStopwatch(c: SectionControls, target: string): void {
   const key = dayKey(c, target);
   const started = c.session.running.get(key);
   const [kind = '', id = '', at = '0'] = target.split('|');
@@ -116,6 +145,7 @@ function dropWorkout(c: SectionControls): void {
   }
   c.session.armed = null;
   removeWithUndo(c, dropSession, 'тренування прибрано');
+  workoutAssembles(c.screen());
 }
 
 /* ---- the slider: a draft until «зберегти», 20 s or leaving (ACCESSIBILITY.md) ---- */
@@ -149,10 +179,22 @@ export function flushDrafts(c: SectionControls): void {
   c.edit((day) => drafts.reduce((next, [, d]) => answer(d.moment, d.tracker, d.value)(next), day), true);
 }
 
+/** The slider of `key` on the screen drawn now. */
+const sliderAt = (c: SectionControls, key: string) =>
+  [...c.screen().querySelectorAll<HTMLInputElement>('input.slider')].find((slider) => slider.dataset.key === key);
+
 function saveDraft(c: SectionControls, element: HTMLElement): void {
-  const draft = c.session.drafts.get(sliderKey(c, element));
-  c.session.drafts.delete(sliderKey(c, element));
-  if (draft) c.edit(answer(draft.moment, draft.tracker, draft.value), true);
+  const key = sliderKey(c, element);
+  const draft = c.session.drafts.get(key);
+  c.session.drafts.delete(key);
+  if (!draft) return;
+  c.edit(answer(draft.moment, draft.tracker, draft.value), true);
+  sliderSaved(sliderAt(c, key));
+}
+
+function resetSlider(c: SectionControls, element: HTMLElement): void {
+  c.edit(answer(moment(element), data(element, 'tracker'), null), true);
+  sliderReset(sliderAt(c, sliderKey(c, element)));
 }
 
 /* ---- pulse timer: count down, ask for the beats, save beats per minute ---- */
@@ -182,6 +224,12 @@ function finishPulse(c: SectionControls, element: HTMLElement): void {
 
 /* ---- taps ---- */
 
+/** A row added by `button`: the edit, then the new row floats in next to the same button drawn anew. */
+function adding(c: SectionControls, button: HTMLElement, name: string, edit: Edit): void {
+  c.edit(edit, true);
+  rowAdded(control(c.screen(), data(button, 'act'), name, data(button, name)));
+}
+
 type Tap = (c: SectionControls, element: HTMLElement) => void;
 
 const TAPS: Record<string, Tap> = {
@@ -190,16 +238,19 @@ const TAPS: Record<string, Tap> = {
     if (level) c.edit(markLevel(level, data(el, 'done') === 'true'), true);
   },
   chip: (c, el) => c.edit(toggleChip(data(el, 'group')), true),
-  pick: (c, el) => c.edit(pickSession(data(el, 'session')), true),
+  pick: (c, el) => {
+    c.edit(pickSession(data(el, 'session')), true);
+    workoutAssembles(c.screen());
+  },
   drop: (c) => dropWorkout(c),
-  'more-sets': (c, el) => c.edit(showMoreSets(data(el, 'ex'), planned(c, data(el, 'ex'))), true),
-  'more-rounds': (c, el) => c.edit(showMoreRounds(data(el, 'ex')), true),
-  'add-lap': (c, el) => c.edit(addLap(data(el, 'kind')), true),
-  rm: (c, el) => remove(c, data(el, 'rm')),
-  sw: (c, el) => stopwatch(c, data(el, 'sw')),
+  'more-sets': (c, el) => adding(c, el, 'ex', showMoreSets(data(el, 'ex'), planned(c, data(el, 'ex')))),
+  'more-rounds': (c, el) => adding(c, el, 'ex', showMoreRounds(data(el, 'ex'))),
+  'add-lap': (c, el) => adding(c, el, 'kind', addLap(data(el, 'kind'))),
+  rm: (c, el) => remove(c, data(el, 'rm'), el),
+  sw: (c, el) => stopwatch(c, data(el, 'sw'), el),
   'slide-step': step,
   'slide-save': saveDraft,
-  'slide-reset': (c, el) => c.edit(answer(moment(el), data(el, 'tracker'), null), true),
+  'slide-reset': resetSlider,
   'ai-tip': (c) => c.toast(AI_LINK),
   'pulse-start': startPulse,
   'pulse-done': finishPulse,

@@ -270,3 +270,159 @@ describe('rewards: a warm-up level done, a day counted', () => {
     expect(host.querySelector('.fx-strk')).toBeNull();
   });
 });
+
+describe('rows: added, removed, brought back', () => {
+  const pick = () => byText('тренування А').click();
+  const lastRow = (selector: string) => [...host.querySelectorAll(`${selector} .sets > .set-row`)].at(-1)!;
+  const cameFromLeft = (row: Element) => fake.on(row).some((run) => run.keyframes[0]?.transform === 'translateX(-24px)' && run.options.duration === 360);
+
+  it('floats a new set in from the left', () => {
+    pick();
+    byText('додати підхід').click();
+    expect(cameFromLeft(lastRow('.wo-ex'))).toBe(true);
+  });
+
+  it('floats a new lap and a new «ще раз» timer in from the left', () => {
+    byText('додати коло').click();
+    expect(cameFromLeft(lastRow('.mv-kind'))).toBe(true);
+    byText('ще раз').click();
+    expect(cameFromLeft(lastRow('.sw-block'))).toBe(true);
+  });
+
+  it('sends a removed set out to the right with a fade in 240 ms, and it leaves the page', () => {
+    pick();
+    byLabel('видалити підхід 2').click();
+    byLabel('точно видалити підхід 2').click();
+    expect(host.querySelectorAll('.wo-ex .sets > .set-row')).toHaveLength(1);
+    const ghost = document.querySelector('.fx-ghost')!;
+    expect(ghost.getAttribute('aria-hidden')).toBe('true');
+    const [out] = fake.on(ghost);
+    expect(out!.keyframes.at(-1)).toMatchObject({ opacity: 0, transform: 'translateX(28px)' });
+    expect(out!.options.duration).toBe(240);
+    out!.finish();
+    expect(document.querySelector('.fx-ghost')).toBeNull();
+  });
+
+  it('brings back with a spring what «скасувати» returns', () => {
+    pick();
+    byLabel('видалити підхід 2').click();
+    byLabel('точно видалити підхід 2').click();
+    document.querySelector<HTMLButtonElement>('.toast:not([hidden]) .toast__action')!.click();
+    expect(fake.on(lastRow('.wo-ex')).some((run) => run.keyframes[0]?.transform === 'scale(.94)' && run.options.easing === 'cubic-bezier(.34,1.56,.64,1)')).toBe(true);
+    expect(fake.on(host.querySelector('.wo-ex .sets > .set-row')).some((run) => run.keyframes[0]?.transform === 'scale(.94)')).toBe(false);
+  });
+
+  it('removes at once, with no ghost, with «вимкнути всі анімації»', () => {
+    pick();
+    document.documentElement.setAttribute('data-no-motion', '');
+    byLabel('видалити підхід 2').click();
+    byLabel('точно видалити підхід 2').click();
+    expect(document.querySelector('.fx-ghost')).toBeNull();
+  });
+});
+
+describe('choosing a workout', () => {
+  const body = () => $('#sec-wo');
+  const staggered = () => [...body().children].map((child) => fake.on(child).find((run) => run.keyframes[0]?.transform === 'translateY(8px)')?.options.delay);
+
+  it('assembles the workout one by one, 40 ms apart', () => {
+    byText('тренування А').click();
+    expect(staggered().slice(0, 3)).toEqual([0, 40, 80]);
+  });
+
+  it('assembles the choice again after «прибрати з цього дня»', () => {
+    byText('тренування А').click();
+    byText('прибрати з цього дня').click();
+    expect(byText('тренування Б')).toBeDefined();
+    expect(staggered().slice(0, 3)).toEqual([0, 40, 80]);
+  });
+});
+
+describe('the stopwatch', () => {
+  const button = () => $('.sw__btn');
+  const time = () => $('[data-sw-time]');
+
+  it('turns ▶ into ■ by glyph frames', () => {
+    button().click();
+    expect(button().dataset.g).toBe('>');
+    vi.advanceTimersByTime(240);
+    expect(button().dataset.g).toBeUndefined();
+  });
+
+  it('turns ■ into ✓ by frames and the saved time re-forms', () => {
+    const now = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    button().click();
+    now.mockReturnValue(32_400);
+    vi.advanceTimersByTime(240);
+    button().click();
+    expect(button().dataset.g).toBe('#');
+    expect(time().textContent).not.toBe('00.31.00');
+    vi.advanceTimersByTime(240);
+    expect(time().textContent).toBe('00.31.00');
+    now.mockRestore();
+  });
+
+  it('dissolves the old digits on «знову» before counting from zero', () => {
+    const now = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    button().click();
+    now.mockReturnValue(32_400);
+    button().click();
+    vi.advanceTimersByTime(240);
+    button().click();
+    button().click();
+    expect(time().dataset.busy).toBeDefined();
+    vi.advanceTimersByTime(240);
+    expect(time().dataset.busy).toBeUndefined();
+    vi.advanceTimersByTime(50);
+    expect(time().textContent).toBe('00.00.00');
+    now.mockRestore();
+  });
+
+  it('changes a reset timer by a run of glyphs, the row stays', () => {
+    const now = vi.spyOn(performance, 'now').mockReturnValue(1000);
+    button().click();
+    now.mockReturnValue(32_400);
+    button().click();
+    byLabel('скинути таймер до нуля').click();
+    byLabel('точно скинути таймер до нуля').click();
+    expect(document.querySelector('.fx-ghost')).toBeNull();
+    expect(time().dataset.busy).toBeDefined();
+    vi.advanceTimersByTime(240);
+    expect(time().textContent).toBe('00.00.00');
+    now.mockRestore();
+  });
+});
+
+describe('the slider', () => {
+  const slider = () => $<HTMLInputElement>('input.slider');
+  const slide = (value: string) => {
+    slider().value = value;
+    slider().dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  it('drops the thumb into a grey dot on «зберегти» and the value re-forms', () => {
+    slide('6');
+    byText('зберегти').click();
+    expect(slider().classList.contains('fx-lock')).toBe(true);
+    expect($('.tracker__value').dataset.busy).toBeDefined();
+    vi.advanceTimersByTime(420);
+    expect(slider().classList.contains('fx-lock')).toBe(false);
+    expect($('.tracker__value').textContent).toBe('6/10');
+  });
+
+  it('brings the thumb back with a pop on «скинути»', () => {
+    slide('6');
+    byText('зберегти').click();
+    byText('скинути').click();
+    expect(slider().classList.contains('fx-unlock')).toBe(true);
+    vi.advanceTimersByTime(420);
+    expect(slider().classList.contains('fx-unlock')).toBe(false);
+  });
+
+  it('keeps the thumb still with «вимкнути всі анімації»', () => {
+    document.documentElement.setAttribute('data-no-motion', '');
+    slide('6');
+    byText('зберегти').click();
+    expect(slider().classList.contains('fx-lock')).toBe(false);
+  });
+});
