@@ -82,10 +82,13 @@ function menuMarkup(ctx: Ctx, slot: Slot, name: string): string {
   return `<div class="st-menu" role="menu" aria-label="дії: ${esc(shown(name))}">${items.join('')}</div>`;
 }
 
+/** What finds an entry again after a redraw moved it: its family and the id of what it is. */
+export const entryKey = (family: string, id: string) => `${family}:${id}`;
+
 /** An entry that can be dragged, with its «дії» button (seen when focused) and its menu. */
-function entry(ctx: Ctx, family: string, slot: Slot, name: string, inner: string, cls = '', attrs = ''): string {
+function entry(ctx: Ctx, family: string, slot: Slot, id: string, name: string, inner: string, cls = '', attrs = ''): string {
   return `
-      <div class="st-item${cls}" data-family="${family}" ${slotData(slot)}${attrs}>
+      <div class="st-item${cls}" data-family="${family}" data-key="${esc(entryKey(family, id))}" ${slotData(slot)}${attrs}>
         <button type="button" class="ctl st-actions t-3rd-regular" ${act('menu', `data-family="${family}" ${slotData(slot)}`)}>дії: ${esc(shown(name))}</button>
         ${inner}${menuMarkup(ctx, slot, name)}
       </div>`;
@@ -176,7 +179,7 @@ function trackerMarkup(ctx: Ctx, tracker: Tracker, index: number, placeholder: s
         ${trackerValues(tracker, path)}
         <div class="st-asks">${asks.join('')}</div>
         ${tracker.kind === 'number' ? timerBlock(tracker) : ''}`;
-  return entry(ctx, `tk-${tracker.kind}`, slot, tracker.name, inner);
+  return entry(ctx, `tk-${tracker.kind}`, slot, tracker.id, tracker.name, inner);
 }
 
 /** A box with its own +/−: a tracker kind, a level, a «для чого», a workout. */
@@ -234,7 +237,7 @@ function warmupItem(ctx: Ctx, family: string, slot: Slot, item: WarmupItem): str
         ${ed(`ex:${item.exercise}.how`, exercise.how, 'як робити: короткий опис вправи', 'як робити', 'long', 't-3rd-regular')}
         ${checkbox('n с', item.seconds !== null, `${act('timed')} data-path="${path}"`)}
         ${linkField(`ex:${item.exercise}.source`, exercise.source)}`;
-  return entry(ctx, family, slot, exercise.name, inner);
+  return entry(ctx, family, slot, item.exercise, exercise.name, inner);
 }
 
 export function prescription(item: WorkoutItem): string {
@@ -256,28 +259,28 @@ function workoutFields(item: WorkoutItem, path: string): string {
 function workoutItem(ctx: Ctx, slot: Slot, item: WorkoutItem): string {
   const path = `${slot.list}.${slot.index}`;
   const exercise = exerciseHead(ctx, item.exercise);
-  if (ctx.view.picking) return pickRow(ctx, slot, exercise, prescription(item));
+  if (ctx.view.picking) return pickRow(ctx, slot, item.exercise, exercise, prescription(item));
   const inner = `
         <div class="st-row">${ed(`ex:${item.exercise}.name`, exercise.name, 'вправа', 'назва вправи', 'text')}${
   ed(`${path}.@rx`, prescription(item), 'n разів', 'підходи × повторення (наприклад, 3 × 10–12)', 'rx', 't-3rd-regular st-value')}${removeButton(slot, exercise.name)}</div>
         ${ed(`ex:${item.exercise}.how`, exercise.how, 'як робити: короткий опис вправи', 'як робити', 'long', 't-3rd-regular')}
         ${linkField(`ex:${item.exercise}.source`, exercise.source)}
         ${workoutFields(item, path)}`;
-  return entry(ctx, 'wo-ex', slot, exercise.name, inner);
+  return entry(ctx, 'wo-ex', slot, item.exercise, exercise.name, inner);
 }
 
 /**
  * In «створити групу»: an exercise is a toggle with its name, «n разів» and how-to
  * (example/settings-create-group); another workout's are off once one is chosen.
  */
-function pickRow(ctx: Ctx, slot: Slot, exercise: { name: string; how: string }, rx: string): string {
+function pickRow(ctx: Ctx, slot: Slot, item: string, exercise: { name: string; how: string }, rx: string): string {
   const name = exercise.name;
   const picking = ctx.view.picking!;
   const chosen = picking.list === slot.list && picking.chosen.includes(slot.index);
   const other = picking.list !== null && picking.list !== slot.list;
   const full = !chosen && picking.chosen.length >= 3;
   const how = exercise.how ? `<span class="st-pick__how t-3rd-regular">${esc(exercise.how)}</span>` : '<span class="st-pick__how"></span>';
-  return `<button type="button" class="ctl st-pick" ${act('pick', slotData(slot))} aria-label="${esc(shown(name))}" aria-pressed="${chosen}"${other || full ? ' disabled' : ''}>
+  return `<button type="button" class="ctl st-pick" ${act('pick', slotData(slot))} data-key="${esc(entryKey('wo-ex', item))}" aria-label="${esc(shown(name))}" aria-pressed="${chosen}"${other || full ? ' disabled' : ''}>
     <span class="st-pick__name t-1st-regular">${esc(shown(name))}</span><span class="st-pick__rx t-3rd-regular">${esc(rx || 'n разів')}</span>${how}</button>`;
 }
 
@@ -286,7 +289,7 @@ function groupMarkup(ctx: Ctx, slot: Slot, set: readonly WorkoutItem[]): string 
   const names = set.map((item) => shown(exerciseHead(ctx, item.exercise).name));
   const items = set.map((item, index) => workoutItem(ctx, { list: inner, index }, item));
   if (ctx.view.picking) return `<div class="st-group st-group--off"><p class="t-3rd-regular muted">група вправ: ${esc(names.join(' + '))}</p></div>`;
-  return entry(ctx, 'wo-ex', slot, `група вправ: ${names.join(' + ')}`, `<p class="t-3rd-regular muted">група вправ</p>${list('wo-ex', inner, items)}`, ' st-group', ` data-group="${set.length}"`);
+  return entry(ctx, 'wo-ex', slot, `set:${set[0]?.exercise ?? ''}`, `група вправ: ${names.join(' + ')}`, `<p class="t-3rd-regular muted">група вправ</p>${list('wo-ex', inner, items)}`, ' st-group', ` data-group="${set.length}"`);
 }
 
 function workoutEntries(ctx: Ctx, path: string, items: readonly WorkoutEntry[]): string {
@@ -312,7 +315,7 @@ function container(ctx: Ctx, c: Container): string {
   const open = c.forceOpen === true || ctx.view.inner.has(c.id);
   const items = `${c.slot.list}.${c.slot.index}.items`;
   const inner = box(`${c.head}${removeButton(c.slot, c.name)}`, open, toggle(c.id, c.name, open), c.meta, c.body);
-  return entry(ctx, c.family, c.slot, c.name, inner, ' st-box', ` data-items="${esc(items)}"${open ? '' : ' data-closed="1"'}`);
+  return entry(ctx, c.family, c.slot, c.id, c.name, inner, ' st-box', ` data-items="${esc(items)}"${open ? '' : ' data-closed="1"'}`);
 }
 
 const addExercise = (items: string) => `<div>${tertiary('додати вправу', act('add', `data-what="exercise" data-list="${esc(items)}"`))}</div>`;
@@ -395,7 +398,7 @@ function movementKind(ctx: Ctx, kind: MovementKind, index: number): string {
         <div class="st-row">${ed(`${path}.name`, kind.name, 'що саме (наприклад, прогулянка)', 'що саме', 'text', 't-1st-semibold')}${removeButton(slot, kind.name)}</div>
         ${linkField(`${path}.source`, kind.source)}
         <div class="st-fields">${fields.join('')}</div>`;
-  return entry(ctx, 'mv', slot, kind.name, inner);
+  return entry(ctx, 'mv', slot, kind.id, kind.name, inner);
 }
 
 export function movementBody(ctx: Ctx): string {

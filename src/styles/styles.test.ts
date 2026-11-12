@@ -144,9 +144,14 @@ describe('stylesheets', () => {
 
   it('time every CSS motion on the scale 120 / 240 / 360 / 420 / 720 / 1200 ms (MICROINTERACTIONS.md)', () => {
     const all = Object.keys(FILES).filter((file) => file.endsWith('.css')).map(read).join('\n');
-    const durations = [...all.matchAll(/(\d+)ms/g)].map((m) => Number(m[1]));
+    // a delay is a step of the stagger (40 ms), not a duration (MICROINTERACTIONS.md, general rules)
+    const delay = /animation-delay:\s*-?(\d+)ms/g;
+    const delays = [...all.matchAll(delay)].map((m) => Number(m[1]));
+    const durations = [...all.replace(delay, '').matchAll(/(\d+)ms/g)].map((m) => Number(m[1]));
     expect(durations.length).toBeGreaterThan(3);
     expect(durations.filter((ms) => ![120, 240, 360, 420, 720, 1200].includes(ms))).toEqual([]);
+    expect(delays.length).toBeGreaterThan(0);
+    expect(delays.filter((ms) => ms % 40 !== 0)).toEqual([]);
   });
 
   it('press as MICROINTERACTIONS.md: 0.97, icons 0.86, text 1 px down, rows 3 px right, day 0.88', () => {

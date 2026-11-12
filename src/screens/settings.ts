@@ -9,6 +9,7 @@ import { esc } from '../ui/html';
 import { iconSvg } from '../ui/icons';
 import { withGrip } from '../ui/grip';
 import { wireDrag, type DropTarget } from './drag';
+import { motionFor } from './settings-motion';
 import { FOOTER, part, wireRestore } from './parts';
 import { act, checkbox, daysSlider, destructive, secondary, tertiary } from './settings-bits';
 import {
@@ -324,10 +325,17 @@ function typed(host: HTMLElement, input: HTMLInputElement, actions: SettingsActi
   part<HTMLButtonElement>(host, '[data-act="apply"]').disabled = input.value.trim() === '';
 }
 
+/** Does what a tap asks, then plays what moves on the page drawn anew. */
+function actMoving(host: HTMLElement, actions: SettingsActions, action: SettingsAct): void {
+  const after = motionFor(action, host);
+  actions.act(action);
+  after();
+}
+
 function wire(host: HTMLElement, actions: SettingsActions, state: SettingsState): void {
   host.addEventListener('click', (event) => {
     const action = tapped(event.target as Element);
-    if (action) actions.act(action);
+    if (action) actMoving(host, actions, action);
   });
   // only checkboxes say «change» here: the paste field and the sliders are heard on «input»
   host.addEventListener('change', (event) => {
@@ -343,7 +351,7 @@ function wire(host: HTMLElement, actions: SettingsActions, state: SettingsState)
   if (state.open.has('ai')) wireRestore(host, actions.restore);
   wireDrag(host, {
     drop: (from, target) => actions.act({ act: 'drop', from, target }),
-    menu: (from, family) => actions.act({ act: 'menu', slot: from, family }),
+    menu: (from, family) => actMoving(host, actions, { act: 'menu', slot: from, family }),
     lifted: actions.lifted,
   });
 }

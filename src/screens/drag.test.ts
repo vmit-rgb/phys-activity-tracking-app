@@ -98,6 +98,17 @@ describe('dropAt', () => {
     expect(dropAt($('e0'), $('lvp'), 0)).toBeNull();
   });
 
+  it('makes a group only strictly inside the middle half: at exactly 1/4 or 3/4 it moves', () => {
+    box($('e3'), 100);
+    expect(dropAt($('e0'), $('e3'), 125)).toMatchObject({ target: { kind: 'move', before: 3 } });
+    expect(dropAt($('e0'), $('e3'), 175)).toMatchObject({ target: { kind: 'move', before: 4 } });
+  });
+
+  it('lets a stranger into a group of two (only 3 is full)', () => {
+    box($('g1a'), 0);
+    expect(dropAt($('e0'), $('g1at'), 10)).toMatchObject({ target: { kind: 'move', list: `${S}.1.set`, before: 0 }, line: 'before' });
+  });
+
   it('reads an entry with no height as its top half', () => {
     box($('e3'), 0, 0);
     expect(dropAt($('e0'), $('e3'), 0)).toMatchObject({ target: { kind: 'move', before: 3 } });
@@ -142,6 +153,7 @@ describe('the gesture', () => {
     pointer('pointerdown', $('rm3'), 0, 0);
     pointer('pointerdown', $('root').querySelector('.st-actions')!, 0, 0);
     pointer('pointerdown', $('e0t'), 0, 0, 2);
+    pointer('pointerdown', $('e0t'), 0, 0, 1);
     pointer('pointerdown', $('outside'), 0, 0);
     vi.advanceTimersByTime(LIFT_MS);
     expect(hooks.lifted).not.toHaveBeenCalled();
@@ -155,15 +167,23 @@ describe('the gesture', () => {
     document.elementFromPoint = () => under;
     pointer('pointerdown', $('e0t'), 10, 10);
     vi.advanceTimersByTime(LIFT_MS);
-    pointer('pointermove', document, 12, 12);
+    // 8 px is still a press; past it, a drag
+    pointer('pointermove', document, 14, 14);
     expect(document.querySelector('.st-proxy')).toBeNull();
     pointer('pointermove', document, 10, 110);
-    expect(document.querySelector('.st-proxy')!.textContent).toBe('вправа 0');
+    const proxy = document.querySelector<HTMLElement>('.st-proxy')!;
+    expect(proxy.textContent).toBe('вправа 0');
+    // under the finger, 20 px up and left; 340 wide when the entry's width is unknown
+    expect([proxy.style.left, proxy.style.top, proxy.style.width]).toEqual(['-10px', '90px', '340px']);
     expect($('e0').classList.contains('st-ghost')).toBe(true);
     expect($('e3').previousElementSibling!.className).toBe('st-line');
     pointer('pointermove', document, 10, 190);
     expect($('e3').nextElementSibling!.className).toBe('st-line');
     expect(document.querySelectorAll('.st-line')).toHaveLength(1);
+    // no scrolling exactly at the edges of the zones: 70 from the top, 110 from the bottom
+    pointer('pointermove', document, 10, 70);
+    pointer('pointermove', document, 10, innerHeight - 110);
+    expect(scroll).not.toHaveBeenCalled();
     pointer('pointermove', document, 10, 50);
     expect(scroll).toHaveBeenLastCalledWith(0, -12);
     pointer('pointermove', document, 10, innerHeight - 20);
@@ -199,7 +219,7 @@ describe('the gesture', () => {
   });
 
   it('keeps the page still under a lifted entry, swallows the click after and the phone’s menu', () => {
-    const before = new Event('touchmove', { cancelable: true });
+    const before = new Event('touchmove', { bubbles: true, cancelable: true });
     $('e0').dispatchEvent(before);
     expect(before.defaultPrevented).toBe(false);
     pointer('pointerdown', $('e0t'), 10, 10);
