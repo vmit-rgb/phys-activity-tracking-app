@@ -110,3 +110,37 @@
   :root:not([data-no-motion]) .slider.fx-unlock::-webkit-slider-thumb { animation: fx-thumb-back 420ms cubic-bezier(.34, 1.56, .64, 1); }
   :root:not([data-no-motion]) .slider.fx-unlock::-moz-range-thumb { animation: fx-thumb-back 420ms cubic-bezier(.34, 1.56, .64, 1); }
 }
+
+/* ---- stage 7c1 ---- */
+
+/* export, copy for AI, a copy of the settings: the accent fill runs through the button (ui/motion.ts fillThrough) */
+.fx-fill {
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+}
+
+/* the ASCII spinner on a button that waits (ui/motion.ts spinWhile) */
+.spin {
+  display: inline-block;
+  width: 1ch;
+  text-align: center;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* theme change: the noise of an old TV over everything, flickering twice (ui/flicker.ts) */
+.fx-tv {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482999;
+  pointer-events: none;
+  opacity: 0;
+  background-color: var(--bg);
+  background-size: 160px 160px;
+  image-rendering: pixelated;
+  /* dense 1 px grain, light and dark at 20 % (0.81, Olesia 2026-11-04) */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 40 0 0 0 -19.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.2' filter='url(%23n)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' seed='5' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 40 0 0 0 -19.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.2' filter='url(%23n)'/%3E%3C/svg%3E");
+}

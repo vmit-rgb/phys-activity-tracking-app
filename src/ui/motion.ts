@@ -225,3 +225,76 @@ export function scrambleTo(el: HTMLElement, target: string, done: () => void = (
     el.textContent = Array.from({ length: n }, () => (Math.random() < progress * 0.6 ? ' ' : glyph())).join('');
   }, done);
 }
+
+/** The ASCII spinner, wherever something waits (Olesia's frames, confirmed 2026-11-12). */
+export const SPIN = ['|', '/', '-', '\\'] as const;
+
+/**
+ * The spinner on a button while `work` runs (one frame every 120 ms), shown at
+ * least 240 ms so it doesn't just blink; then the label comes back. Without
+ * motion the button shows «…» and stays still.
+ */
+export async function spinWhile<T>(button: HTMLElement | null | undefined, work: Promise<T>): Promise<T> {
+  if (!button || button.hasAttribute('aria-busy')) return work;
+  const label = button.innerHTML;
+  const started = Date.now();
+  const spin = document.createElement('span');
+  spin.className = 'spin';
+  spin.setAttribute('aria-hidden', 'true');
+  let frame = 0;
+  spin.textContent = moving() ? SPIN[0] : '…';
+  button.setAttribute('aria-busy', 'true');
+  button.replaceChildren(spin);
+  const timer = moving() ? setInterval(() => (spin.textContent = SPIN[++frame % SPIN.length]!), MS.xs) : undefined;
+  const settle = async () => {
+    await new Promise((wait) => setTimeout(wait, Math.max(0, MS.s - (Date.now() - started))));
+    clearInterval(timer);
+    button.removeAttribute('aria-busy');
+    if (button.isConnected) button.innerHTML = label;
+  };
+  try {
+    return await work;
+  } finally {
+    await settle();
+  }
+}
+
+/**
+ * Export, copy for AI, a copy of the settings: the accent fill runs through
+ * the button and leaves (1200 ms) and the label re-forms. Only on success:
+ * errors never animate.
+ */
+export function fillThrough(button: HTMLElement | null | undefined): void {
+  if (!button || !moving() || typeof button.animate !== 'function') return;
+  button.getAnimations?.().forEach((run) => run.cancel());
+  const color = getComputedStyle(button).color;
+  const onAccent = getComputedStyle(document.documentElement).getPropertyValue('--on-accent').trim();
+  button.classList.add('fx-fill');
+  const run = button.animate([
+    { backgroundSize: '0% 100%', backgroundPosition: '0% 0', color },
+    { backgroundSize: '100% 100%', backgroundPosition: '0% 0', color: onAccent, offset: 0.4 },
+    { backgroundSize: '100% 100%', backgroundPosition: '100% 0', color: onAccent, offset: 0.62 },
+    { backgroundSize: '0% 100%', backgroundPosition: '100% 0', color },
+  ], { duration: MS.xxl, easing: EASE.out });
+  whenDone(run, () => button.classList.remove('fx-fill'));
+  decode(button, MS.xxl);
+}
+
+/**
+ * A clip-path circle growing from a point on the screen (a button's middle)
+ * until it covers `el` with `margin` to spare; in `el`'s own coordinates.
+ */
+export function circleOver(el: Element, at: { readonly x: number; readonly y: number }, margin: number): { readonly from: string; readonly to: string } {
+  const box = el.getBoundingClientRect();
+  const x = at.x - box.left;
+  const y = at.y - box.top;
+  const radius = Math.ceil(Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y)) + margin);
+  const where = ` at ${Math.round(x)}px ${Math.round(y)}px)`;
+  return { from: `circle(0px${where}`, to: `circle(${radius}px${where}` };
+}
+
+/** The middle of an element on the screen. */
+export function middleOf(el: Element): { readonly x: number; readonly y: number } {
+  const box = el.getBoundingClientRect();
+  return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+}
