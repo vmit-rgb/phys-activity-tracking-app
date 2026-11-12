@@ -5,7 +5,7 @@ import type { Edit } from '../domain/log';
 import type { Settings } from '../domain/settings';
 import { flushDrafts, wireSections, type SectionControls } from '../home/controls';
 import { HERO_STYLES, heroStyle, type HeroStyle } from '../home/hero-fit';
-import { dayArrives } from '../home/home-motion';
+import { dayArrives, popShownDay, sheetIn, sheetOut, swapMonth } from '../home/home-motion';
 import { heroFor, homeSections, type SectionId, type SectionSpec } from '../home/home-view';
 import {
   checkInBody, daytimeBody, morningBody, movementBody, noteBody, workoutBody, type SectionContext,
@@ -147,13 +147,16 @@ interface Calendar {
 function wireCalendar(host: HTMLElement, state: HomeState, go: (date: DayKey) => void, signal: AbortSignal): Calendar {
   let current = state;
   const dateButton = part<HTMLButtonElement>(host, '.date-nav__date');
-  const sheet = () => host.querySelector<HTMLElement>('.cal-sheet');
+  // one closing back into the date doesn't count: the date opens a new one
+  const sheet = () => host.querySelector<HTMLElement>('.cal-sheet:not(.cal-sheet--closing)');
 
   function closeSheet(): void {
-    if (!sheet()) return;
-    sheet()!.remove();
+    const closing = sheet();
+    if (!closing) return;
+    closing.classList.add('cal-sheet--closing');
     dateButton.setAttribute('aria-expanded', 'false');
     dateButton.focus({ preventScroll: true });
+    sheetOut(closing, dateButton, () => closing.remove());
   }
 
   /** Days open that day; arrows change the month in place and keep the focus. */
@@ -168,11 +171,14 @@ function wireCalendar(host: HTMLElement, state: HomeState, go: (date: DayKey) =>
     const container = button.closest<HTMLElement>('.cal-block')!;
     const by = String(button.dataset.by);
     state.session.month = shiftMonth(calendarView(current, '').month, Number(by));
-    container.innerHTML = calendarMarkup(calendarView(current, container.dataset.place ?? 'home'));
-    container.querySelector<HTMLElement>(`[data-cal="month"][data-by="${by}"]`)!.focus();
+    swapMonth(container, () => {
+      container.innerHTML = calendarMarkup(calendarView(current, container.dataset.place ?? 'home'));
+      container.querySelector<HTMLElement>(`[data-cal="month"][data-by="${by}"]`)!.focus();
+    });
   }
 
   function openSheet(): void {
+    host.querySelector('.cal-sheet--closing')?.remove();
     host.insertAdjacentHTML('beforeend', `
       <div class="cal-sheet" role="dialog" aria-modal="true" aria-label="календар">
         <div class="cal-sheet__scrim"></div>
@@ -187,6 +193,8 @@ function wireCalendar(host: HTMLElement, state: HomeState, go: (date: DayKey) =>
       if (event.key === 'Escape') closeSheet();
     });
     (opened.querySelector<HTMLElement>('[aria-current="date"]') ?? opened.querySelector<HTMLElement>('button'))!.focus({ preventScroll: true });
+    sheetIn(opened, dateButton);
+    popShownDay(opened);
   }
 
   part(host, '.home .cal-block').addEventListener('click', onTap);

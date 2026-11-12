@@ -55,3 +55,6 @@
   background: linear-gradient(transparent, rgb(var(--accent-rgb) / 12%), transparent);
   opacity: 0;
 }
+
+/* ---- the calendar sheet closing back into the date: no longer tappable ---- */
+.cal-sheet--closing { pointer-events: none; }

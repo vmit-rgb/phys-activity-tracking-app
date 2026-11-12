@@ -129,3 +129,75 @@ describe('another day (arrows, swipe, calendar)', () => {
     expect($('.date-nav__date span[aria-hidden="true"]').textContent).toBe('вт, 10.11.2026');
   });
 });
+
+describe('another month in the calendar', () => {
+  const block = () => $('.home > .cal-block');
+  const cells = () => [...block().querySelectorAll('.cal__grid > *')];
+  const month = () => block().querySelector('.cal__month')!;
+
+  it('pulls the cells into a heap in 120 ms, then the new month flies apart in 240 ms', () => {
+    const old = cells();
+    $<HTMLButtonElement>('.home [data-cal="month"][data-by="-1"]').click();
+    expect(fake.on(old[0]!)[0]!.options).toMatchObject({ duration: 120, fill: 'forwards' });
+    expect(month().textContent).toBe('листопад');
+    fake.on(old.at(-1)!)[0]!.finish();
+    expect(month().textContent).not.toBe('листопад');
+    expect(fake.on(cells()[0]!)[0]!.options.duration).toBe(240);
+    vi.advanceTimersByTime(240);
+    expect(month().textContent).toBe('жовтень');
+  });
+
+  it('keeps the focus on the arrow', () => {
+    $<HTMLButtonElement>('.home [data-cal="month"][data-by="-1"]').click();
+    fake.finishAll();
+    expect(document.activeElement).toBe($('.home [data-cal="month"][data-by="-1"]'));
+  });
+
+  it('takes a second tap while the cells are still in the heap', () => {
+    $<HTMLButtonElement>('.home [data-cal="month"][data-by="-1"]').click();
+    $<HTMLButtonElement>('.home [data-cal="month"][data-by="-1"]').click();
+    fake.finishAll();
+    vi.advanceTimersByTime(240);
+    expect(month().textContent).toBe('вересень');
+  });
+});
+
+describe('the calendar sheet from the date', () => {
+  const date = () => $<HTMLButtonElement>('.date-nav__date');
+  const sheet = () => host.querySelector<HTMLElement>('.cal-sheet');
+
+  it('opens out of the date in 360 ms, with the scrim fading in and the days coming together', () => {
+    date().click();
+    const [open] = fake.on(sheet()!.querySelector('.cal-sheet__panel'));
+    expect(open!.keyframes[0]!.clipPath).toMatch(/^circle\(0px at /);
+    expect(open!.options.duration).toBe(360);
+    expect(fake.on(sheet()!.querySelector('.cal-sheet__scrim'))[0]!.keyframes[0]).toMatchObject({ opacity: 0 });
+    expect(fake.on(sheet()!.querySelector('.cal__grid .cal-day'))).toHaveLength(1);
+  });
+
+  it('closes back into the date in 240 ms and only then leaves the screen', () => {
+    date().click();
+    $('.cal-sheet__scrim').click();
+    expect(date().getAttribute('aria-expanded')).toBe('false');
+    const close = fake.on(sheet()!.querySelector('.cal-sheet__panel')).at(-1)!;
+    expect(close.keyframes.at(-1)!.clipPath).toMatch(/^circle\(0px at /);
+    expect(close.options.duration).toBe(240);
+    close.finish();
+    expect(sheet()).toBeNull();
+  });
+
+  it('opens again at once on the date while the last one is still closing', () => {
+    date().click();
+    $('.cal-sheet__scrim').click();
+    date().click();
+    expect(host.querySelectorAll('.cal-sheet')).toHaveLength(1);
+    expect(date().getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('closes at once with «вимкнути всі анімації»', () => {
+    document.documentElement.setAttribute('data-no-motion', '');
+    date().click();
+    $('.cal-sheet__scrim').click();
+    expect(sheet()).toBeNull();
+  });
+});
