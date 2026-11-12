@@ -58,3 +58,20 @@
 
 /* ---- the calendar sheet closing back into the date: no longer tappable ---- */
 .cal-sheet--closing { pointer-events: none; }
+
+/* ---- rewards (ui: home/home-motion.ts): the level struck through, the glow from the bar ---- */
+.sub--done > .accordion--group .accordion__title.fx-striking { text-decoration: none; }
+.fx-strk {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0% 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.fx-barglow {
+  position: fixed;
+  inset: auto 0 0;
+  height: 220px;
+  z-index: 49;
+  pointer-events: none;
+  transform-origin: bottom;
+  background: radial-gradient(120% 100% at 50% 100%, rgb(var(--accent-rgb) / 45%), transparent 70%);
+}

@@ -5,7 +5,8 @@ import type { Edit } from '../domain/log';
 import type { Settings } from '../domain/settings';
 import { flushDrafts, wireSections, type SectionControls } from '../home/controls';
 import { HERO_STYLES, heroStyle, type HeroStyle } from '../home/hero-fit';
-import { dayArrives, popShownDay, sheetIn, sheetOut, swapMonth } from '../home/home-motion';
+import { dayArrives, popShownDay, reward, sheetIn, sheetOut, swapMonth } from '../home/home-motion';
+import { completed } from '../domain/progress';
 import { heroFor, homeSections, type SectionId, type SectionSpec } from '../home/home-view';
 import {
   checkInBody, daytimeBody, morningBody, movementBody, noteBody, workoutBody, type SectionContext,
@@ -238,13 +239,20 @@ function sectionControls(host: HTMLElement, state: HomeState, actions: HomeActio
     session: state.session,
     day: () => dayOf(current),
     edit(edit, render) {
+      const before = dayOf(current);
+      let days = current.days;
       if (render) {
-        keepingFocus(() => actions.edit(edit, true));
-        return;
+        keepingFocus(() => {
+          days = actions.edit(edit, true);
+        });
+      } else {
+        days = actions.edit(edit, false);
+        current = { ...current, days };
+        fillBar(host, current);
+        calendar.refresh(current);
       }
-      current = { ...current, days: actions.edit(edit, false) };
-      fillBar(host, current);
-      calendar.refresh(current);
+      const after = days[state.date] ?? emptyDay(state.date);
+      reward(host, state.date, completed(before, after, state.settings), state.settings.accessibility);
     },
     render: () => keepingFocus(() => actions.refresh()),
     toast: (message) => actions.toast(message),

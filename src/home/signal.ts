@@ -44,7 +44,12 @@ function flash(): void {
 }
 
 export function endSignal(off: Pick<Accessibility, 'noVibration' | 'noSound'>): void {
-  if (!off.noVibration) navigator.vibrate?.([200, 100, 200]);
+  buzz([200, 100, 200], off);
   if (!off.noSound) beep();
   flash();
+}
+
+/** A vibration, unless «вимкнути вібровідгук»; each one has a visible twin, so nothing is lost without it. */
+export function buzz(pattern: number | number[], off: Pick<Accessibility, 'noVibration'>): void {
+  if (!off.noVibration) navigator.vibrate?.(pattern);
 }

@@ -201,3 +201,72 @@ describe('the calendar sheet from the date', () => {
     expect(sheet()).toBeNull();
   });
 });
+
+describe('rewards: a warm-up level done, a day counted', () => {
+  const tick = (exercise: string) => $<HTMLInputElement>(`[data-input="tick"][data-ex="${exercise}"]`).click();
+  const levelPanel = () => document.getElementById($('.sub .accordion--group').getAttribute('aria-controls')!);
+
+  it('strikes the level through in 720 ms, folds it and buzzes 30 ms', () => {
+    tick('a');
+    expect(vibrated).toEqual([]);
+    tick('t');
+    const [strike] = runs('.sub .accordion__title .fx-strk');
+    expect(strike!.keyframes[0]).toMatchObject({ backgroundSize: '0% 2px' });
+    expect(strike!.options.duration).toBe(720);
+    expect(vibrated[0]).toBe(30);
+    expect(fake.on(levelPanel()).some((run) => run.keyframes.at(-1)?.height === '0px')).toBe(true);
+    fake.finishAll();
+    expect($('.sub .accordion__title').textContent).toBe('рівень 1');
+    expect(host.querySelector('.fx-strk')).toBeNull();
+    expect(levelPanel()!.hidden).toBe(true);
+  });
+
+  it('counts the day after the level: the goal line re-forms and grows, a glow round the day and up from the bar, buzz [40, 180, 40]', () => {
+    tick('a');
+    tick('t');
+    expect(vibrated).toEqual([30]);
+    vi.advanceTimersByTime(720);
+    expect(vibrated).toEqual([30, [40, 180, 40]]);
+    const goal = runs('.bar__goal').find((run) => run.options.duration === 1200);
+    expect(goal!.keyframes.map((k) => k.transform)).toContain('scale(1.12)');
+    expect($('.bar__goal .visually-hidden').textContent).toBe('цей тиждень: 1 з 3 днів');
+    expect(runs('.home .cal-day--shown').some((run) => run.options.duration === 1200 && 'boxShadow' in run.keyframes[0]!)).toBe(true);
+    const glow = document.querySelector('.fx-barglow');
+    expect(fake.on(glow)[0]!.options.duration).toBe(1200);
+    fake.on(glow)[0]!.finish();
+    expect(document.querySelector('.fx-barglow')).toBeNull();
+    vi.advanceTimersByTime(1200);
+    expect($('.bar__goal').textContent).toBe('цей тиждень: 1 з 3 днів');
+  });
+
+  it('shows the same with «вимкнути вібровідгук», without a buzz', () => {
+    start({}, { ...profile, accessibility: { noVibration: true } });
+    tick('a');
+    tick('t');
+    vi.advanceTimersByTime(720);
+    expect(vibrated).toEqual([]);
+    expect(runs('.sub .accordion__title .fx-strk')).toHaveLength(1);
+    expect(document.querySelector('.fx-barglow')).not.toBeNull();
+  });
+
+  it('buzzes with «вимкнути всі анімації» but nothing moves', () => {
+    document.documentElement.setAttribute('data-no-motion', '');
+    tick('a');
+    tick('t');
+    vi.advanceTimersByTime(720);
+    expect(vibrated).toEqual([30, [40, 180, 40]]);
+    expect(fake.played).toEqual([]);
+    expect(document.querySelector('.fx-barglow')).toBeNull();
+  });
+
+  it('gives nothing for taking a tick away', () => {
+    tick('a');
+    tick('t');
+    vi.advanceTimersByTime(720);
+    fake.played.length = 0;
+    tick('t');
+    vi.advanceTimersByTime(720);
+    expect(vibrated).toHaveLength(2);
+    expect(host.querySelector('.fx-strk')).toBeNull();
+  });
+});

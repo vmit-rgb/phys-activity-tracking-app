@@ -1,5 +1,9 @@
 import type { DayKey } from '../domain/dates';
-import { decode, EASE, MS, play, whenDone } from '../ui/motion';
+import type { Completed } from '../domain/progress';
+import type { Accessibility } from '../domain/settings';
+import { foldShut } from '../ui/accordion';
+import { decode, EASE, moving, MS, play, whenDone } from '../ui/motion';
+import { buzz } from './signal';
 
 /*
  * Motion on home, stage 7b (MICROINTERACTIONS.md), ported from 0.81's
@@ -110,4 +114,75 @@ export function sheetOut(sheet: HTMLElement, origin: Element, done: () => void):
   const circle = circleFrom(panel, origin);
   play(sheet.querySelector('.cal-sheet__scrim'), [{ opacity: 1 }, { opacity: 0 }], { duration: MS.s, easing: EASE.in, fill: 'forwards' });
   whenDone(play(panel, [{ clipPath: circle(null) }, { clipPath: circle(0) }], { duration: MS.s, easing: EASE.in, fill: 'forwards' }), done);
+}
+
+/* ---- rewards: what an edit finished (0.81 rewLevel, rewDay) ---- */
+
+/** The level's title is struck through (720 ms); the drawn line-through takes over at the end. */
+function strike(title: Element): void {
+  if (!moving()) return;
+  const text = title.textContent ?? '';
+  const line = document.createElement('span');
+  line.className = 'fx-strk';
+  line.textContent = text;
+  title.classList.add('fx-striking');
+  title.replaceChildren(line);
+  whenDone(play(line, [{ backgroundSize: '0% 2px' }, { backgroundSize: '100% 2px' }], { duration: MS.xl, easing: EASE.out, fill: 'forwards' }), () => {
+    title.classList.remove('fx-striking');
+    title.textContent = text;
+  });
+}
+
+/** A warm-up level done: struck through, folded, vibration 30 ms. */
+function levelDoneMotion(host: HTMLElement, memo: string, off: Pick<Accessibility, 'noVibration'>): void {
+  buzz(30, off);
+  const trigger = [...host.querySelectorAll<HTMLButtonElement>('button.accordion[data-memo]')].find((button) => button.dataset.memo === memo);
+  if (!trigger) return;
+  const title = trigger.querySelector('.accordion__title');
+  if (title) strike(title);
+  foldShut(trigger);
+}
+
+const accent = (alpha: number) => `rgb(${getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() || '185 179 189'} / ${alpha})`;
+
+/** An accent glow rises from the bottom bar (1200 ms), then leaves the page. */
+function barGlow(): void {
+  if (!moving()) return;
+  const glow = document.createElement('div');
+  glow.className = 'fx-barglow';
+  glow.setAttribute('aria-hidden', 'true');
+  document.body.append(glow);
+  whenDone(play(glow, [{ opacity: 0, transform: 'scaleY(.2)' }, { opacity: 1, transform: 'scaleY(1)', offset: 0.35 }, { opacity: 0, transform: 'scaleY(1.6)' }], {
+    duration: MS.xxl, easing: EASE.out,
+  }), () => glow.remove());
+}
+
+/**
+ * A day counted / +1 to the weekly goal: the goal line re-forms (1200 ms) and
+ * grows for about half a second; an accent glow spreads round the day and up
+ * from the bar (1200 ms); vibration [40, 180, 40].
+ */
+function dayCounted(host: HTMLElement, date: DayKey, off: Pick<Accessibility, 'noVibration'>): void {
+  buzz([40, 180, 40], off);
+  const goal = host.querySelector<HTMLElement>('.bar__goal');
+  if (goal && !goal.hidden) {
+    decode(goal, MS.xxl);
+    play(goal, [{ transform: 'scale(1)' }, { transform: 'scale(1.12)', offset: 0.15 }, { transform: 'scale(1.12)', offset: 0.55 }, { transform: 'scale(1)' }], {
+      duration: MS.xxl, easing: EASE.out,
+    });
+  }
+  for (const cell of host.querySelectorAll<HTMLElement>(`.cal-day--shown[data-day="${date}"]`)) {
+    play(cell, [{ boxShadow: `0 0 0 0 ${accent(0)}` }, { boxShadow: `0 0 14px 8px ${accent(0.55)}`, offset: 0.35 }, { boxShadow: `0 0 26px 18px ${accent(0)}` }], {
+      duration: MS.xxl, easing: EASE.out,
+    });
+  }
+  barGlow();
+}
+
+/** Plays what an edit of `date` finished: each level done, then the day counted after them. */
+export function reward(host: HTMLElement, date: DayKey, done: Completed, off: Pick<Accessibility, 'noVibration'>): void {
+  for (const id of done.levels) levelDoneMotion(host, `${date}|level|${id}`, off);
+  if (!done.day) return;
+  if (done.levels.length === 0) dayCounted(host, date, off);
+  else setTimeout(() => dayCounted(host, date, off), MS.xl);
 }

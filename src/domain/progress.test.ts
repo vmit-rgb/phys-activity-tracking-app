@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DayKey } from './dates';
 import { emptyDay, type Day } from './day';
-import { dayDone, kindDone, levelDone, weekGoal, weekSoFar } from './progress';
+import { completed, dayDone, kindDone, levelDone, weekGoal, weekSoFar } from './progress';
 import { readSettings } from './settings';
 
 // Invented data only: nothing from a real log.
@@ -87,5 +87,34 @@ describe('weekGoal', () => {
   it('shows nothing when the goal is off or has no kind to count', () => {
     expect(weekGoal(DATE, DATE, dayAt, readSettings({ goal: { enabled: false, done: ['workout'] }, workout: { enabled: true } }))).toBeNull();
     expect(weekGoal(DATE, DATE, dayAt, readSettings({ goal: { done: [] } }))).toBeNull();
+  });
+});
+
+describe('completed: what an edit finished (the rewards of MICROINTERACTIONS.md)', () => {
+  const full = { mw: ticks('a', 'b'), wo: workout(20) };
+  const goalOnly = (kinds: string[], enabled = true) => readSettings({
+    goal: { enabled, days: 4, done: kinds },
+    morningWarmup: { enabled: true, levels: [{ id: 'l1', items: [{ exercise: 'a' }, { exercise: 'b' }] }] },
+    workout: { enabled: true, sessions: [{ id: 's' }] },
+  });
+
+  it('names a level that just got its last tick', () => {
+    expect(completed(day({ mw: ticks('a') }), day({ mw: ticks('a', 'b') }), settings).levels).toEqual(['l1']);
+  });
+
+  it('names nothing for a level done before, or undone', () => {
+    expect(completed(day({ mw: ticks('a', 'b') }), day({ mw: ticks('a', 'b', 'c') }), settings).levels).toEqual([]);
+    expect(completed(day({ mw: ticks('a', 'b') }), day({ mw: ticks('a') }), settings).levels).toEqual([]);
+  });
+
+  it('counts the day when the edit makes it «зроблено»', () => {
+    const goal = goalOnly(['morningWarmup', 'workout']);
+    expect(completed(day({ wo: workout(20) }), day(full), goal).day).toBe(true);
+    expect(completed(day(full), day({ ...full, mw: ticks('b', 'a') }), goal).day).toBe(false);
+    expect(completed(day(full), day({ wo: workout(20) }), goal).day).toBe(false);
+  });
+
+  it('counts no day without a goal switched on', () => {
+    expect(completed(day({ mw: ticks('a') }), day({ mw: ticks('a', 'b') }), goalOnly(['morningWarmup'], false)).day).toBe(false);
   });
 });

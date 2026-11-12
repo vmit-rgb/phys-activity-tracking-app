@@ -48,3 +48,15 @@ export function weekGoal(date: DayKey, today: DayKey, dayAt: (key: DayKey) => Da
   const done = weekSoFar(date, today).filter((key) => dayDone(dayAt(key), settings)).length;
   return { done, target: settings.goal.days };
 }
+
+/** What an edit of a day finished: warm-up levels that just got done, and whether the day just counted for the goal. */
+export interface Completed {
+  readonly levels: readonly string[];
+  readonly day: boolean;
+}
+
+export function completed(before: Day, after: Day, settings: Settings): Completed {
+  const levels = settings.morningWarmup.levels.filter((level) => levelDone(after, level) && !levelDone(before, level)).map((level) => level.id);
+  const day = settings.goal.enabled && dayDone(after, settings) && !dayDone(before, settings);
+  return { levels, day };
+}
