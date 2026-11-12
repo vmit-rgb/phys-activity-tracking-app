@@ -5,6 +5,7 @@ import type { Edit } from '../domain/log';
 import type { Settings } from '../domain/settings';
 import { flushDrafts, wireSections, type SectionControls } from '../home/controls';
 import { HERO_STYLES, heroStyle, type HeroStyle } from '../home/hero-fit';
+import { dayArrives } from '../home/home-motion';
 import { heroFor, homeSections, type SectionId, type SectionSpec } from '../home/home-view';
 import {
   checkInBody, daytimeBody, morningBody, movementBody, noteBody, workoutBody, type SectionContext,
@@ -33,6 +34,8 @@ export interface HomeState {
   readonly date: DayKey;
   readonly today: DayKey;
   readonly session: HomeSession;
+  /** The day shown before, when home is drawn for another day: the motion comes from its side. */
+  readonly cameFrom?: DayKey;
 }
 
 export interface HomeActions {
@@ -307,6 +310,7 @@ export function showHome(host: HTMLElement, state: HomeState, actions: HomeActio
   wireScroll(host, listeners.signal);
 
   fit();
+  if (state.cameFrom) dayArrives(host, state.cameFrom, state.date);
   void document.fonts?.ready.then(fit);
   addEventListener('resize', fit, { signal: listeners.signal });
   return () => listeners.abort();

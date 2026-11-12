@@ -184,8 +184,9 @@ function runText(el: HTMLElement, text: string, duration: number, frame: (progre
 
 /**
  * A text that changed re-forms out of glyphs, left to right (monospace, so
- * nothing moves). A screen reader hears only the real text. Only where the
- * content changed (MICROINTERACTIONS.md, decode).
+ * nothing moves). A screen reader hears only the real text (a text already
+ * hidden from it gets the glyphs in place). Only where the content changed
+ * (MICROINTERACTIONS.md, decode).
  */
 export function decode(el: HTMLElement | null | undefined, duration: number = MS.s): void {
   if (!el) return;
@@ -194,15 +195,21 @@ export function decode(el: HTMLElement | null | undefined, duration: number = MS
   if (!moving() || el.childElementCount > 0 || !text.trim()) return;
   const letters = [...text];
   const at = letters.map((_, i) => (i / Math.max(1, letters.length - 1)) * 0.7 + Math.random() * 0.3);
+  const shown = el.closest('[aria-hidden="true"]') ? el : withSpokenCopy(el, text);
+  runText(el, text, duration, (progress) => {
+    shown.textContent = letters.map((ch, i) => (space.test(ch) || progress >= at[i]! ? ch : glyph())).join('');
+  }, () => {});
+}
+
+/** The text for a screen reader beside the glyphs, which it doesn't hear; returns where the glyphs go. */
+function withSpokenCopy(el: HTMLElement, text: string): HTMLElement {
   const spoken = document.createElement('span');
   spoken.className = 'visually-hidden';
   spoken.textContent = text;
   const shown = document.createElement('span');
   shown.setAttribute('aria-hidden', 'true');
   el.replaceChildren(spoken, shown);
-  runText(el, text, duration, (progress) => {
-    shown.textContent = letters.map((ch, i) => (space.test(ch) || progress >= at[i]! ? ch : glyph())).join('');
-  }, () => {});
+  return shown;
 }
 
 /** Digits dissolve in a run of glyphs (240 ms) and give way to `target`. */

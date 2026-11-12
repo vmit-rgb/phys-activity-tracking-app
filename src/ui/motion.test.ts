@@ -212,6 +212,15 @@ describe('a text that changed re-forms out of ASCII glyphs (decode)', () => {
     expect(el.textContent).toBe('вт, 10 лис');
   });
 
+  it('draws the glyphs in place in a text a screen reader skips anyway', () => {
+    el.setAttribute('aria-hidden', 'true');
+    decode(el, MS.s);
+    expect(el.childElementCount).toBe(0);
+    expect([...el.textContent!]).toHaveLength(9);
+    vi.advanceTimersByTime(MS.s);
+    expect(el.textContent).toBe('пн, 9 лис');
+  });
+
   it('keeps the text still with «вимкнути всі анімації»', () => {
     root.setAttribute('data-no-motion', '');
     decode(el, MS.s);

@@ -95,10 +95,11 @@ export function startApp(env: AppEnv): void {
   });
 
   function showDay(current: Diary, next: DayKey): void {
+    const cameFrom = date;
     date = next;
     leave();
     let shown = current;
-    leave = showHome(host, { settings: readSettings(current.profile), days: current.days, date, today: env.today(), session }, {
+    leave = showHome(host, { settings: readSettings(current.profile), days: current.days, date, today: env.today(), session, cameFrom }, {
       goTo: (day) => {
         session.flush();
         showDay(shown, day);
