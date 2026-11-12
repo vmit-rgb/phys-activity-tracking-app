@@ -9,7 +9,7 @@ import {
 import { MOMENTS, type ActivityKind, type Moment, type Settings, type Tracker } from '../domain/settings';
 import type { DropTarget } from '../screens/drag';
 import type { AddWhat } from '../screens/settings';
-import type { ActionMenu, EditKind, Picking, SectionsView } from '../screens/settings-sections';
+import { THINGS, type ActionMenu, type EditKind, type Picking, type SectionsView, type Thing } from '../screens/settings-sections';
 import { confirmDialog, editText } from '../ui/dialog';
 import { undo, type ToastMessage } from '../ui/toast';
 
@@ -49,6 +49,10 @@ const FIELD_DEFAULT = { wfield: 'reps', mfield: 'minutes' } as const;
 
 const ADD_LABELS: Record<AddWhat, string> = {
   tracker: 'назва', level: 'назва рівня', zone: 'для чого', session: 'назва тренування', movement: 'що саме', exercise: 'назва вправи',
+};
+
+const LIST_THING: Readonly<Record<string, Thing>> = {
+  [LIST_OF.morningWarmup]: 'level', [LIST_OF.daytimeWarmup]: 'zone', [LIST_OF.workout]: 'session', [LIST_OF.movement]: 'movement',
 };
 
 /** The list a group sits in, for an entry inside the group. */
@@ -204,10 +208,17 @@ export class SectionsEditor {
   }
 
   async remove(slot: Slot): Promise<void> {
+    const it = THINGS[this.thingOf(slot)][1];
     const answer = await confirmDialog({
-      title: `видалити «${this.nameOf(slot)}»?`, body: 'її більше не буде в налаштуваннях.', confirm: 'видалити', cancel: 'скасувати',
+      title: `видалити «${this.nameOf(slot)}»?`, body: `${it} більше не буде в налаштуваннях.`, confirm: 'видалити', cancel: 'скасувати',
     });
     if (answer === 'confirm') this.undoable(withRemoved(slot), REMOVED);
+  }
+
+  /** A level, a «для чого», a workout, a kind of movement by its list; a tracker by its kind; the rest are exercises. */
+  private thingOf(slot: Slot): Thing {
+    if (slot.list === TRACKERS) return this.entry(slot).kind as Tracker['kind'];
+    return LIST_THING[slot.list] ?? 'exercise';
   }
 
   /* ---- moving: dragging, the menu ---- */

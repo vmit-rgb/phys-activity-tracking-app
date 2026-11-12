@@ -13,7 +13,8 @@ import { act, checkbox, daysSlider, iconButton, tertiary } from './settings-bits
  * Stage 6d: the inside of the sections in «налаштування» (Figma
  * screen/edit-profile: section/wellbeing, /morning-warmup, /daytime-warmup,
  * /workouts, /movement; «бета 0.81» `renderSettings`). Every text is a
- * button that opens the full-screen field; × removes after asking; every
+ * button that opens the full-screen field; «видалити …» at the end of an
+ * entry removes it after asking (a × until 2026-11-12); every
  * entry can be dragged (screens/drag.ts) or moved through its menu
  * («дії: …», also on a long press). Texts: COPY.md «Settings» and
  * «Added 2026-11-08 in Figma».
@@ -66,8 +67,21 @@ function ed(path: string, value: string, placeholder: string, label: string, kin
 const slotData = (slot: Slot) => `data-list="${esc(slot.list)}" data-index="${slot.index}"`;
 const shown = (name: string) => name.trim() || 'без назви';
 
-function removeButton(slot: Slot, name: string): string {
-  return `<button type="button" class="ctl icon-btn icon-btn--secondary st-rm" ${act('rm', slotData(slot))} aria-label="видалити: ${esc(shown(name))}">${iconSvg('close')}</button>`;
+/** What can be deleted in the sections: the word in «видалити …» and in the dialog («його / її більше не буде»). */
+export type Thing = 'level' | 'zone' | 'session' | 'movement' | 'exercise' | Tracker['kind'];
+export const THINGS: Record<Thing, readonly [word: string, it: 'його' | 'її']> = {
+  level: ['рівень', 'його'], zone: ['зону', 'її'], session: ['тренування', 'його'], movement: ['рух', 'його'], exercise: ['вправу', 'її'],
+  scale: ['повзунок', 'його'], yesno: ['питання', 'його'], numbers: ['поле', 'його'], number: ['поле', 'його'], note: ['нотатку', 'її'],
+};
+
+/**
+ * «видалити рівень»: red text at the end of what it deletes, so it doesn't
+ * compete with the +/− by the name (Olesia, 2026-11-12). The voice name
+ * starts with the seen text and adds which one.
+ */
+function removeButton(slot: Slot, name: string, thing: Thing): string {
+  const label = `видалити ${THINGS[thing][0]}`;
+  return `<div><button type="button" class="ctl btn btn--destructive st-rm" ${act('rm', slotData(slot))} aria-label="${label}: ${esc(shown(name))}">${label}</button></div>`;
 }
 
 function toggle(id: string, name: string, open: boolean): string {
@@ -174,11 +188,12 @@ function trackerMarkup(ctx: Ctx, tracker: Tracker, index: number, placeholder: s
   });
   const asks = moments.map((moment) => checkbox(ASK_LABELS[moment], tracker.ask.includes(moment), `${act('ask')} data-path="${path}.ask" data-moment="${moment}"`));
   const inner = `
-        <div class="st-row">${ed(`${path}.name`, tracker.name, placeholder, 'назва', 'text', 't-1st-semibold')}${removeButton(slot, tracker.name)}</div>
+        <div class="st-row">${ed(`${path}.name`, tracker.name, placeholder, 'назва', 'text', 't-1st-semibold')}</div>
         ${ed(`${path}.hint`, tracker.hint, 'підказка (наприклад, 0 — не болить, 10 — дуже)', 'підказка', 'text', 't-3rd-regular')}
         ${trackerValues(tracker, path)}
         <div class="st-asks">${asks.join('')}</div>
-        ${tracker.kind === 'number' ? timerBlock(tracker) : ''}`;
+        ${tracker.kind === 'number' ? timerBlock(tracker) : ''}
+        ${removeButton(slot, tracker.name, tracker.kind)}`;
   return entry(ctx, `tk-${tracker.kind}`, slot, tracker.id, tracker.name, inner);
 }
 
@@ -233,10 +248,11 @@ function warmupItem(ctx: Ctx, family: string, slot: Slot, item: WarmupItem): str
     ? ed(`${path}.reps`, item.reps, 'n разів', 'скільки разів', 'text', 't-3rd-regular st-value')
     : ed(`${path}.seconds`, `${formatNumber(item.seconds)} с`, 'n с', 'скільки секунд', 'number', 't-3rd-regular st-value');
   const inner = `
-        <div class="st-row">${ed(`ex:${item.exercise}.name`, exercise.name, 'вправа', 'назва вправи', 'text')}${value}${removeButton(slot, exercise.name)}</div>
+        <div class="st-row">${ed(`ex:${item.exercise}.name`, exercise.name, 'вправа', 'назва вправи', 'text')}${value}</div>
         ${ed(`ex:${item.exercise}.how`, exercise.how, 'як робити: короткий опис вправи', 'як робити', 'long', 't-3rd-regular')}
         ${checkbox('n с', item.seconds !== null, `${act('timed')} data-path="${path}"`)}
-        ${linkField(`ex:${item.exercise}.source`, exercise.source)}`;
+        ${linkField(`ex:${item.exercise}.source`, exercise.source)}
+        ${removeButton(slot, exercise.name, 'exercise')}`;
   return entry(ctx, family, slot, item.exercise, exercise.name, inner);
 }
 
@@ -262,10 +278,11 @@ function workoutItem(ctx: Ctx, slot: Slot, item: WorkoutItem): string {
   if (ctx.view.picking) return pickRow(ctx, slot, item.exercise, exercise, prescription(item));
   const inner = `
         <div class="st-row">${ed(`ex:${item.exercise}.name`, exercise.name, 'вправа', 'назва вправи', 'text')}${
-  ed(`${path}.@rx`, prescription(item), 'n разів', 'підходи × повторення (наприклад, 3 × 10–12)', 'rx', 't-3rd-regular st-value')}${removeButton(slot, exercise.name)}</div>
+  ed(`${path}.@rx`, prescription(item), 'n разів', 'підходи × повторення (наприклад, 3 × 10–12)', 'rx', 't-3rd-regular st-value')}</div>
         ${ed(`ex:${item.exercise}.how`, exercise.how, 'як робити: короткий опис вправи', 'як робити', 'long', 't-3rd-regular')}
         ${linkField(`ex:${item.exercise}.source`, exercise.source)}
-        ${workoutFields(item, path)}`;
+        ${workoutFields(item, path)}
+        ${removeButton(slot, exercise.name, 'exercise')}`;
   return entry(ctx, 'wo-ex', slot, item.exercise, exercise.name, inner);
 }
 
@@ -308,13 +325,16 @@ interface Container {
   readonly head: string;
   readonly meta: string;
   readonly body: () => string;
+  readonly thing: Thing;
   readonly forceOpen?: boolean;
 }
 
+/** «видалити …» is the last line of the open box; while picking a group there is nothing to delete. */
 function container(ctx: Ctx, c: Container): string {
   const open = c.forceOpen === true || ctx.view.inner.has(c.id);
   const items = `${c.slot.list}.${c.slot.index}.items`;
-  const inner = box(`${c.head}${removeButton(c.slot, c.name)}`, open, toggle(c.id, c.name, open), c.meta, c.body);
+  const body = () => `${c.body()}${ctx.view.picking ? '' : removeButton(c.slot, c.name, c.thing)}`;
+  const inner = box(c.head, open, toggle(c.id, c.name, open), c.meta, body);
   return entry(ctx, c.family, c.slot, c.id, c.name, inner, ' st-box', ` data-items="${esc(items)}"${open ? '' : ' data-closed="1"'}`);
 }
 
@@ -328,7 +348,7 @@ export function morningBody(ctx: Ctx): string {
   const levels = morningWarmup.levels.map((level, index) => {
     const items = `${path}.${index}.items`;
     return container(ctx, {
-      family: 'lv', id: level.id, slot: { list: path, index }, name: level.name,
+      family: 'lv', thing: 'level', id: level.id, slot: { list: path, index }, name: level.name,
       head: `${ed(`${path}.${index}.name`, level.name, 'назва рівня (наприклад, легкий день)', 'назва рівня', 'text', 't-h6 st-grow')}${
         ed(`${path}.${index}.duration`, level.duration, 'час', 'час (наприклад, 10 хв)', 'text', 't-3rd-regular st-value')}`,
       meta: exerciseCount(level.items),
@@ -346,7 +366,7 @@ export function daytimeBody(ctx: Ctx): string {
   const zones = daytimeWarmup.groups.map((zone, index) => {
     const items = `${path}.${index}.items`;
     return container(ctx, {
-      family: 'dg', id: zone.id, slot: { list: path, index }, name: zone.name,
+      family: 'dg', thing: 'zone', id: zone.id, slot: { list: path, index }, name: zone.name,
       head: ed(`${path}.${index}.name`, zone.name, 'для чого (наприклад, для спини)', 'для чого', 'text', 't-h6 st-grow'),
       meta: exerciseCount(zone.items),
       body: () => `${list('dw-ex', items, zone.items.map((item, i) => warmupItem(ctx, 'dw-ex', { list: items, index: i }, item)))}${addExercise(items)}`,
@@ -377,7 +397,7 @@ export function workoutBody(ctx: Ctx): string {
   const sessions = workout.sessions.map((session, index) => {
     const items = `${path}.${index}.items`;
     return container(ctx, {
-      family: 'ss', id: session.id, slot: { list: path, index }, name: session.name ? sessionName(session.name) : '',
+      family: 'ss', thing: 'session', id: session.id, slot: { list: path, index }, name: session.name ? sessionName(session.name) : '',
       head: ed(`${path}.${index}.name`, session.name ? sessionName(session.name) : '', 'тренування (назва)', 'назва тренування', 'text', 't-h6 st-grow'),
       meta: exerciseCount(session.items),
       forceOpen: ctx.view.picking !== null,
@@ -395,9 +415,10 @@ function movementKind(ctx: Ctx, kind: MovementKind, index: number): string {
   const slot = { list: LIST_OF.movement, index };
   const fields = MOVEMENT_FIELDS.map(([field, label]) => checkbox(label, kind.fields.includes(field), `${act('mfield')} data-path="${path}.fields" data-field="${field}"`));
   const inner = `
-        <div class="st-row">${ed(`${path}.name`, kind.name, 'що саме (наприклад, прогулянка)', 'що саме', 'text', 't-1st-semibold')}${removeButton(slot, kind.name)}</div>
+        <div class="st-row">${ed(`${path}.name`, kind.name, 'що саме (наприклад, прогулянка)', 'що саме', 'text', 't-1st-semibold')}</div>
         ${linkField(`${path}.source`, kind.source)}
-        <div class="st-fields">${fields.join('')}</div>`;
+        <div class="st-fields">${fields.join('')}</div>
+        ${removeButton(slot, kind.name, 'movement')}`;
   return entry(ctx, 'mv', slot, kind.id, kind.name, inner);
 }
 
