@@ -75,8 +75,8 @@ export function fadeShown(el: HTMLElement, shown: boolean): void {
 }
 
 /** The interface assembles before the eyes: children one by one, 40 ms apart, from 8 px below. */
-export function stagger(container: Element, first = 0): void {
-  [...container.children].slice(first, first + 12).forEach((child, i) => {
+export function stagger(container: Element): void {
+  [...container.children].slice(0, 12).forEach((child, i) => {
     play(child, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], {
       duration: MS.s, delay: i * STAGGER_MS, easing: EASE.out, fill: 'backwards',
     });
