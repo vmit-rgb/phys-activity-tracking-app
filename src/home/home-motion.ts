@@ -147,12 +147,18 @@ function levelDoneMotion(host: HTMLElement, memo: string, off: Pick<Accessibilit
 
 const accent = (alpha: number) => `rgb(${getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() || '185 179 189'} / ${alpha})`;
 
-/** An accent glow rises from the bottom bar (1200 ms), then leaves the page. */
-function barGlow(): void {
+/**
+ * An accent glow rises from the bottom bar (1200 ms), then leaves the page.
+ * It starts at the bar's top edge: the bar is opaque, and from under it the
+ * glow hardly shows (seen live, 2026-11-12).
+ */
+function barGlow(host: HTMLElement): void {
   if (!moving()) return;
+  const barTop = host.querySelector('.bar')?.getBoundingClientRect().top ?? innerHeight;
   const glow = document.createElement('div');
   glow.className = 'fx-barglow';
   glow.setAttribute('aria-hidden', 'true');
+  glow.style.bottom = `${Math.max(0, innerHeight - barTop)}px`;
   document.body.append(glow);
   whenDone(play(glow, [{ opacity: 0, transform: 'scaleY(.2)' }, { opacity: 1, transform: 'scaleY(1)', offset: 0.35 }, { opacity: 0, transform: 'scaleY(1.6)' }], {
     duration: MS.xxl, easing: EASE.out,
@@ -179,7 +185,7 @@ function dayCounted(host: HTMLElement, date: DayKey, off: Pick<Accessibility, 'n
       duration: MS.xxl, easing: EASE.out,
     });
   }
-  barGlow();
+  barGlow(host);
 }
 
 /** Plays what an edit of `date` finished: each level done, then the day counted after them. */

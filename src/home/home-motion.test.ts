@@ -77,6 +77,7 @@ function layout(dice = 0.5): void {
     if (this.matches('.cal__grid > *')) return box(0, 0, 40, 40);
     if (this.matches('.date-nav__date')) return box(300, 850, 80, 40);
     if (this.matches('.cal-sheet__panel')) return box(6, 400, 400, 500);
+    if (this.matches('.bar')) return box(0, innerHeight - 90, 412, 90);
     return box(0, 0, 0, 0);
   });
 }
@@ -314,6 +315,14 @@ describe('rewards: a warm-up level done, a day counted', () => {
     expect(document.querySelector('.fx-barglow')).toBeNull();
     vi.advanceTimersByTime(1200);
     expect($('.bar__goal').textContent).toBe('цей тиждень: 1 з 3 днів');
+  });
+
+  it('lets the glow rise from the top edge of the bar, not from under it', () => {
+    layout();
+    tick('a');
+    tick('t');
+    vi.advanceTimersByTime(720);
+    expect(document.querySelector<HTMLElement>('.fx-barglow')!.style.bottom).toBe('90px');
   });
 
   it('glows in the accent of the diary', () => {

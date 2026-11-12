@@ -69,11 +69,11 @@
 .fx-barglow {
   position: fixed;
   inset: auto 0 0;
-  height: 220px;
+  height: 160px;
   z-index: 49;
   pointer-events: none;
   transform-origin: bottom;
-  background: radial-gradient(120% 100% at 50% 100%, rgb(var(--accent-rgb) / 45%), transparent 70%);
+  background: radial-gradient(120% 100% at 50% 100%, rgb(var(--accent-rgb) / 60%), transparent 75%);
 }
 
 /* ---- a removed row leaves where it was (home/control-motion.ts rowLeaving) ---- */
