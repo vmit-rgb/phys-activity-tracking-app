@@ -78,11 +78,11 @@ export function startApp(env: AppEnv): void {
       date = day;
       show('home');
     },
-    replace(draw) {
+    replace(draw, comeIn) {
       leave();
       leave = draw();
       document.documentElement.scrollTop = 0;
-      enter(host.firstElementChild);
+      comeIn(host);
     },
     keep: (next) => persist(next),
     restart: (next, message) => keep(next, message),
