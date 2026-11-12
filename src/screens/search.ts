@@ -2,6 +2,7 @@ import { formatShort, type DayKey } from '../domain/dates';
 import type { SearchHit } from '../domain/journal';
 import { esc } from '../ui/html';
 import { iconSvg } from '../ui/icons';
+import { circleOver, EASE, middleOf, MS, STAGGER_MS, play } from '../ui/motion';
 import { part } from './parts';
 
 /*
@@ -40,6 +41,23 @@ function results(query: string, hits: readonly SearchHit[]): string {
   return `<p class="search__count t-3rd-regular muted">знайдено: ${hits.length}</p>${hits.map(hit).join('')}`;
 }
 
+/** search/panel opens from 🔍 as a circle (360 ms), as in «бета 0.81». */
+function openFromButton(host: HTMLElement, panel: HTMLElement): void {
+  const button = host.querySelector('.bar__search');
+  if (!button) return;
+  const { from, to } = circleOver(panel, middleOf(button), 20);
+  play(panel, [{ clipPath: from }, { clipPath: to }], { duration: MS.m, easing: EASE.out });
+}
+
+/** Results come in from the left while typing, one by one. */
+function slideIn(list: HTMLElement): void {
+  [...list.querySelectorAll('.search__hit')].slice(0, 12).forEach((found, i) => {
+    play(found, [{ opacity: 0, transform: 'translateX(-16px)' }, { opacity: 1, transform: 'none' }], {
+      duration: MS.s, delay: i * STAGGER_MS, easing: EASE.out, fill: 'backwards',
+    });
+  });
+}
+
 /** Opens the panel at the end of `host` with the focus in the field; returns how to close it. */
 export function openSearch(host: HTMLElement, actions: SearchActions): () => void {
   host.insertAdjacentHTML('beforeend', PANEL);
@@ -51,6 +69,7 @@ export function openSearch(host: HTMLElement, actions: SearchActions): () => voi
   const show = () => {
     clear.hidden = input.value === '';
     list.innerHTML = results(input.value, actions.find(input.value));
+    slideIn(list);
   };
   const close = () => {
     panel.remove();
@@ -71,5 +90,6 @@ export function openSearch(host: HTMLElement, actions: SearchActions): () => voi
     if (event.key === 'Escape') close();
   });
   input.focus();
+  openFromButton(host, panel);
   return close;
 }

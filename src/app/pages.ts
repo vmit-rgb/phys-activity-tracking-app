@@ -5,8 +5,12 @@ import { readSettings } from '../domain/settings';
 import { showHowToUse, showWhatsNew, type HelpActions } from '../screens/help';
 import { showHistory } from '../screens/history';
 import { showMenu, type MenuItem } from '../screens/menu';
+import { menuIn, menuOut } from '../screens/menu-motion';
 import type { PdfFonts } from '../pdf/pdf';
 import type { backupMemory, ThemeChoice } from '../storage/store';
+import { buzz } from '../home/signal';
+import { tvFlicker } from '../ui/flicker';
+import { enter, fillThrough } from '../ui/motion';
 import type { Toast, ToastMessage } from '../ui/toast';
 import { settingsPage, type SettingsEnv, type SettingsPage } from './settings-page';
 
@@ -55,8 +59,11 @@ export interface Home {
   date(): DayKey;
   /** Shows home on that day. */
   showHome(date: DayKey): void;
-  /** Undoes the screen shown now and draws the next one; `draw` returns what to undo later. */
-  replace(draw: () => () => void): void;
+  /**
+   * Undoes the screen shown now and draws the next one; `draw` returns what to undo later.
+   * `comeIn` moves it in.
+   */
+  replace(draw: () => () => void, comeIn: (host: HTMLElement) => void): void;
   /** Stores the diary; false (and a toast) when the phone refuses. */
   keep(next: Diary): boolean;
   /** Starts over with this diary on home (a restored copy, an undone «стерти все»). */
@@ -99,6 +106,17 @@ function saveCopyFile(env: DeviceEnv, home: Home): boolean {
 async function share(env: DeviceEnv, toast: Toast): Promise<void> {
   if ((await env.share(SHARE)) !== 'unavailable') return;
   toast.show((await env.copyText(`${SHARE.text} → ${SHARE.url}`)) ? LINK_COPIED : NOT_SHARED);
+}
+
+/** A screen drawn anew in place (the menu after ☼ / ☾ or a copy): no motion. */
+const still = () => {};
+/** The usual way in: a fade and a rise of 12 px. */
+const fadeUp = (host: HTMLElement) => enter(host.firstElementChild);
+
+/** How `page` comes in after `from`: the menu from ≡, unless it was the menu already; others fade up. */
+export function comeInFor(page: Page, from: Page | undefined): (host: HTMLElement) => void {
+  if (page !== 'menu') return fadeUp;
+  return from === 'menu' ? still : menuIn;
 }
 
 /** 'search' is the history with the search panel open. */
@@ -182,9 +200,14 @@ export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): v
     backTo(0);
   }
 
+  /** The page drawn now; undefined when home shows. */
+  let drawn: Page | undefined;
+
   function draw(): void {
     const page = pages.at(-1);
-    if (page) home.replace(SCREENS[page]);
+    const from = drawn;
+    drawn = page;
+    if (page) home.replace(SCREENS[page], comeInFor(page, from));
     else home.showHome(home.date());
   }
 
@@ -196,15 +219,28 @@ export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): v
     search: () => open('search'),
     feedback: say(FEEDBACK_SOON),
     backup: () => {
-      if (saveCopy()) draw();
+      if (!saveCopy()) return;
+      draw();
+      fillThrough(home.host.querySelector<HTMLElement>('[data-menu="backup"]'));
+      buzz(18, readSettings(home.diary().profile).accessibility);
     },
     'whats-new': () => open('whats-new'),
     'how-to-use': () => open('how-to-use'),
     share: () => void share(env, home.toast),
   };
 
+  /** ☼ / ☾: the noise of an old TV flickers twice, the other theme comes in the middle. */
   function switchTheme(): void {
-    env.theme.choose(env.theme.shown() === 'dark' ? 'light' : 'dark');
+    const next = env.theme.shown() === 'dark' ? 'light' : 'dark';
+    tvFlicker(() => {
+      env.theme.choose(next);
+      redrawMenu();
+    });
+  }
+
+  /** The menu anew with the focus back on ☼ / ☾; nothing when the menu has gone meanwhile. */
+  function redrawMenu(): void {
+    if (drawn !== 'menu') return;
     draw();
     home.host.querySelector<HTMLElement>('.menu__theme')!.focus();
   }
@@ -224,7 +260,7 @@ export function pagesOverHome(env: DeviceEnv, home: Home): { open(page: Page): v
     }, {
       choose: (item) => ITEMS[item](),
       switchTheme,
-      close: () => backTo(0),
+      close: () => menuOut(home.host, () => backTo(0)),
       goTo,
     });
   }

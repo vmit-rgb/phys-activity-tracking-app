@@ -21,6 +21,7 @@ import { trackNumberFill } from './ui/number-fill';
 import { watchForUpdates } from './pwa/updates';
 import { mountToast } from './ui/toast';
 import { wireTapMotion } from './ui/taps';
+import { leaveLoading } from './ui/boot';
 import { copyWith, saveFile, screenHistory, shareWith } from './ui/device';
 import type { PdfFonts } from './pdf/pdf';
 
@@ -36,8 +37,9 @@ trackNumberFill(root);
 
 const toast = mountToast(document.body);
 wireTapMotion(document);
+const host = document.querySelector<HTMLElement>('#app')!;
 startApp({
-  host: document.querySelector<HTMLElement>('#app')!,
+  host,
   store: diaryStore(storage, () => new Date()),
   browser: browserChoice(storage),
   platform: detectPlatform(navigator),
@@ -78,6 +80,7 @@ startApp({
   now: () => new Date(),
   history: screenHistory(history, window),
 });
+leaveLoading(document, host, performance.now());
 
 // offline copy and «є нова версія :)»; only in the built app, never in development
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

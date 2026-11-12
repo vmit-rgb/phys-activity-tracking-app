@@ -278,7 +278,8 @@ describe('settings: accent and «доступність»', () => {
     expect(button('рожевий').getAttribute('aria-pressed')).toBe('true');
     await tap('блакитний');
     expect(button('блакитний').getAttribute('aria-pressed')).toBe('true');
-    expect((device.looks.at(-1)!.theme as JsonObject).accent).toBe('blue');
+    // the new colour comes in the middle of the flicker (ui/flicker.ts)
+    await vi.waitFor(() => expect((device.looks.at(-1)!.theme as JsonObject).accent).toBe('blue'));
     await tap('зберегти налаштування');
     expect((storedProfile().theme as JsonObject).accent).toBe('blue');
   });

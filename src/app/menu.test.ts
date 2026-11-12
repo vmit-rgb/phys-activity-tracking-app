@@ -162,13 +162,14 @@ describe('«зберегти копію»', () => {
 });
 
 describe('the theme switch ☼ / ☾', () => {
-  it('switches dark to light and back, and names what it does', () => {
+  it('switches dark to light and back, and names what it does', async () => {
     start();
     openMenu();
     tap('світла тема');
-    expect(button('темна тема')).toBeTruthy();
+    // the other theme comes in the middle of the flicker (ui/flicker.ts)
+    await vi.waitFor(() => expect(button('темна тема')).toBeTruthy());
     tap('темна тема');
-    expect(button('світла тема')).toBeTruthy();
+    await vi.waitFor(() => expect(button('світла тема')).toBeTruthy());
   });
 });
 
