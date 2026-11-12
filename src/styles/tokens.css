@@ -2,7 +2,8 @@
  * Design tokens from Figma «phys-activity-tracking-app», read 2026-11-09:
  * collections tracker/colors (dark, light), tracker/dimensions,
  * tracker/text-size (default, larger-text), tracker/tap-targets
- * (default, larger-targets) and the 9 accents of foundations/accent-colors.
+ * (default, larger-targets) and the accents of foundations/accent-colors
+ * (11 since 2026-11-12: sky and green added, pink and orange moved; not in Figma yet).
  *
  * data-theme is always 'dark' or 'light' (appearance.ts resolves «follow
  * the phone»). Colours need nothing newer than iOS 15.4 / Chrome 105:
@@ -17,9 +18,22 @@
   /* text on the section title bar: dark in both themes (Olesia, 2026-11-09) */
   --on-sec-head: #161d1b;
   --iron: #e7e7e7;
-  --ok: #75eea5;
-  --warn: #f2be56;
-  --err: #ee696b;
+  /* no success colour: the accent stands for it. Error and warning stay 35° of hue
+     away from every accent (Olesia, 2026-11-12; appearance.test.ts checks it). */
+  --warn: #e2c74f;
+  --err: #ef6663;
+  /* each accent's primary, read by its accent block and by its swatch in the picker */
+  --rgb-gray: 193 187 197;
+  --rgb-orange: 247 140 3;
+  --rgb-pink: 245 115 187;
+  --rgb-magenta: 255 78 248;
+  --rgb-purple: 209 124 255;
+  --rgb-violet: 167 149 254;
+  --rgb-blue: 118 167 254;
+  --rgb-sky: 75 206 253;
+  --rgb-cyan: 21 235 230;
+  --rgb-mint: 33 239 194;
+  --rgb-green: 102 212 92;
   /* inactive UI: low contrast on purpose, WCAG 1.4.3 does not apply */
   --disabled: #5d5d5d;
   --disabled-on: #282c2a;
@@ -71,9 +85,19 @@
   --on-accent: #ffffff;
   --on-sec-head: #1a1a1a;
   --iron: #2a2a2a;
-  --ok: #1e7d45;
-  --warn: #8a5d00;
-  --err: #b3261e;
+  --warn: #786500;
+  --err: #b3222b;
+  --rgb-gray: 102 97 106;
+  --rgb-orange: 167 92 0;
+  --rgb-pink: 186 61 134;
+  --rgb-magenta: 190 3 185;
+  --rgb-purple: 155 70 198;
+  --rgb-violet: 117 97 197;
+  --rgb-blue: 65 111 193;
+  --rgb-sky: 2 119 152;
+  --rgb-cyan: 9 125 123;
+  --rgb-mint: 6 128 102;
+  --rgb-green: 36 129 28;
   --disabled: #959595;
   --disabled-on: #ffffff;
   --panel: rgb(255 255 255 / 50%);
@@ -93,135 +117,139 @@
   }
 }
 
-/* Accents, dark theme: primary (as rgb) · mid · quiet (dark shade) · muted text.
+/* Accents, dark theme: primary (from --rgb-*) · mid · quiet (dark shade) · muted text.
    Pink is also the default before the script runs. */
-
 :root[data-theme='dark'][data-accent='gray'] {
-  --accent-rgb: 193 187 197;
+  --accent-rgb: var(--rgb-gray);
   --accent-mid: #97919b;
   --accent-quiet: #504d52;
   --muted: #b9b6bb;
 }
-
 :root[data-theme='dark'][data-accent='orange'] {
-  --accent-rgb: 255 130 42;
-  --accent-mid: #be8464;
-  --accent-quiet: #5c4a40;
-  --muted: #c5b3a9;
+  --accent-rgb: var(--rgb-orange);
+  --accent-mid: #ba875d;
+  --accent-quiet: #5b4b3e;
+  --muted: #c4b4a8;
 }
-
 :root,
 :root[data-theme='dark'][data-accent='pink'] {
-  --accent-rgb: 255 113 157;
-  --accent-mid: #c07e8f;
-  --accent-quiet: #5d484d;
-  --muted: #c6b1b6;
+  --accent-rgb: var(--rgb-pink);
+  --accent-mid: #bb7e9d;
+  --accent-quiet: #5b4851;
+  --muted: #c4b1ba;
 }
-
 :root[data-theme='dark'][data-accent='magenta'] {
-  --accent-rgb: 255 78 248;
+  --accent-rgb: var(--rgb-magenta);
   --accent-mid: #b181ad;
   --accent-quiet: #584956;
   --muted: #c1b2bf;
 }
-
 :root[data-theme='dark'][data-accent='purple'] {
-  --accent-rgb: 209 124 255;
+  --accent-rgb: var(--rgb-purple);
   --accent-mid: #a685b9;
   --accent-quiet: #544a5a;
   --muted: #bdb3c3;
 }
-
 :root[data-theme='dark'][data-accent='violet'] {
-  --accent-rgb: 167 149 254;
+  --accent-rgb: var(--rgb-violet);
   --accent-mid: #938bc5;
   --accent-quiet: #4e4c5e;
   --muted: #b7b5c7;
 }
-
 :root[data-theme='dark'][data-accent='blue'] {
-  --accent-rgb: 118 167 254;
+  --accent-rgb: var(--rgb-blue);
   --accent-mid: #7794c8;
   --accent-quiet: #454f5f;
   --muted: #afb8c8;
 }
-
+:root[data-theme='dark'][data-accent='sky'] {
+  --accent-rgb: var(--rgb-sky);
+  --accent-mid: #559fbc;
+  --accent-quiet: #3d525b;
+  --muted: #a7bbc4;
+}
 :root[data-theme='dark'][data-accent='cyan'] {
-  --accent-rgb: 21 235 230;
+  --accent-rgb: var(--rgb-cyan);
   --accent-mid: #4ca4a1;
   --accent-quiet: #3b5453;
   --muted: #a6bdbb;
 }
-
 :root[data-theme='dark'][data-accent='mint'] {
-  --accent-rgb: 33 239 194;
+  --accent-rgb: var(--rgb-mint);
   --accent-mid: #58a58e;
   --accent-quiet: #3e544c;
   --muted: #a8bdb5;
 }
-
-
-/* Accents, light theme: primary · mid · quiet (tint) · muted text. */
-
+:root[data-theme='dark'][data-accent='green'] {
+  --accent-rgb: var(--rgb-green);
+  --accent-mid: #76a171;
+  --accent-quiet: #455344;
+  --muted: #afbcad;
+}
+/* Accents, light theme: primary (from --rgb-*) · mid · quiet (tint) · muted text. */
 :root[data-theme='light'][data-accent='gray'] {
-  --accent-rgb: 102 97 106;
+  --accent-rgb: var(--rgb-gray);
   --accent-mid: #89848d;
   --accent-quiet: #dbd7de;
   --muted: #656267;
 }
-
 :root[data-theme='light'][data-accent='orange'] {
-  --accent-rgb: 181 85 4;
-  --accent-mid: #b07757;
-  --accent-quiet: #ead4c8;
-  --muted: #705f57;
+  --accent-rgb: var(--rgb-orange);
+  --accent-mid: #ac7a50;
+  --accent-quiet: #e9d5c6;
+  --muted: #6e6056;
 }
-
 :root[data-theme='light'][data-accent='pink'] {
-  --accent-rgb: 194 57 106;
-  --accent-mid: #b17081;
-  --accent-quiet: #ebd1d7;
-  --muted: #705e62;
+  --accent-rgb: var(--rgb-pink);
+  --accent-mid: #ac718f;
+  --accent-quiet: #e9d2dd;
+  --muted: #6e5e66;
 }
-
 :root[data-theme='light'][data-accent='magenta'] {
-  --accent-rgb: 190 3 185;
+  --accent-rgb: var(--rgb-magenta);
   --accent-mid: #a3739f;
   --accent-quiet: #e5d2e3;
   --muted: #6c5e6a;
 }
-
 :root[data-theme='light'][data-accent='purple'] {
-  --accent-rgb: 155 70 198;
+  --accent-rgb: var(--rgb-purple);
   --accent-mid: #9877ab;
   --accent-quiet: #e0d4e8;
   --muted: #685f6e;
 }
-
 :root[data-theme='light'][data-accent='violet'] {
-  --accent-rgb: 117 97 197;
+  --accent-rgb: var(--rgb-violet);
   --accent-mid: #857db6;
   --accent-quiet: #d8d6ec;
   --muted: #636171;
 }
-
 :root[data-theme='light'][data-accent='blue'] {
-  --accent-rgb: 65 111 193;
+  --accent-rgb: var(--rgb-blue);
   --accent-mid: #6986ba;
   --accent-quiet: #cedaee;
   --muted: #5b6472;
 }
-
+:root[data-theme='light'][data-accent='sky'] {
+  --accent-rgb: var(--rgb-sky);
+  --accent-mid: #4791ad;
+  --accent-quiet: #c5dee8;
+  --muted: #55666e;
+}
 :root[data-theme='light'][data-accent='cyan'] {
-  --accent-rgb: 9 125 123;
+  --accent-rgb: var(--rgb-cyan);
   --accent-mid: #3c9693;
   --accent-quiet: #c4e0de;
   --muted: #536867;
 }
-
 :root[data-theme='light'][data-accent='mint'] {
-  --accent-rgb: 6 128 102;
+  --accent-rgb: var(--rgb-mint);
   --accent-mid: #499780;
   --accent-quiet: #c6e0d7;
   --muted: #556862;
+}
+:root[data-theme='light'][data-accent='green'] {
+  --accent-rgb: var(--rgb-green);
+  --accent-mid: #689363;
+  --accent-quiet: #cedfcc;
+  --muted: #5c675a;
 }

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { ACCENTS, DEFAULT_ACCENT, parseAccent } from './accents';
 
 describe('accents', () => {
-  it('offers the nine accents in the order of the Figma picker', () => {
+  it('offers eleven accents around the hue circle (Olesia, 2026-11-12)', () => {
     expect(ACCENTS).toEqual([
-      'gray', 'orange', 'pink', 'magenta', 'purple', 'violet', 'blue', 'cyan', 'mint',
+      'gray', 'orange', 'pink', 'magenta', 'purple', 'violet', 'blue', 'sky', 'cyan', 'mint', 'green',
     ]);
   });
 
@@ -13,16 +13,15 @@ describe('accents', () => {
     expect(parseAccent(undefined)).toBe('pink');
   });
 
-  it('keeps a current accent as it is', () => {
-    expect(parseAccent('cyan')).toBe('cyan');
+  it.each(['cyan', 'sky', 'green'])('keeps a current accent %s as it is', (accent) => {
+    expect(parseAccent(accent)).toBe(accent);
   });
 
   it.each([
     ['red', 'orange'],
     ['amber', 'orange'],
     ['yellow', 'orange'],
-    ['green', 'mint'],
-    ['lime', 'mint'],
+    ['lime', 'green'],
   ])('moves the removed accent %s to the nearest one, %s', (old, nearest) => {
     expect(parseAccent(old)).toBe(nearest);
   });

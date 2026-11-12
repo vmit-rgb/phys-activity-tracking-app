@@ -282,9 +282,18 @@ describe('settings: accent and «доступність»', () => {
     await tap('блакитний');
     expect(button('блакитний').getAttribute('aria-pressed')).toBe('true');
     // the new colour comes in the middle of the flicker (ui/flicker.ts)
-    await vi.waitFor(() => expect((device.looks.at(-1)!.theme as JsonObject).accent).toBe('blue'));
+    await vi.waitFor(() => expect((device.looks.at(-1)!.theme as JsonObject).accent).toBe('sky'));
     await tap('зберегти налаштування');
-    expect((storedProfile().theme as JsonObject).accent).toBe('blue');
+    expect((storedProfile().theme as JsonObject).accent).toBe('sky');
+  });
+
+  it('names the eleven swatches in the picker’s order (Olesia, 2026-11-12)', async () => {
+    await openSettings();
+    await openPart('акцентний колір');
+    expect([...host.querySelectorAll('.swatch')].map((s) => s.getAttribute('aria-label'))).toEqual([
+      'сірий', 'помаранчевий', 'рожевий', 'пурпуровий', 'фіолетовий', 'лавандовий',
+      'синій', 'блакитний', 'бірюзовий', 'м’ятний', 'зелений',
+    ]);
   });
 
   it('puts the saved look back when leaving without saving', async () => {
