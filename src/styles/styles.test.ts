@@ -10,9 +10,10 @@ import home from './home.css?raw';
 import sections from './sections.css?raw';
 import tokens from './tokens.css?raw';
 import typography from './typography.css?raw';
+import motion from './motion.css?raw';
 
 // The cascade can't be seen in jsdom, so these read the stylesheets as text (comments stripped).
-const FILES: Record<string, string> = { './base.css': base, '../main.ts': main, './calendar.css': calendar, './components.css': components, './history.css': history, './settings.css': settings, './home.css': home, './sections.css': sections, './tokens.css': tokens, './typography.css': typography };
+const FILES: Record<string, string> = { './base.css': base, '../main.ts': main, './calendar.css': calendar, './components.css': components, './history.css': history, './settings.css': settings, './home.css': home, './sections.css': sections, './tokens.css': tokens, './typography.css': typography, './motion.css': motion };
 const read = (file: string) => FILES[file]!.replace(/\/\*[\s\S]*?\*\//g, '');
 const block = (css: string, selector: string) => {
   const at = css.indexOf(`${selector} {`);
@@ -139,5 +140,34 @@ describe('stylesheets', () => {
     const css = read('./components.css');
     expect(css).toMatch(/\.btn--tertiary:not\(:disabled, \[aria-disabled='true'\], :active\):hover::after/);
     expect(css).toMatch(/\.btn--destructive:not\(:disabled, \[aria-disabled='true'\], :active\):hover::after/);
+  });
+
+  it('time every CSS motion on the scale 120 / 240 / 360 / 420 / 720 / 1200 ms (MICROINTERACTIONS.md)', () => {
+    const all = Object.keys(FILES).filter((file) => file.endsWith('.css')).map(read).join('\n');
+    const durations = [...all.matchAll(/(\d+)ms/g)].map((m) => Number(m[1]));
+    expect(durations.length).toBeGreaterThan(3);
+    expect(durations.filter((ms) => ![120, 240, 360, 420, 720, 1200].includes(ms))).toEqual([]);
+  });
+
+  it('press as MICROINTERACTIONS.md: 0.97, icons 0.86, text 1 px down, rows 3 px right, day 0.88', () => {
+    const css = read('./motion.css');
+    expect(css).toMatch(/:is\(\.btn--primary, \.btn--secondary, \.tab, \.chip\):active \{ transform: scale\(0\.97\); \}/);
+    expect(css).toMatch(/\.icon-btn:active \.icon \{ transform: scale\(0\.86\); \}/);
+    expect(css).toMatch(/:is\(\.btn--tertiary, \.btn--destructive\):active \{ transform: translateY\(1px\); text-decoration-thickness: 2px; \}/);
+    expect(css).toMatch(/:is\(\.checkbox, \.accordion--mini\):active \{ transform: translateX\(3px\); \}/);
+    expect(css).toMatch(/\.cal-day:active \{ transform: scale\(0\.88\); \}/);
+    // only when motion is allowed
+    expect(css).toMatch(/@media \(prefers-reduced-motion: no-preference\) \{\s*:root:not\(\[data-no-motion\]\) \.ctl/);
+  });
+
+  it('draw the glyph frames over the usual look, so nothing shifts (checkbox, + → −, ✓)', () => {
+    const css = read('./motion.css');
+    expect(css).toMatch(/\.checkbox__box\[data-g\]::before \{ content: attr\(data-g\); \}/);
+    expect(css).toMatch(/:is\(\.accordion__icon, \.toast__check\)\[data-g\] \.icon \{ visibility: hidden; \}/);
+  });
+
+  it('load the motion styles before the text styles', () => {
+    const imports = [...read('../main.ts').matchAll(/import '\.\/styles\/([\w-]+\.css)'/g)].map((m) => m[1]);
+    expect(imports.at(-2)).toBe('motion.css');
   });
 });

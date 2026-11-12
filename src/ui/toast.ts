@@ -1,4 +1,5 @@
 import { iconSvg } from './icons';
+import { EASE, glyphs, MS, play, typeIn, whenDone } from './motion';
 
 export interface ToastMessage {
   readonly message: string;
@@ -27,6 +28,30 @@ export function undo(run: () => void): ToastAction {
   return { label: 'скасувати', run: () => { run(); return UNDONE; } };
 }
 
+/** The toast comes out from under the bar (360 ms) and hides faster (240 ms); a new message stops the hiding. */
+function slideUnderBar(box: HTMLElement): { rise(): void; hide(): void } {
+  let leaving = false;
+  return {
+    rise() {
+      const coming = box.hidden || leaving;
+      box.getAnimations?.().forEach((run) => run.cancel());
+      leaving = false;
+      box.hidden = false;
+      if (coming) play(box, [{ transform: 'translateY(100%)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: MS.m, easing: EASE.out });
+    },
+    hide() {
+      leaving = true;
+      const fall = play(box, [{ transform: 'none', opacity: 1 }, { transform: 'translateY(100%)', opacity: 0 }], { duration: MS.s, easing: EASE.in, fill: 'forwards' });
+      whenDone(fall, () => {
+        if (!leaving) return;
+        leaving = false;
+        box.hidden = true;
+        fall?.cancel();
+      });
+    },
+  };
+}
+
 /**
  * The single toast of the app (Figma `toast/saved`). It never closes on its
  * own, only with × (ACCESSIBILITY.md rule 7), and a new message replaces the
@@ -46,6 +71,7 @@ export function mountToast(host: HTMLElement): Toast {
   const check = box.querySelector<HTMLElement>('.toast__check')!;
   const text = box.querySelector<HTMLElement>('.toast__message')!;
   const button = box.querySelector<HTMLButtonElement>('.toast__action')!;
+  const { rise, hide } = slideUnderBar(box);
   let action: ToastAction | undefined;
 
   function show(next: ToastMessage): void {
@@ -60,16 +86,16 @@ export function mountToast(host: HTMLElement): Toast {
     action = next.action;
     button.textContent = action?.label ?? '';
     button.hidden = !action;
-    box.hidden = false;
+    rise();
+    typeIn(text);
+    if (next.showIcon) glyphs(check, ['.', '\\', 'v']);
   }
 
   button.addEventListener('click', () => {
     const after = action?.run();
     if (after) show(after);
-    else box.hidden = true;
+    else hide();
   });
-  box.querySelector('.toast__close')!.addEventListener('click', () => {
-    box.hidden = true;
-  });
+  box.querySelector('.toast__close')!.addEventListener('click', hide);
   return { show };
 }

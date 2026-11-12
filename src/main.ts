@@ -9,6 +9,7 @@ import './styles/calendar.css';
 import './styles/menu.css';
 import './styles/history.css';
 import './styles/settings.css';
+import './styles/motion.css';
 // last: a text style class (t-*) wins over any earlier font rule of the same weight (VISUAL-AUDIT Н2)
 import './styles/typography.css';
 import { startApp } from './app/app';
@@ -19,6 +20,7 @@ import { DEFAULT_APPEARANCE, lookOf, startAppearance, type Appearance } from './
 import { trackNumberFill } from './ui/number-fill';
 import { watchForUpdates } from './pwa/updates';
 import { mountToast } from './ui/toast';
+import { wireTapMotion } from './ui/taps';
 import { copyWith, saveFile, screenHistory, shareWith } from './ui/device';
 import type { PdfFonts } from './pdf/pdf';
 
@@ -33,6 +35,7 @@ const applyAppearance = startAppearance(root, matchMedia('(prefers-color-scheme:
 trackNumberFill(root);
 
 const toast = mountToast(document.body);
+wireTapMotion(document);
 startApp({
   host: document.querySelector<HTMLElement>('#app')!,
   store: diaryStore(storage, () => new Date()),
