@@ -13,8 +13,57 @@
     <link rel="icon" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>phys-activity-tracking-app</title>
+    <style>
+      /* screen/loading (Figma 347:9064): here, not in the stylesheets, so it shows before anything else loads */
+      #loading { position: fixed; inset: 0; z-index: 2147482990; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: var(--bg, #161616); color: var(--muted, #c6b1b6); font-family: 'Noto Sans Mono', ui-monospace, monospace; }
+      #loading .ld { display: flex; gap: 2px; font-size: 30px; line-height: 1; font-weight: 600; color: rgb(var(--accent-rgb, 255 113 157) / 80%); }
+      #loading .ld > span { display: block; width: 1ch; height: 1.5em; overflow: hidden; }
+      /* the four frames | / - \ one above the other; a cell steps through them every 120 ms, each a step behind the one before */
+      #loading .ld b { display: block; font-weight: inherit; line-height: 1.5em; white-space: pre; animation: ld-spin 480ms steps(4) infinite; }
+      #loading .ld > span:nth-child(4n + 2) b { animation-delay: -360ms; }
+      #loading .ld > span:nth-child(4n + 3) b { animation-delay: -240ms; }
+      #loading .ld > span:nth-child(4n) b { animation-delay: -120ms; }
+      #loading .ld-t { font-size: 12px; }
+      @keyframes ld-spin { to { transform: translateY(-6em); } }
+      @media (prefers-color-scheme: light) {
+        /* until the app puts its theme on, follow the phone's */
+        :root:not([data-theme]) #loading { background: #f6f5f7; color: #6d5f63; }
+        :root:not([data-theme]) #loading .ld { color: rgb(194 57 106 / 80%); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #loading .ld b { animation: none; }
+      }
+    </style>
   </head>
   <body>
+    <div id="loading" role="status"><div class="ld" aria-hidden="true"><span><b>|
+/
+-
+\</b></span><span><b>|
+/
+-
+\</b></span><span><b>|
+/
+-
+\</b></span><span><b>|
+/
+-
+\</b></span><span><b>|
+/
+-
+\</b></span><span><b>|
+/
+-
+\</b></span><span><b>|
+/
+-
+\</b></span><span><b>|
+/
+-
+\</b></span><span><b>|
+/
+-
+\</b></span></div><span class="ld-t">завантажую…</span></div>
     <main id="app"></main>
     <div class="noise" aria-hidden="true"></div>
     <div class="noise noise--dark" aria-hidden="true"></div>
