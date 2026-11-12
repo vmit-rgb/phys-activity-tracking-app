@@ -135,6 +135,38 @@ describe('tap motion', () => {
     expect(fake.played).toEqual([]);
   });
 
+  it('springs the chosen day mark of a days slider bigger after − / + or the slider (drawn anew)', () => {
+    const days = document.createElement('div');
+    document.body.append(days);
+    let value = 3;
+    const draw = () => {
+      days.innerHTML = `<div class="st-days"><button type="button" class="ctl icon-btn" data-act="goal-days" data-delta="1">+</button>
+        <input type="range" min="0" max="7" value="${value}" data-input="goal-days" />
+        <div class="st-days__ticks">${[0, 1, 2, 3, 4, 5, 6, 7].map((n) => `<span${n === value ? ' class="on"' : ''}>${n}</span>`).join('')}</div></div>`;
+    };
+    days.addEventListener('click', () => {
+      value += 1;
+      draw();
+    });
+    days.addEventListener('input', (event) => {
+      value = Number((event.target as HTMLInputElement).value);
+      draw();
+    });
+    draw();
+    const grown = () => fake.on(days.querySelector('.st-days__ticks .on')).find((run) => run.keyframes.at(-1)?.transform === 'scale(1.35)');
+    days.querySelector<HTMLButtonElement>('[data-act]')!.click();
+    vi.advanceTimersByTime(0);
+    expect(days.querySelector('.on')!.textContent).toBe('4');
+    expect(grown()?.options).toMatchObject({ duration: 240, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+    const slider = days.querySelector<HTMLInputElement>('input')!;
+    slider.value = '6';
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+    vi.advanceTimersByTime(0);
+    expect(days.querySelector('.on')!.textContent).toBe('6');
+    expect(grown()).toBeDefined();
+    days.remove();
+  });
+
   it('keeps still with «вимкнути всі анімації»', () => {
     document.documentElement.setAttribute('data-no-motion', '');
     tick();

@@ -1,4 +1,5 @@
-import { glyphs, pop } from './motion';
+import { EASE, glyphs, MS, play, pop } from './motion';
+import { chipFill, tabFlow } from './stripes';
 
 /*
  * The answer to a tap, in one place for the whole app. A screen may draw
@@ -55,7 +56,53 @@ function onPress(doc: Document, event: Event): void {
   afterHandlers(doc, button, (twin) => pop(twin, twin.getBoundingClientRect().width > 220 ? 1.012 : 1.06));
 }
 
+const isOn = (el: Element) => el.getAttribute('aria-pressed') === 'true' || el.getAttribute('aria-selected') === 'true';
+const tabsOf = (group: Element) => [...group.querySelectorAll<HTMLElement>(':scope > .tab')];
+
+/** A chip that turned on or off fills or empties in stripes. */
+function onChip(doc: Document, chip: HTMLElement): void {
+  const was = isOn(chip);
+  afterHandlers(doc, chip, (twin) => {
+    if (isOn(twin) !== was) chipFill(twin as HTMLElement, !was);
+  });
+}
+
+/** Another tab chosen: the fill flows from the old one into it. */
+function onTab(doc: Document, tab: HTMLElement, group: Element): void {
+  const was = tabsOf(group).findIndex(isOn);
+  afterHandlers(doc, tab, (twin) => {
+    const twinGroup = twin.closest<HTMLElement>('.segmented')!;
+    const tabs = tabsOf(twinGroup);
+    const now = tabs.findIndex(isOn);
+    if (was >= 0 && now >= 0 && now !== was) tabFlow(twinGroup, tabs[was]!, tabs[now]!);
+  });
+}
+
+/** A chip or a tab that changed its state switches in stripes; one that didn't change, doesn't. */
+function onSwitch(doc: Document, event: Event): void {
+  const button = (event.target as Element).closest<HTMLElement>('.chip, .segmented > .tab');
+  if (!button) return;
+  const group = button.closest('.segmented');
+  if (group) onTab(doc, button, group);
+  else onChip(doc, button);
+}
+
+/** A days slider moved (− / + or the slider itself): the chosen day mark grows with a spring. */
+function onDays(doc: Document, event: Event): void {
+  const control = (event.target as Element).closest('.st-days :is(button, input)');
+  if (!control) return;
+  afterHandlers(doc, control, (twin) => {
+    const mark = twin.closest('.st-days')?.querySelector('.st-days__ticks .on');
+    play(mark, [{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }], { duration: MS.s, easing: EASE.spring });
+  });
+}
+
 export function wireTapMotion(doc: Document): void {
   doc.addEventListener('change', (event) => onTick(doc, event), true);
-  doc.addEventListener('click', (event) => onPress(doc, event), true);
+  doc.addEventListener('input', (event) => onDays(doc, event), true);
+  doc.addEventListener('click', (event) => {
+    onPress(doc, event);
+    onSwitch(doc, event);
+    onDays(doc, event);
+  }, true);
 }

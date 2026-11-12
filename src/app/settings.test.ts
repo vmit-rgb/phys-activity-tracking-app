@@ -203,6 +203,9 @@ describe('settings: the weekly goal', () => {
     const days = host.querySelector('.st-days')!;
     expect(days.querySelector('.st-days__head .t-1st-semibold')!.textContent).toBe('ціль: днів на тиждень');
     expect([...days.querySelectorAll('.st-days__ticks span')].map((tick) => tick.textContent)).toEqual(['0', '1', '2', '3', '4', '5', '6', '7']);
+    // the chosen number is marked, and only it
+    const value = days.querySelector('.st-days__value')!.textContent!.split('/')[0];
+    expect([...days.querySelectorAll('.st-days__ticks .on')].map((tick) => tick.textContent)).toEqual([value]);
   });
 
   it('changes the days with − and + within 0–7', async () => {

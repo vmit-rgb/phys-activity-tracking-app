@@ -129,6 +129,40 @@
   font-weight: 700;
 }
 
+/* ---- stage 7c2 ---- */
+
+/* the chosen day mark of a days slider is bigger; it grows there with a spring (ui/taps.ts) */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-no-motion]) .st-days__ticks > .on { transform: scale(1.35); }
+}
+
+/* chips and tabs switch in stripes (ui/stripes.ts): the stripes lie under the label,
+   the control's own fill steps aside while they run */
+.chip.fx-run,
+.segmented.fx-run {
+  isolation: isolate;
+}
+.segmented.fx-run {
+  position: relative;
+}
+.chip.fx-run,
+.segmented.fx-run > .tab {
+  background: transparent;
+}
+.fx-stripes {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.fx-stripes > i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
 /* theme change: the noise of an old TV over everything, flickering twice (ui/flicker.ts) */
 .fx-tv {
   position: fixed;

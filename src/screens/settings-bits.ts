@@ -41,6 +41,6 @@ export function daysSlider({ label, value, name, data = '', spoken }: DaysSpec):
             <input type="range" class="slider" min="0" max="7" step="1" value="${value}" aria-label="${esc(spoken)}" aria-valuetext="${value} з 7" data-input="${name}"${extra} />${
   step(1, 'більше', 'add', value >= 7)}
           </div>
-          <div class="st-days__ticks t-3rd-regular" aria-hidden="true">${Array.from({ length: 8 }, (_, n) => `<span>${n}</span>`).join('')}</div>
+          <div class="st-days__ticks t-3rd-regular" aria-hidden="true">${Array.from({ length: 8 }, (_, n) => `<span${n === value ? ' class="on"' : ''}>${n}</span>`).join('')}</div>
         </div>`;
 }
