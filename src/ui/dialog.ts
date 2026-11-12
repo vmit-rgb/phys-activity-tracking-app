@@ -98,6 +98,11 @@ export function editText(spec: TextEditSpec): Promise<string | null> {
         <textarea class="text-edit__input" rows="4" autocomplete="off" enterkeyhint="done" maxlength="${spec.maxLength}">${esc(spec.value)}</textarea>
       </label>
     </div>`);
+  // overlay/text-edit fills the screen gradually, gaining brightness (MICROINTERACTIONS.md)
+  play(root, [
+    { opacity: 0, filter: 'brightness(.3)', clipPath: 'inset(30% 0 30% 0)' },
+    { opacity: 1, filter: 'brightness(1)', clipPath: 'inset(0 0 0 0)' },
+  ], { duration: MS.l, easing: EASE.out });
   // a textarea, so a long phrase wraps instead of running off the screen; Enter still means «готово»
   const input = root.querySelector<HTMLTextAreaElement>('.text-edit__input')!;
   input.focus();

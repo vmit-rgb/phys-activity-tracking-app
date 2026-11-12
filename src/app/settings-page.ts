@@ -1,3 +1,4 @@
+import type { Accent } from '../domain/accents';
 import type { DayKey } from '../domain/dates';
 import { readCopy, type Diary, type JsonObject } from '../domain/diary';
 import { exercisesText, exportFile, pdfDocument, recordsText, type ExportTab } from '../domain/export';
@@ -11,7 +12,10 @@ import { tidy } from '../domain/sections-edit';
 import { readSettings, type ActivityKind, type Settings } from '../domain/settings';
 import { showSettings, type PartId, type SettingsAct } from '../screens/settings';
 import { SectionsEditor } from './sections-page';
+import { buzz } from '../home/signal';
 import { confirmDialog, editText } from '../ui/dialog';
+import { accentFlicker } from '../ui/flicker';
+import { fillThrough, spinWhile } from '../ui/motion';
 import { undo, type Toast, type ToastMessage } from '../ui/toast';
 
 /*
@@ -209,24 +213,37 @@ class Draft implements SettingsPage {
 
   /* ---- copy, export, restore ---- */
 
-  async copy(text: string): Promise<void> {
-    this.say((await this.env.copyText(text)) ? COPIED : NOT_COPIED);
+  /** The button of `act` on the page now. */
+  private button(act: string): HTMLElement | null {
+    return this.home.host.querySelector<HTMLElement>(`[data-act="${act}"]`);
+  }
+
+  /** A button's work is done: the fill runs through it, its label re-forms, vibration 18 ms. */
+  private finished(act: string): void {
+    fillThrough(this.button(act));
+    buzz(18, this.settings().accessibility);
+  }
+
+  async copy(text: string, act: string): Promise<void> {
+    const copied = await this.env.copyText(text);
+    if (copied) this.finished(act);
+    this.say(copied ? COPIED : NOT_COPIED);
   }
 
   copySettings(): Promise<void> {
-    return this.copy(JSON.stringify(this.draft, null, 1));
+    return this.copy(JSON.stringify(this.draft, null, 1), 'copy-settings');
   }
 
   exportText(): Promise<void> {
     const diary = this.home.diary();
     const settings = readSettings(diary.profile);
     const today = this.home.today();
-    return this.copy(this.exportTab === 'records' ? recordsText(diary.days, settings, today) : exercisesText(settings, today));
+    return this.copy(this.exportTab === 'records' ? recordsText(diary.days, settings, today) : exercisesText(settings, today), 'export-ai');
   }
 
   exportJson(): void {
     const file = exportFile(this.exportTab, this.home.diary(), this.home.today(), this.env.now());
-    this.hand(file.name, file.text);
+    if (this.hand(file.name, file.text)) this.finished('export-json');
   }
 
   async exportPdf(): Promise<void> {
@@ -234,21 +251,24 @@ class Draft implements SettingsPage {
     const doc = pdfDocument(this.exportTab, diary.days, readSettings(diary.profile), this.home.today(), PDF_FOOTER);
     let bytes: Uint8Array<ArrayBuffer>;
     try {
-      bytes = buildPdf(doc.lines, await this.env.pdfFonts());
+      // the font loads with the first PDF: the spinner waits on the button
+      bytes = buildPdf(doc.lines, await spinWhile(this.button('export-pdf'), this.env.pdfFonts()));
     } catch {
       return this.say(PDF_NOT_MADE);
     }
-    this.hand(doc.name, bytes);
+    if (this.hand(doc.name, bytes)) this.finished('export-pdf');
   }
 
-  /** Gives a file to the phone and says how it went. */
-  private hand(name: string, content: string | Uint8Array<ArrayBuffer>): void {
+  /** Gives a file to the phone and says how it went; false when the phone refused. */
+  private hand(name: string, content: string | Uint8Array<ArrayBuffer>): boolean {
     try {
       this.env.saveFile(name, content);
     } catch {
-      return this.say(FILE_NOT_SAVED);
+      this.say(FILE_NOT_SAVED);
+      return false;
     }
     this.say(FILE_SAVED);
+    return true;
   }
 
   async restore(file: File): Promise<void> {
@@ -267,7 +287,20 @@ class Draft implements SettingsPage {
   }
 
   backup(): void {
-    if (this.home.saveCopy()) this.redraw();
+    if (!this.home.saveCopy()) return;
+    this.redraw();
+    this.finished('backup');
+  }
+
+  /**
+   * A new accent: the page marks it at once, and only the accent colour
+   * flickers, the new one put on in the middle. The look put on is the draft
+   * of that moment, so leaving meanwhile never brings back an unsaved accent.
+   */
+  accent(accent: Accent): void {
+    this.draft = withAccent(accent)(this.draft);
+    this.redraw();
+    accentFlicker(document.documentElement, () => this.env.look(this.draft));
   }
 
   /* ---- deleting (ACCESSIBILITY.md: a tap and a confirmation, no hold) ---- */
@@ -325,7 +358,7 @@ const ACTS: Acts = {
   phrase: (p, a) => void p.editPhrase(a.index, false),
   'phrase-add': (p) => void p.editPhrase(p.settings().encouragement.length, true),
   'phrase-rm': (p, a) => void p.removePhrase(a.index),
-  accent: (p, a) => p.change(withAccent(a.accent)),
+  accent: (p, a) => p.accent(a.accent),
   access: (p, a) => p.change(withAccessibility(a.key, a.on)),
   timer: (p, a) => p.timer(a.tracker, a.on),
   'timer-length': (p, a) => p.change(withPulseTimer(a.tracker, true, a.seconds)),
