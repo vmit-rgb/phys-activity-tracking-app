@@ -171,12 +171,13 @@ describe('the pulse timer as tracker/pulse-timer (VISUAL-AUDIT п. 16, Н7)', ()
   const trackers = [{ id: 'pulse', name: 'пульс', kind: 'number', units: ['уд/хв'], ask: ['morning'], timer: { enabled: true, seconds: 30 } }];
   const box = render(checkInBody(ctx({ trackers }), 'morning'));
 
-  it('names the question in bold with its unit on the right, and puts the field and «таймер» side by side', () => {
+  it('names the question in bold with its unit on the right, and puts the field and the timer (as the stopwatch) side by side', () => {
     const head = box.querySelector('.pulse__head')!;
     expect([...head.children].map((child) => `${child.className}:${child.textContent}`)).toEqual(['t-1st-bold:пульс', 't-3rd-regular muted:уд/хв']);
     const row = box.querySelector('.pulse__row')!;
     expect(row.querySelector('.number__input')!.getAttribute('aria-label')).toBe('пульс, уд/хв');
-    expect(row.querySelector('.btn--tertiary')!.textContent).toBe('таймер · 30 с');
+    expect(row.querySelector('.sw .sw__btn')!.getAttribute('aria-label')).toBe('запустити таймер, 30 с');
+    expect(row.querySelector('.sw .sw__time')!.textContent).toBe('0:30');
     expect(row.querySelector('.number__unit')).toBeNull();
   });
 });

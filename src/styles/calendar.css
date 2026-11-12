@@ -286,24 +286,13 @@ button.cal-day--today {
   flex-direction: column;
   gap: var(--gap-items);
 }
-.pulse__left {
-  margin: 0;
-  color: var(--accent);
-  font-size: calc(50px * var(--text-scale));
-  font-variant-numeric: tabular-nums;
-  font-weight: 660;
-  line-height: 1.2;
-}
 .pulse__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--gap-items);
 }
-.pulse__result {
-  color: var(--accent);
-}
-/* idle (tracker/pulse-timer): «пульс» … «уд/хв», then the field with «таймер» beside it */
+/* «пульс» … «уд/хв», then the field with the timer beside it, drawn as the stopwatch (Olesia, 2026-11-12) */
 .tracker > .pulse__head {
   align-items: center;
 }
@@ -320,9 +309,6 @@ button.cal-day--today {
 }
 .pulse p {
   margin: 0;
-}
-.pulse > .btn {
-  align-self: flex-start;
 }
 
 /* the end of the countdown: one short flash over everything */

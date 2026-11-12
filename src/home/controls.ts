@@ -10,7 +10,7 @@ import { bpm } from '../domain/stats';
 import {
   control, rowAdded, rowLeaving, rowsBack, rowsNow, sliderReset, sliderSaved, stopwatchMoved, stopwatchSeen, timeDissolves, workoutAssembles,
 } from './control-motion';
-import type { HomeSession } from './session';
+import { dropPulse, pulseRunning, PULSE_READY_MS, schedulePulse, type HomeSession } from './session';
 import { prepareSound } from './signal';
 
 /*
@@ -38,10 +38,8 @@ export const AUTOSAVE_MS = 20_000;
 const AI_LINK: ToastMessage = { message: 'це посилання дав ШІ. перевір його, перш ніж повторювати.' };
 
 const data = (element: HTMLElement, name: string) => String(element.dataset[name]);
-const moment = (element: HTMLElement): Moment => {
-  const value = data(element, 'moment');
-  return MOMENTS.find((m) => m === value) ?? 'morning';
-};
+const asMoment = (value: string): Moment => MOMENTS.find((m) => m === value) ?? 'morning';
+const moment = (element: HTMLElement): Moment => asMoment(data(element, 'moment'));
 const index = (element: HTMLElement) => Number(data(element, 'i'));
 const dayKey = (c: SectionControls, key: string) => `${c.day().date}|${key}`;
 
@@ -75,17 +73,23 @@ function remove(c: SectionControls, target: string, button: HTMLElement): void {
     c.render();
     return;
   }
-  c.session.armed = null;
-  c.session.running.delete(key);
-  c.session.retry.delete(key);
+  forget(c.session, key);
   const [kind = '', id = '', at = '0'] = target.split('|');
-  const { edit, message, rowStays } = REMOVALS[kind === 'lap' || kind === 'round' ? kind : 'set'](c, id, Number(at));
-  const row = button.closest('.set-row');
+  const { edit, message, rowStays } = REMOVALS[removalKind(kind)](c, id, at);
+  const row = button.closest('.set-row, .pulse__row');
   const was = row?.querySelector('[data-sw-time]')?.textContent ?? '';
   const leave = rowStays ? () => {} : rowLeaving(row);
   removeWithUndo(c, edit, message);
   leave();
   if (rowStays) timeDissolves([...c.screen().querySelectorAll<HTMLElement>('[data-sw-time]')].find((time) => time.dataset.swTime === key), was);
+}
+
+/** What the session held for a removed target: its ✓, its stopwatch or pulse run, its «знову». */
+function forget(session: HomeSession, key: string): void {
+  session.armed = null;
+  session.running.delete(key);
+  session.retry.delete(key);
+  if (session.pulse?.key === key) dropPulse(session);
 }
 
 /** What × does: the edit, its toast, and whether the row stays (the only timer is reset to zero, not removed). */
@@ -94,11 +98,26 @@ interface Removal { readonly edit: Edit; readonly message: string; readonly rowS
 const removed = (edit: Edit, message: string): Removal => ({ edit, message, rowStays: false });
 const reset = (edit: Edit): Removal => ({ edit, message: 'таймер скинуто', rowStays: true });
 
-/** What × removes: a lap; a round, or the only round's time; a set, or the only timed set's time. */
-const REMOVALS: Record<'lap' | 'round' | 'set', (c: SectionControls, id: string, i: number) => Removal> = {
-  lap: (_c, id, i) => removed(removeLap(id, i), 'коло видалено'),
-  round: (c, id, i) => (roundRows(c.day(), id) > 1 ? removed(removeRound(id, i), 'таймер видалено') : reset(setRound(id, i, null))),
-  set: (c, id, i) => {
+/**
+ * What × removes: a lap; a round, or the only round's time; a set, or the
+ * only timed set's time; the pulse's number (`pulse|moment|tracker`), so the
+ * field is empty and the timer waits for ▶ (Olesia, 2026-11-12).
+ */
+type RemovalKind = 'lap' | 'round' | 'set' | 'pulse';
+const removalKind = (kind: string): RemovalKind => (kind === 'lap' || kind === 'round' || kind === 'pulse' ? kind : 'set');
+
+const REMOVALS: Record<RemovalKind, (c: SectionControls, id: string, at: string) => Removal> = {
+  lap: (_c, id, at) => removed(removeLap(id, Number(at)), 'коло видалено'),
+  round: (c, id, at) => {
+    const i = Number(at);
+    return roundRows(c.day(), id) > 1 ? removed(removeRound(id, i), 'таймер видалено') : reset(setRound(id, i, null));
+  },
+  pulse: (c, id, at) => {
+    const name = c.settings.trackers.find((tracker) => tracker.id === at)?.name || 'без назви';
+    return { edit: answer(asMoment(id), at, null), message: `${name} скинуто`, rowStays: true };
+  },
+  set: (c, id, at) => {
+    const i = Number(at);
     const timed = workoutItem(c, id)?.fields.includes('seconds') ?? false;
     if (!timed) return removed(removeSet(id, i, planned(c, id)), 'підхід видалено');
     return setRows(c.day(), id, planned(c, id)) === 1 ? reset(setSet(id, i, 's', null)) : removed(removeSet(id, i, planned(c, id)), 'таймер видалено');
@@ -197,15 +216,38 @@ function resetSlider(c: SectionControls, element: HTMLElement): void {
   sliderReset(sliderAt(c, sliderKey(c, element)));
 }
 
-/* ---- pulse timer: count down, ask for the beats, save beats per minute ---- */
+/* ---- pulse timer: 3 s to get ready, count down, ask for the beats, save beats per minute ---- */
 
-function startPulse(c: SectionControls, element: HTMLElement): void {
+/** A tap on the pulse timer's button, and its motion on the button drawn after it (as the stopwatch). */
+function pulseButton(c: SectionControls, button: HTMLElement): void {
+  const target = data(button, 'pulseSw');
+  const seen = stopwatchSeen(button);
+  tapPulse(c, button, dayKey(c, target));
+  stopwatchMoved(control(c.screen(), 'pulse', 'pulseSw', target), seen);
+}
+
+/** ■ cancels the run; a saved number asks first (↻ «знову»); then, or without a number, ▶ starts. */
+function tapPulse(c: SectionControls, button: HTMLElement, key: string): void {
+  const run = c.session.pulse;
+  if (run?.key === key && pulseRunning(run)) {
+    dropPulse(c.session);
+    return c.render();
+  }
+  const saved = c.day().t[moment(button)]?.[data(button, 'tracker')];
+  if (saved != null && !c.session.retry.has(key)) {
+    c.session.retry.add(key);
+    return c.render();
+  }
+  c.session.retry.delete(key);
+  startPulse(c, button, key);
+}
+
+function startPulse(c: SectionControls, element: HTMLElement, key: string): void {
   const tracker = c.settings.trackers.find((t) => t.id === data(element, 'tracker'));
   if (tracker?.kind !== 'number' || tracker.timer === null) return;
-  const seconds = tracker.timer;
   prepareSound();
-  c.session.pulse = { key: dayKey(c, `pulse|${moment(element)}|${tracker.id}`), seconds, phase: 'counting', ends: Date.now() + seconds * 1000, beats: null };
-  setTimeout(() => c.session.pulseEnd(), seconds * 1000);
+  c.session.pulse = { key, seconds: tracker.timer, phase: 'ready', ends: Date.now() + PULSE_READY_MS, beats: null };
+  schedulePulse(c.session, PULSE_READY_MS);
   c.render();
 }
 
@@ -252,8 +294,12 @@ const TAPS: Record<string, Tap> = {
   'slide-save': saveDraft,
   'slide-reset': resetSlider,
   'ai-tip': (c) => c.toast(AI_LINK),
-  'pulse-start': startPulse,
+  pulse: pulseButton,
   'pulse-done': finishPulse,
+  'pulse-cancel': (c) => {
+    dropPulse(c.session);
+    c.render();
+  },
 };
 
 /* ---- typing ---- */
