@@ -143,6 +143,14 @@
   padding: 0 calc(var(--tap) + var(--gap-items));
   color: var(--muted);
 }
+/* the chosen number stands out («бета 0.72»); with motion it is also bigger (motion.css) */
+.st-days__ticks > span {
+  display: inline-block;
+}
+.st-days__ticks > .on {
+  color: var(--ink);
+  font-weight: 720;
+}
 
 /* slider (126:2027): 12 px pill track, ring thumb; never set = faint thumb; saved = locked */
 .slider {

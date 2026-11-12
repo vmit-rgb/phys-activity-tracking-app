@@ -21,6 +21,7 @@ import { trackNumberFill } from './ui/number-fill';
 import { watchForUpdates } from './pwa/updates';
 import { mountToast } from './ui/toast';
 import { wireTapMotion } from './ui/taps';
+import { wireNotes } from './ui/notes';
 import { leaveLoading } from './ui/boot';
 import { copyWith, saveFile, screenHistory, shareWith } from './ui/device';
 import type { PdfFonts } from './pdf/pdf';
@@ -37,6 +38,7 @@ trackNumberFill(root);
 
 const toast = mountToast(document.body);
 wireTapMotion(document);
+wireNotes(document);
 const host = document.querySelector<HTMLElement>('#app')!;
 startApp({
   host,

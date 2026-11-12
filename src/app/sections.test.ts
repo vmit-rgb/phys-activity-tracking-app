@@ -519,7 +519,7 @@ describe('dragging on the page', () => {
     expect(vibrate).toHaveBeenCalledWith(18);
     pointer('pointermove', document, 10, 50);
     expect(first!.classList.contains('st-target')).toBe(true);
-    expect(document.querySelector('.st-proxy')!.textContent).toBe('вправа 8');
+    expect(document.querySelector('.st-proxy__name')!.textContent).toBe('вправа 8');
     pointer('pointerup', document, 10, 50);
     vi.useRealTimers();
     expect(toastSays()).toBe('✓ групу зібрано :)');

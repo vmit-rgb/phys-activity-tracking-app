@@ -375,6 +375,16 @@
   color: var(--ink);
   pointer-events: none;
   box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
+  /* the name, the description under it in muted (MICROINTERACTIONS.md: «видно тільки назву й опис») */
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-micro);
+}
+.st-proxy__how {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* the bar: 💾 left, ✕ right (navigation edit-profile) */

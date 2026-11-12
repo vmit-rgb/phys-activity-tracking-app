@@ -129,6 +129,60 @@
   font-weight: 700;
 }
 
+/* ---- stage 7c2 ---- */
+
+/* the chosen day mark of a days slider is bigger; it grows there with a spring (ui/taps.ts) */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-no-motion]) .st-days__ticks > .on { transform: scale(1.35); }
+}
+
+/* group mode: «створити групу» or a workout exercise held up. Every exercise but the held one
+   shakes lightly, ±1° in 240 ms, neighbours 40 ms apart so they don't move as one
+   (MICROINTERACTIONS.md, Олеся 2026-11-08: small but noticeable, less than an iPhone).
+   Without motion only the frames show the mode. */
+@keyframes fx-shake {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-no-motion]) .st-pick,
+  :root:not([data-no-motion]) .st-shaking .st-item[data-family='wo-ex']:not(.st-group, .st-lift) {
+    animation: fx-shake 240ms ease-in-out infinite;
+  }
+  :root:not([data-no-motion]) :is(.st-pick, .st-item):nth-child(6n + 2) { animation-delay: -40ms; }
+  :root:not([data-no-motion]) :is(.st-pick, .st-item):nth-child(6n + 3) { animation-delay: -80ms; }
+  :root:not([data-no-motion]) :is(.st-pick, .st-item):nth-child(6n + 4) { animation-delay: -120ms; }
+  :root:not([data-no-motion]) :is(.st-pick, .st-item):nth-child(6n + 5) { animation-delay: -160ms; }
+  :root:not([data-no-motion]) :is(.st-pick, .st-item):nth-child(6n) { animation-delay: -200ms; }
+}
+
+/* chips and tabs switch in stripes (ui/stripes.ts): the stripes lie under the label,
+   the control's own fill steps aside while they run */
+.chip.fx-run,
+.segmented.fx-run {
+  isolation: isolate;
+}
+.segmented.fx-run {
+  position: relative;
+}
+.chip.fx-run,
+.segmented.fx-run > .tab {
+  background: transparent;
+}
+.fx-stripes {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.fx-stripes > i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
 /* theme change: the noise of an old TV over everything, flickering twice (ui/flicker.ts) */
 .fx-tv {
   position: fixed;
