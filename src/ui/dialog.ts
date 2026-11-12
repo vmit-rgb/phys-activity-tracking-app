@@ -1,4 +1,5 @@
 import { esc } from './html';
+import { EASE, MS, play, whenDone } from './motion';
 
 /*
  * Two layers over a screen, both closed with Escape too:
@@ -22,8 +23,11 @@ export interface ConfirmSpec {
 
 export type ConfirmAnswer = 'confirm' | 'cancel' | 'extra';
 
-/** Puts a layer on the page; `close` removes it and gives the focus back. */
-function layer(markup: string): { root: HTMLElement; close(): void } {
+/**
+ * Puts a layer on the page; `close` gives the focus back and removes it,
+ * `dissolve` too, but the layer fades out first (and takes no taps meanwhile).
+ */
+function layer(markup: string): { root: HTMLElement; close(): void; dissolve(): void } {
   const before = document.activeElement as HTMLElement | null;
   document.body.insertAdjacentHTML('beforeend', markup);
   const root = document.body.lastElementChild as HTMLElement;
@@ -33,11 +37,16 @@ function layer(markup: string): { root: HTMLElement; close(): void } {
       root.remove();
       before?.focus({ preventScroll: true });
     },
+    dissolve() {
+      root.inert = true;
+      before?.focus({ preventScroll: true });
+      whenDone(play(root, [{ opacity: 1 }, { opacity: 0 }], { duration: MS.s, easing: EASE.in, fill: 'forwards' }), () => root.remove());
+    },
   };
 }
 
 export function confirmDialog(spec: ConfirmSpec): Promise<ConfirmAnswer> {
-  const { root, close } = layer(`
+  const { root, dissolve } = layer(`
     <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title"${spec.body ? ' aria-describedby="dialog-body"' : ''}>
       <div class="dialog__scrim" data-answer="cancel"></div>
       <div class="dialog__panel">
@@ -51,9 +60,12 @@ export function confirmDialog(spec: ConfirmSpec): Promise<ConfirmAnswer> {
       </div>
     </div>`);
   root.querySelector<HTMLElement>('[data-answer="cancel"].btn')!.focus();
+  // comes up from below, the scrim darkens with it
+  play(root.querySelector('.dialog__panel'), [{ opacity: 0, transform: 'translateY(32px)' }, { opacity: 1, transform: 'none' }], { duration: MS.m, easing: EASE.out });
+  play(root.querySelector('.dialog__scrim'), [{ opacity: 0 }, { opacity: 1 }], { duration: MS.m, easing: EASE.out });
   return new Promise((resolve) => {
     const answer = (value: ConfirmAnswer) => {
-      close();
+      dissolve();
       resolve(value);
     };
     root.addEventListener('click', (event) => {

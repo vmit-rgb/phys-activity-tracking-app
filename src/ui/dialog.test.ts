@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { confirmDialog, editText } from './dialog';
+import { fakeAnimate } from './test-animate';
 
 const key = (target: Element, name: string) => target.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }));
 const click = (text: string) => [...document.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent === text)!.click();
@@ -73,5 +74,34 @@ describe('editText (overlay/text-edit 250:6286)', () => {
     const cancelled = editText({ label: 'фраза', value: 'а', maxLength: 80 });
     click('скасувати');
     expect(await cancelled).toBeNull();
+  });
+});
+
+describe('confirmDialog in motion (MICROINTERACTIONS.md)', () => {
+  let fake: ReturnType<typeof fakeAnimate>;
+  beforeEach(() => {
+    fake = fakeAnimate();
+  });
+  afterEach(() => fake.restore());
+
+  it('comes up from below', () => {
+    void confirmDialog({ title: 'видалити?', confirm: 'видалити', cancel: 'скасувати' });
+    const [rise] = fake.on(document.querySelector('.dialog__panel'));
+    expect(rise!.keyframes[0]).toMatchObject({ opacity: 0, transform: 'translateY(32px)' });
+    expect(rise!.options.duration).toBe(360);
+  });
+
+  it('dissolves after the answer: the focus is back at once, the layer goes when it has faded', async () => {
+    const answer = confirmDialog({ title: 'видалити?', confirm: 'видалити', cancel: 'скасувати' });
+    click('видалити');
+    expect(await answer).toBe('confirm');
+    expect(document.activeElement!.id).toBe('before');
+    const dialog = document.querySelector<HTMLElement>('.dialog')!;
+    expect(dialog.inert).toBe(true);
+    const fade = fake.on(dialog).at(-1)!;
+    expect(fade.keyframes.at(-1)).toEqual({ opacity: 0 });
+    expect(fade.options.duration).toBe(240);
+    fade.finish();
+    expect(document.querySelector('.dialog')).toBeNull();
   });
 });
