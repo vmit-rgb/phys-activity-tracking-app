@@ -7,6 +7,7 @@ import { showFirstLaunch } from '../screens/first-launch';
 import { showHome } from '../screens/home';
 import { showInstallFirst } from '../screens/install-first';
 import type { DiaryStore, sectionMemory } from '../storage/store';
+import { enter } from '../ui/motion';
 import type { Toast, ToastMessage } from '../ui/toast';
 import { logKeeper } from './keeper';
 import { pagesOverHome, type DeviceEnv } from './pages';
@@ -81,6 +82,7 @@ export function startApp(env: AppEnv): void {
       leave();
       leave = draw();
       document.documentElement.scrollTop = 0;
+      enter(host.firstElementChild);
     },
     keep: (next) => persist(next),
     restart: (next, message) => keep(next, message),
@@ -124,8 +126,11 @@ export function startApp(env: AppEnv): void {
     leave = () => {};
     // home is only chosen when there is a diary (startScreen)
     if (screen === 'home' && diary) showDay(diary, date);
-    else if (screen === 'install-first') showInstallFirst(host, phoneOf(env.platform), useBrowser);
-    else showFirstLaunch(host, env.platform, { copyPrompt, applySettings, restore, startWithoutAi });
+    else {
+      if (screen === 'install-first') showInstallFirst(host, phoneOf(env.platform), useBrowser);
+      else showFirstLaunch(host, env.platform, { copyPrompt, applySettings, restore, startWithoutAi });
+      enter(host.firstElementChild);
+    }
     document.documentElement.scrollTop = 0;
   }
 

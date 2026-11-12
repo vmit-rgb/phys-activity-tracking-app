@@ -202,6 +202,15 @@ describe('scrolling', () => {
     scroll.mockRestore();
   });
 
+  it('«вгору» jumps without the smooth scroll when animations are off', () => {
+    const scroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    document.documentElement.setAttribute('data-no-motion', '');
+    host.querySelector<HTMLButtonElement>('.to-top')!.click();
+    document.documentElement.removeAttribute('data-no-motion');
+    expect(scroll).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+    scroll.mockRestore();
+  });
+
   it('stops listening once another screen takes over', () => {
     const bar = host.querySelector('.bar')!;
     leave();

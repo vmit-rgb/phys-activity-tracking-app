@@ -6,6 +6,7 @@ import type { Settings } from '../domain/settings';
 import { barShown, swipeDays, toTopShown, type Point } from '../home/gestures';
 import { goalLine } from '../home/home-view';
 import { iconSvg } from '../ui/icons';
+import { fadeShown, moving } from '../ui/motion';
 import { part } from './parts';
 
 /*
@@ -88,7 +89,7 @@ export const TO_TOP = `
 export function wireScroll(host: HTMLElement, signal: AbortSignal, pinned: () => boolean = () => false): void {
   const bar = part<HTMLElement>(host, '.bar');
   const toTop = part<HTMLButtonElement>(host, '.to-top');
-  toTop.addEventListener('click', () => scrollTo({ top: 0, behavior: 'smooth' }));
+  toTop.addEventListener('click', () => scrollTo({ top: 0, behavior: moving() ? 'smooth' : 'auto' }));
   let lastY = scrollY;
   addEventListener('scroll', () => {
     const y = scrollY;
@@ -97,7 +98,7 @@ export function wireScroll(host: HTMLElement, signal: AbortSignal, pinned: () =>
       barFocused: pinned() || bar.contains(document.activeElement), barShown: !bar.classList.contains('bar--hidden'),
     });
     bar.classList.toggle('bar--hidden', !shown);
-    toTop.hidden = pinned() || !toTopShown(y, shown);
+    fadeShown(toTop, !pinned() && toTopShown(y, shown));
     if (Math.abs(y - lastY) > 6) lastY = y;
   }, { passive: true, signal });
   bar.addEventListener('focusin', () => bar.classList.remove('bar--hidden'), { signal });
