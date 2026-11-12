@@ -11,9 +11,9 @@ import { heroFor, homeSections, type SectionId, type SectionSpec } from '../home
 import {
   checkInBody, daytimeBody, morningBody, movementBody, noteBody, workoutBody, type SectionContext,
 } from '../home/sections';
-import { formatCountdown, formatStopwatch, type HomeSession } from '../home/session';
+import { formatStopwatch, pulseRunning, pulseTime, schedulePulse, type HomeSession } from '../home/session';
 import { calendarMarkup, type CalendarView } from '../home/calendar';
-import { endSignal } from '../home/signal';
+import { endSignal, startSignal } from '../home/signal';
 import { monthOf, shiftMonth } from '../domain/stats';
 import { wireAccordions } from '../ui/accordion';
 import type { ToastMessage } from '../ui/toast';
@@ -274,21 +274,33 @@ function tickStopwatches(host: HTMLElement, state: HomeState, signal: AbortSigna
   signal.addEventListener('abort', () => clearInterval(timer));
 }
 
-/** The pulse countdown counts on screen. */
+/** The pulse timer counts on screen: «3 · 2 · 1», then the countdown. */
 function tickPulse(host: HTMLElement, state: HomeState, signal: AbortSignal): void {
   const run = state.session.pulse;
-  if (run?.phase !== 'counting') return;
+  if (!run || !pulseRunning(run)) return;
   const timer = setInterval(() => {
     const left = host.querySelector<HTMLElement>('[data-pulse-left]');
-    if (left) left.textContent = formatCountdown(run.ends - Date.now());
+    // not while its old digits dissolve («знову»)
+    if (left && left.dataset.busy === undefined) left.textContent = pulseTime(run, Date.now());
   }, 200);
   signal.addEventListener('abort', () => clearInterval(timer));
 }
 
-/** The end of the countdown: the signal, then the question about the beats, with the focus in its field. */
-function pulseEnd(host: HTMLElement, state: HomeState, controls: SectionControls): () => void {
+/**
+ * The next step of the pulse timer. Ready → counting: the start signal and
+ * the full countdown. Counting → beats: the end signal, then the question,
+ * with the focus in its field.
+ */
+function pulseStep(host: HTMLElement, state: HomeState, controls: SectionControls): () => void {
   return () => {
     const run = state.session.pulse;
+    if (run?.phase === 'ready') {
+      state.session.pulse = { ...run, phase: 'counting', ends: Date.now() + run.seconds * 1000 };
+      schedulePulse(state.session, run.seconds * 1000);
+      startSignal(state.settings.accessibility);
+      controls.render();
+      return;
+    }
     if (run?.phase !== 'counting') return;
     state.session.pulse = { ...run, phase: 'beats' };
     endSignal(state.settings.accessibility);
@@ -319,7 +331,7 @@ export function showHome(host: HTMLElement, state: HomeState, actions: HomeActio
   const controls = sectionControls(host, state, actions, calendar);
   wireSections(home, controls);
   state.session.flush = () => flushDrafts(controls);
-  state.session.pulseEnd = pulseEnd(host, state, controls);
+  state.session.pulseStep = pulseStep(host, state, controls);
   part(host, '.bar__menu').addEventListener('click', () => actions.openMenu());
 
   tickStopwatches(host, state, listeners.signal);
