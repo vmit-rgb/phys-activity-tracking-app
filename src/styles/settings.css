@@ -117,37 +117,18 @@
 .swatch[aria-pressed='true'] .swatch__dot {
   box-shadow: inset 0 0 0 var(--stroke-1) var(--ink);
 }
-:root[data-theme='dark'] {
-  --sw-gray: rgb(193 187 197);
-  --sw-orange: rgb(255 130 42);
-  --sw-pink: rgb(255 113 157);
-  --sw-magenta: rgb(255 78 248);
-  --sw-purple: rgb(209 124 255);
-  --sw-violet: rgb(167 149 254);
-  --sw-blue: rgb(118 167 254);
-  --sw-cyan: rgb(21 235 230);
-  --sw-mint: rgb(33 239 194);
-}
-:root[data-theme='light'] {
-  --sw-gray: rgb(102 97 106);
-  --sw-orange: rgb(181 85 4);
-  --sw-pink: rgb(194 57 106);
-  --sw-magenta: rgb(190 3 185);
-  --sw-purple: rgb(155 70 198);
-  --sw-violet: rgb(117 97 197);
-  --sw-blue: rgb(65 111 193);
-  --sw-cyan: rgb(9 125 123);
-  --sw-mint: rgb(6 128 102);
-}
-.swatch[data-swatch='gray'] { --sw: var(--sw-gray); }
-.swatch[data-swatch='orange'] { --sw: var(--sw-orange); }
-.swatch[data-swatch='pink'] { --sw: var(--sw-pink); }
-.swatch[data-swatch='magenta'] { --sw: var(--sw-magenta); }
-.swatch[data-swatch='purple'] { --sw: var(--sw-purple); }
-.swatch[data-swatch='violet'] { --sw: var(--sw-violet); }
-.swatch[data-swatch='blue'] { --sw: var(--sw-blue); }
-.swatch[data-swatch='cyan'] { --sw: var(--sw-cyan); }
-.swatch[data-swatch='mint'] { --sw: var(--sw-mint); }
+/* the colour lives once, in tokens.css (--rgb-*) */
+.swatch[data-swatch='gray'] { --sw: rgb(var(--rgb-gray)); }
+.swatch[data-swatch='orange'] { --sw: rgb(var(--rgb-orange)); }
+.swatch[data-swatch='pink'] { --sw: rgb(var(--rgb-pink)); }
+.swatch[data-swatch='magenta'] { --sw: rgb(var(--rgb-magenta)); }
+.swatch[data-swatch='purple'] { --sw: rgb(var(--rgb-purple)); }
+.swatch[data-swatch='violet'] { --sw: rgb(var(--rgb-violet)); }
+.swatch[data-swatch='blue'] { --sw: rgb(var(--rgb-blue)); }
+.swatch[data-swatch='sky'] { --sw: rgb(var(--rgb-sky)); }
+.swatch[data-swatch='cyan'] { --sw: rgb(var(--rgb-cyan)); }
+.swatch[data-swatch='mint'] { --sw: rgb(var(--rgb-mint)); }
+.swatch[data-swatch='green'] { --sw: rgb(var(--rgb-green)); }
 
 /* the pulse timer under its question */
 .st-timer {

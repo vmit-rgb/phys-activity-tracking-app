@@ -81,10 +81,10 @@ export interface SettingsActions {
   lifted(): void;
 }
 
-/* COPY.md: accent names from Figma. */
+/* COPY.md: accent names; blue is «синій» since sky took «блакитний» (2026-11-12). */
 export const ACCENT_NAMES: Record<Accent, string> = {
   gray: 'сірий', orange: 'помаранчевий', pink: 'рожевий', magenta: 'пурпуровий', purple: 'фіолетовий',
-  violet: 'лавандовий', blue: 'блакитний', cyan: 'бірюзовий', mint: 'м’ятний',
+  violet: 'лавандовий', blue: 'синій', sky: 'блакитний', cyan: 'бірюзовий', mint: 'м’ятний', green: 'зелений',
 };
 
 /* ACCESSIBILITY.md and Figma section/accessibility; «вимкнути звук» added by Olesia 2026-11-10. */
