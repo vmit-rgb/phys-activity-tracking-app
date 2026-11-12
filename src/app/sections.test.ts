@@ -105,6 +105,85 @@ describe('sections in the settings: closed', () => {
   });
 });
 
+describe('deleting in the settings: one look everywhere (Olesia, 2026-11-12)', () => {
+  /** Opens every section and every box inside, one by one (each tap redraws). */
+  async function openEverything(): Promise<void> {
+    await openSettings();
+    for (const part of ['самопочуття', 'ранкова розминка', 'денна розминка', 'тренування', 'рух']) await tap(part);
+    for (let closed = host.querySelector<HTMLButtonElement>('[data-act="inner"][aria-expanded="false"]'); closed;
+      closed = host.querySelector<HTMLButtonElement>('[data-act="inner"][aria-expanded="false"]')) {
+      closed.click();
+      await settle();
+    }
+  }
+  const removes = () => [...host.querySelectorAll<HTMLButtonElement>('[data-act="rm"]')];
+
+  it('is a red text button «видалити …», never a ×, and the voice name starts with what is seen', async () => {
+    await openEverything();
+    expect(removes().length).toBeGreaterThan(10);
+    for (const b of removes()) {
+      expect(b.classList.contains('btn--destructive')).toBe(true);
+      expect(b.querySelector('svg')).toBeNull();
+      expect(b.textContent!.trim()).toMatch(/^видалити (рівень|зону|тренування|вправу|рух|повзунок|питання|поле|нотатку)$/);
+      expect(b.getAttribute('aria-label')!.startsWith(`${b.textContent!.trim()}: `)).toBe(true);
+    }
+    expect(new Set(removes().map((b) => b.textContent!.trim()))).toEqual(new Set([
+      'видалити повзунок', 'видалити питання', 'видалити поле', 'видалити рівень', 'видалити зону', 'видалити тренування', 'видалити вправу', 'видалити рух',
+    ]));
+  });
+
+  it('sits at the end of what it deletes, not next to its name or the +/−', async () => {
+    await openEverything();
+    for (const b of removes()) {
+      expect(b.closest('.st-row')).toBeNull();
+      const item = b.closest('.st-item')!;
+      const own = [...item.querySelectorAll('[data-act="rm"]')].filter((x) => x.closest('.st-item') === item);
+      expect(own).toEqual([b]);
+      // nothing of this item comes after it except its own menu
+      const after = [...item.querySelectorAll('*')].filter((x) => b.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING
+        && !b.contains(x) && x.closest('.st-item') === item && !x.closest('.st-menu'));
+      expect(after.filter((x) => x.matches('button, input, p, label'))).toEqual([]);
+    }
+  });
+
+  it('asks with the right word for it or her', async () => {
+    await openEverything();
+    const said = async (label: string) => {
+      const b = removes().find((x) => x.textContent!.trim() === label)!;
+      b.click();
+      await settle();
+      const text = document.querySelector('.dialog')!.textContent!;
+      await tap('скасувати');
+      return text.includes('його більше не буде') ? 'його' : text.includes('її більше не буде') ? 'її' : '?';
+    };
+    expect(await said('видалити рівень')).toBe('його');
+    expect(await said('видалити зону')).toBe('її');
+    expect(await said('видалити тренування')).toBe('його');
+    expect(await said('видалити вправу')).toBe('її');
+    expect(await said('видалити рух')).toBe('його');
+    expect(await said('видалити повзунок')).toBe('його');
+    expect(await said('видалити питання')).toBe('його');
+    expect(await said('видалити поле')).toBe('його');
+  });
+
+  it('says «її» for a note too', async () => {
+    const profile = { ...EXAMPLE_DIARY.profile, trackers: [{ id: 'n', name: 'як день', kind: 'note', ask: ['evening'] }] };
+    await openSettings({ profile, days: {} });
+    await tap('самопочуття');
+    await tap('розгорнути: нотатки');
+    await tap('видалити нотатку: як день');
+    expect(document.querySelector('.dialog')!.textContent).toContain('її більше не буде в налаштуваннях.');
+  });
+
+  it('keeps the phrases’ small ×', async () => {
+    await openSettings();
+    await tap('підбадьорлива фраза');
+    const phrase = host.querySelector<HTMLButtonElement>('[data-act="phrase-rm"]')!;
+    expect(phrase.classList.contains('icon-btn--small')).toBe(true);
+    expect(phrase.querySelector('svg')).not.toBeNull();
+  });
+});
+
 describe('ранкова розминка', () => {
   beforeEach(async () => {
     await openSettings();
@@ -196,17 +275,21 @@ describe('ранкова розминка', () => {
   });
 
   it('removes a level after asking, with «скасувати» after', async () => {
-    await tap('видалити: рівень 2');
-    expect(document.querySelector('.dialog')!.textContent).toContain('видалити «рівень 2»?');
+    expect(buttons('видалити рівень: рівень 2')).toHaveLength(0); // only inside the open level
+    await tap('розгорнути: рівень 2');
+    await tap('видалити рівень: рівень 2');
+    const dialog = document.querySelector('.dialog')!.textContent;
+    expect(dialog).toContain('видалити «рівень 2»?');
+    expect(dialog).toContain('його більше не буде в налаштуваннях.');
     await tap('скасувати');
-    expect(host.textContent).toContain('3 вправи');
-    await tap('видалити: рівень 2');
+    expect(buttons('видалити рівень: рівень 2')).toHaveLength(1);
+    await tap('видалити рівень: рівень 2');
     await tap('видалити');
     expect(toastSays()).toBe('✓ видалено');
-    expect(host.textContent).not.toContain('3 вправи');
+    expect(buttons('дії: рівень 2')).toHaveLength(0);
     await tap('скасувати');
     expect(toastSays()).toBe('✓ скасовано');
-    expect(host.textContent).toContain('3 вправи');
+    expect(buttons('дії: рівень 2')).toHaveLength(1);
   });
 
   it('turns the section off and on, and changes its days', async () => {
@@ -489,8 +572,9 @@ describe('тренування', () => {
     await tap('дії: вправа 8');
     await tap('об’єднати в групу з…');
     await choose('вправа 7');
-    await tap('видалити: вправа 8');
+    await tap('видалити вправу: вправа 8');
     expect(document.querySelector('.dialog')!.textContent).toContain('видалити «вправа 8»?');
+    expect(document.querySelector('.dialog')!.textContent).toContain('її більше не буде в налаштуваннях.');
     await tap('видалити');
     expect(host.querySelector('.st-group')).toBeNull();
   });

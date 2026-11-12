@@ -639,7 +639,7 @@ describe('settings: less common paths', () => {
     await openSettings({ profile: { ...EXAMPLE_DIARY.profile, trackers: [{ id: 'n', name: '', kind: 'number', ask: ['morning'] }] }, days: {} });
     await openPart('самопочуття');
     await tap('розгорнути: одне число');
-    expect(button('видалити: без назви')).toBeTruthy();
+    expect(button('видалити поле: без назви')).toBeTruthy();
     await tick('таймер для пульсу');
     expect(button('30 с').getAttribute('aria-pressed')).toBe('true');
     await tap('зберегти налаштування');

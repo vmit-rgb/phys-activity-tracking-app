@@ -171,6 +171,13 @@ describe('stylesheets', () => {
     expect(css).toMatch(/:is\(\.accordion__icon, \.toast__check\)\[data-g\] \.icon \{ visibility: hidden; \}/);
   });
 
+  it('draw × (and its ✓) in the sections at 16 px, tap zone untouched (Olesia, 2026-11-12)', () => {
+    const rule = block(read('./sections.css'), '.rm .icon');
+    expect(rule).toContain('width: 16px;');
+    expect(rule).toContain('height: 16px;');
+    expect(rule).not.toMatch(/min-|padding|margin/);
+  });
+
   it('load the motion styles before the text styles', () => {
     const imports = [...read('../main.ts').matchAll(/import '\.\/styles\/([\w-]+\.css)'/g)].map((m) => m[1]);
     expect(imports.at(-2)).toBe('motion.css');
