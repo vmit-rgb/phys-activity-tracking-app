@@ -133,3 +133,88 @@ export function typeIn(el: HTMLElement): void {
     play(part, [{ opacity: 0 }, { opacity: 1 }], { duration: MS.xs, delay: Math.round(step * i), easing: EASE.out, fill: 'backwards' });
   });
 }
+
+/** What a text runs through while it re-forms (0.81). */
+export const GLYPHS = '!#$%&*+-:;<=>?@^~/\|';
+/** One step of a decode or a scramble: a step, not a duration. */
+const TEXT_STEP_MS = 40;
+const glyph = () => GLYPHS.charAt(Math.floor(Math.random() * GLYPHS.length));
+const space = /\s/;
+
+interface TextRun {
+  readonly timer: ReturnType<typeof setInterval>;
+  readonly text: string;
+  /** The element's text after the last frame: anything else means someone wrote a new text. */
+  drawn: string;
+}
+const textRuns = new WeakMap<HTMLElement, TextRun>();
+
+/** Stops a decode or scramble still going on `el` and leaves its text whole (or the newer one written since). */
+function stopText(el: HTMLElement): void {
+  const run = textRuns.get(el);
+  if (!run) return;
+  clearInterval(run.timer);
+  textRuns.delete(el);
+  delete el.dataset.busy;
+  if (el.textContent === run.drawn) el.textContent = run.text;
+}
+
+/** Draws `frame(progress)` every 40 ms until `duration`, then `text` and `end`. */
+function runText(el: HTMLElement, text: string, duration: number, frame: (progress: number) => void, end: () => void): void {
+  const steps = Math.max(1, Math.round(duration / TEXT_STEP_MS));
+  let i = 0;
+  const draw = (progress: number) => {
+    frame(progress);
+    run.drawn = el.textContent ?? '';
+  };
+  const run: TextRun = {
+    text,
+    drawn: '',
+    timer: setInterval(() => {
+      i += 1;
+      if (i < steps) return draw(i / steps);
+      stopText(el);
+      end();
+    }, TEXT_STEP_MS),
+  };
+  el.dataset.busy = '';
+  textRuns.set(el, run);
+  draw(0);
+}
+
+/**
+ * A text that changed re-forms out of glyphs, left to right (monospace, so
+ * nothing moves). A screen reader hears only the real text. Only where the
+ * content changed (MICROINTERACTIONS.md, decode).
+ */
+export function decode(el: HTMLElement | null | undefined, duration: number = MS.s): void {
+  if (!el) return;
+  stopText(el);
+  const text = el.textContent ?? '';
+  if (!moving() || el.childElementCount > 0 || !text.trim()) return;
+  const letters = [...text];
+  const at = letters.map((_, i) => (i / Math.max(1, letters.length - 1)) * 0.7 + Math.random() * 0.3);
+  const spoken = document.createElement('span');
+  spoken.className = 'visually-hidden';
+  spoken.textContent = text;
+  const shown = document.createElement('span');
+  shown.setAttribute('aria-hidden', 'true');
+  el.replaceChildren(spoken, shown);
+  runText(el, text, duration, (progress) => {
+    shown.textContent = letters.map((ch, i) => (space.test(ch) || progress >= at[i]! ? ch : glyph())).join('');
+  }, () => {});
+}
+
+/** Digits dissolve in a run of glyphs (240 ms) and give way to `target`. */
+export function scrambleTo(el: HTMLElement, target: string, done: () => void = () => {}): void {
+  stopText(el);
+  if (!moving()) {
+    el.textContent = target;
+    done();
+    return;
+  }
+  const n = [...(el.textContent ?? '')].length;
+  runText(el, target, MS.s, (progress) => {
+    el.textContent = Array.from({ length: n }, () => (Math.random() < progress * 0.6 ? ' ' : glyph())).join('');
+  }, done);
+}
