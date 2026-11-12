@@ -286,6 +286,19 @@ describe('«створити групу»', () => {
   });
 });
 
+describe('💾 «зберегти»', () => {
+  it('turns the ASCII spinner for at least 240 ms, then shows the icon again', async () => {
+    await openWorkout();
+    await tap('зберегти налаштування');
+    const save = () => button('зберегти налаштування');
+    expect(save().querySelector('.spin')!.textContent).toBe('|');
+    expect(save().getAttribute('aria-busy')).toBe('true');
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    expect(save().querySelector('.spin')).toBeNull();
+    expect(save().querySelector('svg')).not.toBeNull();
+  });
+});
+
 describe('without motion', () => {
   it('lifts with the frame only: no spring, no shaking, nothing after the drop', async () => {
     await openWorkout();

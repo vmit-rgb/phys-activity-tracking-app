@@ -544,5 +544,5 @@ export function movementBody(ctx: SectionContext): string {
 
 export function noteBody(ctx: SectionContext): string {
   return `${withGrip(`<textarea class="field note-field" rows="3" aria-label="нотатка" placeholder="як минув день? пиши як є" data-input="note"
-    ${keyed(dayKey(ctx, 'note'))}>${esc(ctx.day.note)}</textarea>`)}<p class="t-3rd-regular muted">зберігається, поки пишеш</p>`;
+    ${keyed(dayKey(ctx, 'note'))}>${esc(ctx.day.note)}</textarea>`)}<p class="t-3rd-regular muted" data-saving>зберігається, поки пишеш</p>`;
 }

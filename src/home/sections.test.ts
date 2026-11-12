@@ -230,5 +230,7 @@ describe('text fields with the resize grip (п. 18)', () => {
     const trackers = [{ id: 'n', name: 'нотатка', kind: 'note', ask: ['morning'] }];
     expect(render(checkInBody(ctx({ trackers }), 'morning')).querySelector('.field-wrap > textarea.field + .field-grip')).not.toBeNull();
     expect(render(noteBody(ctx({}))).querySelector('.field-wrap > textarea.note-field + .field-grip')).not.toBeNull();
+    // «зберігається, поки пишеш» right after the field, marked for its glyph run (ui/notes.ts)
+    expect(render(noteBody(ctx({}))).querySelector('.field-wrap + [data-saving]')!.textContent).toBe('зберігається, поки пишеш');
   });
 });

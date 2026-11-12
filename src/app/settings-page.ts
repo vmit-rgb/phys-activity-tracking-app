@@ -168,9 +168,14 @@ class Draft implements SettingsPage {
     return true;
   }
 
+  /**
+   * Saves at once; the page drawn anew turns the ASCII spinner on 💾 for a
+   * moment (MICROINTERACTIONS.md, «збереження в налаштуваннях»).
+   */
   save(): void {
     const before = this.saved;
     if (!this.keepProfile(cleanForSave(this.draft))) return;
+    void spinWhile(this.button('save'), Promise.resolve());
     this.say({ ...SAVED, action: undo(() => this.keepProfile(before)) });
   }
 
