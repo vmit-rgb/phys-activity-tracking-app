@@ -1,0 +1,57 @@
+/*
+ * Motion, stage 7a (MICROINTERACTIONS.md). Durations only from the scale
+ * 120 / 240 / 360 / 420 / 720 / 1200 ms. The moves played from code live in
+ * ui/motion.ts; these are the ones CSS does by itself. All of it stays still
+ * with «вимкнути всі анімації» (settings.css) and with the phone's «reduce motion».
+ */
+
+/* ---- pressing: buttons, pills, chips, tabs 0.97; icons 0.86; text buttons 1 px down
+   with a thicker underline; checkbox rows and «як робити» 3 px right; a calendar day 0.88 ---- */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-no-motion]) .ctl,
+  :root:not([data-no-motion]) .icon-btn .icon {
+    transition: transform 120ms cubic-bezier(.2, .8, .2, 1);
+  }
+  :root:not([data-no-motion]) :is(.btn--primary, .btn--secondary, .tab, .chip):active { transform: scale(0.97); }
+  :root:not([data-no-motion]) .icon-btn:active .icon { transform: scale(0.86); }
+  :root:not([data-no-motion]) :is(.btn--tertiary, .btn--destructive):active { transform: translateY(1px); text-decoration-thickness: 2px; }
+  :root:not([data-no-motion]) :is(.checkbox, .accordion--mini):active { transform: translateX(3px); }
+  :root:not([data-no-motion]) .cal-day:active { transform: scale(0.88); }
+
+  /* a number field's brackets take the focus colour in 120 ms; an error never animates */
+  :root:not([data-no-motion]) .number:focus-within :is(.number__bracket, .number__unit) {
+    transition: color 120ms ease-out;
+  }
+  :root:not([data-no-motion]) .number:has([aria-invalid='true']) :is(.number__bracket, .number__unit) {
+    transition: none;
+  }
+}
+
+/* ---- glyph frames (ui/motion.ts glyphs): drawn over the usual look, so nothing shifts ---- */
+.checkbox__box[data-g]::before { content: attr(data-g); }
+:is(.accordion__icon, .toast__check)[data-g] {
+  position: relative;
+}
+:is(.accordion__icon, .toast__check)[data-g] .icon { visibility: hidden; }
+:is(.accordion__icon, .toast__check)[data-g]::before {
+  content: attr(data-g);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ---- the glint of an accordion: a faint accent gradient runs down the body ---- */
+.fx-glint-host {
+  position: relative;
+}
+.fx-glint {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 30px;
+  pointer-events: none;
+  background: linear-gradient(transparent, rgb(var(--accent-rgb) / 12%), transparent);
+  opacity: 0;
+}
